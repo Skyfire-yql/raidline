@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { plans } from "@/db/schema";
-import { assertPlanDocument } from "@/lib/core";
+import { normalizePlanDocument } from "@/lib/core";
 import { authorizePlan, jsonData, jsonError, toStoredPlan } from "@/lib/server";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -24,8 +24,7 @@ export async function PUT(request: Request, context: RouteContext) {
     if (!auth.ok) return jsonError("UNAUTHORIZED", auth.reason, auth.reason === "计划不存在" ? 404 : 401);
     const payload = (await request.json()) as { baseVersion?: number; document?: unknown };
     if (!Number.isInteger(payload.baseVersion)) return jsonError("INVALID_VERSION", "缺少有效的基础版本号", 400);
-    assertPlanDocument(payload.document);
-    const document = payload.document;
+    const document = normalizePlanDocument(payload.document);
     const now = Date.now();
     const source = document.encounter.source;
     const [updated] = await getDb()

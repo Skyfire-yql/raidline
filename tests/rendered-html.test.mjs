@@ -40,9 +40,10 @@ test("server-renders the Raidline product entry", async () => {
     assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
     const html = await response.text();
     assert.match(html, /团轴/);
-    assert.match(html, /创建空白排轴/);
+    assert.match(html, /创建空白计划/);
     assert.match(html, /WCL/);
-    assert.match(html, /RAIDLINE/);
+    assert.match(html, /团本排轴工作台/);
+    assert.match(html, /仅所有者可见/);
     assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 
     const base = `http://localhost:${port}`;
@@ -59,7 +60,10 @@ test("server-renders the Raidline product entry", async () => {
     const readResponse = await fetch(`${base}/api/plans/${created.data.id}`, { headers: authorization });
     assert.equal(readResponse.status, 200);
     const read = await readResponse.json();
+    assert.equal(read.data.document.schemaVersion, 2);
+    assert.equal(read.data.document.settings.referenceMaxHealth, null);
     read.data.document.encounter.name = "更新后的首领";
+    read.data.document.settings.referenceMaxHealth = 1_000_000;
     const saveBody = JSON.stringify({ baseVersion: read.data.version, document: read.data.document });
     const savedResponse = await fetch(`${base}/api/plans/${created.data.id}`, {
       method: "PUT",
@@ -69,6 +73,8 @@ test("server-renders the Raidline product entry", async () => {
     assert.equal(savedResponse.status, 200);
     const saved = await savedResponse.json();
     assert.equal(saved.data.version, 2);
+    assert.equal(saved.data.document.schemaVersion, 2);
+    assert.equal(saved.data.document.settings.referenceMaxHealth, 1_000_000);
 
     const conflictResponse = await fetch(`${base}/api/plans/${created.data.id}`, {
       method: "PUT",
@@ -81,6 +87,27 @@ test("server-renders the Raidline product entry", async () => {
     assert.equal(sharedResponse.status, 200);
     const sharedText = await sharedResponse.text();
     assert.doesNotMatch(sharedText, /editToken|edit_key_hash/i);
+    assert.match(sharedText, /"schemaVersion":2/);
+
+    const invalidKeyResponse = await fetch(`${base}/api/plans/${created.data.id}`, { headers: { authorization: "Bearer invalid-key" } });
+    assert.equal(invalidKeyResponse.status, 401);
+
+    const legacy = {
+      schemaVersion: 1,
+      encounter: { name: "旧版兼容计划", difficulty: "英雄", durationMs: 120000 },
+      roster: [], phases: [{ id: "p1", name: "P1", atMs: 0 }], mechanics: [], cooldowns: [], assignments: [],
+      settings: { snapMs: 1000, zoom: 1, showMinorMechanics: true },
+    };
+    const legacyResponse = await fetch(`${base}/api/plans/${created.data.id}`, {
+      method: "PUT",
+      headers: { ...authorization, "content-type": "application/json" },
+      body: JSON.stringify({ baseVersion: saved.data.version, document: legacy }),
+    });
+    assert.equal(legacyResponse.status, 200);
+    const migrated = await legacyResponse.json();
+    assert.equal(migrated.data.document.schemaVersion, 2);
+    assert.equal(migrated.data.document.encounter.name, "旧版兼容计划");
+    assert.equal(migrated.data.document.settings.pressureResetMs, 10000);
 
     const wclResponse = await fetch(`${base}/api/plans/${created.data.id}/wcl/preview`, {
       method: "POST",

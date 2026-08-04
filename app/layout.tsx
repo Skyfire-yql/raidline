@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: base,
     title: { default: "团轴 Raidline", template: "%s｜团轴 Raidline" },
-    description: "把 Boss 机制、团队技能和每位成员放进同一条清晰时间线。",
+    description: "表格式魔兽世界团本排轴、机制压力与减伤计算工具。",
     applicationName: "团轴 Raidline",
     icons: { icon: "/og.png", shortcut: "/og.png" },
     openGraph: {
@@ -30,8 +30,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const themeBoot = `(function(){try{var m=localStorage.getItem('raidline:theme')||'system';var d=m==='dark'||(m==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.themeMode=m;document.documentElement.dataset.theme=d?'dark':'light'}catch(e){document.documentElement.dataset.theme='dark'}})()`;
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeBoot }} /></head>
       <body>{children}</body>
     </html>
   );

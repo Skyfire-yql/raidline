@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { ensureDbSchema, getDb } from "@/db";
 import { plans } from "@/db/schema";
 import type { RaidPlanDocument, StoredPlan } from "./types";
+import { normalizePlanDocument } from "./core";
 
 export function jsonData<T>(data: T, init?: ResponseInit) {
   return Response.json({ data }, init);
@@ -60,7 +61,7 @@ export function toStoredPlan(row: typeof plans.$inferSelect): StoredPlan {
     shareSlug: row.shareSlug,
     title: row.title,
     version: row.version,
-    document: JSON.parse(row.documentJson) as RaidPlanDocument,
+    document: normalizePlanDocument(JSON.parse(row.documentJson)) as RaidPlanDocument,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

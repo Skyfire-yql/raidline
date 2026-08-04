@@ -3,7 +3,7 @@ import { and, eq, gt } from "drizzle-orm";
 import { getDb, ensureDbSchema } from "@/db";
 import { wclCache } from "@/db/schema";
 import { COOLDOWN_BY_SPELL_ID, WOW_CLASS_COLORS } from "./cooldowns";
-import { makeId } from "./core";
+import { ALL_TARGETS, makeId } from "./core";
 import { collectCastPages, groupCastEvents, parseWclSourceInput, WclInputError } from "./wcl-core";
 import type {
   RaidAssignment,
@@ -250,6 +250,7 @@ function normalizeAnalysis(
       memberId: member.id,
       cooldownId: cooldown.id,
       atMs: Math.round(timestamp),
+      targets: structuredClone(ALL_TARGETS),
       note: "来自 WCL 的实际施放",
       source: "wcl",
     });

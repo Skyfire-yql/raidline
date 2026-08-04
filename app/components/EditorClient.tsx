@@ -1,46 +1,60 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any -- Inspector JSX edits heterogeneous v2 unions in-place; runtime documents are normalized before use. */
+/* eslint-disable @next/next/no-html-link-for-pages -- Vinext's Next Link shim loads a second React instance in the client bundle. */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { WOW_CLASS_COLORS, WOW_CLASS_LABELS } from "@/lib/cooldowns";
-import { detectConflicts, exportMrtNote, formatTime, makeId, parseTime, snapTime } from "@/lib/core";
-import type {
-  ApiError,
-  RaidAssignment,
-  RaidMechanic,
-  RaidPlanDocument,
-  StoredPlan,
-  WclImportAnalysis,
-  WclPreview,
-} from "@/lib/types";
+import {
+  ALL_TARGETS, INHERIT_TARGETS, calculateMechanicPressure, defaultAssignmentStart, detectConflicts,
+  exportMrtNote, formatCompactNumber, formatTime, makeId, mechanicImpactMs,
+  normalizePlanDocument, parseTime, snapTime, syncLinkedAssignments,
+} from "@/lib/core";
+import type { ConflictWarning, MechanicPressureResult } from "@/lib/core";
+import { applyBuiltInPreset, BUILT_IN_PRESETS, createPersonalPreset, parsePresetJson, stringifyPreset, type RaidPlanPreset } from "@/lib/presets";
+import type { ApiError, CooldownDefinition, CooldownEffect, RaidAssignment, RaidGroup, RaidMechanic, RaidPlanDocument, RosterMember, StoredPlan, TargetSelection, WclImportAnalysis, WclPreview } from "@/lib/types";
+import { anchoredScroll, defaultOrientation, shouldInterceptTimelineWheel, viewPreferenceKey, zoomFromWheel, type TimelineOrientation } from "@/lib/view";
+import { ThemeControl } from "./ThemeControl";
+import { TimelineView } from "./TimelineView";
+import { ZoomControl } from "./ZoomControl";
+import { deletePersonalPreset, listPersonalPresets, savePersonalPreset } from "./preset-store";
 
-type Selection = { type: "member" | "mechanic" | "assignment"; id: string } | null;
+type Selection = { type: "member" | "group" | "mechanic" | "cooldown" | "assignment"; id: string } | null;
 type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict";
-
+type LeftTab = "members" | "skills" | "groups" | "presets";
 const RECENT_KEY = "raidline:recent";
 const roleLabels = { tank: "坦克", healer: "治疗", damage: "输出" } as const;
 
-function clonePlan(plan: RaidPlanDocument) {
-  return structuredClone(plan);
-}
-
-function ApiMessage({ error }: { error: ApiError | null }) {
-  return error ? <div className="inline-error" role="alert">{error.message}</div> : null;
-}
+function clonePlan(plan: RaidPlanDocument) { return structuredClone(plan); }
 
 function TimeField({ value, onCommit, label = "时间" }: { value: number; onCommit: (value: number) => void; label?: string }) {
   const [draft, setDraft] = useState(formatTime(value));
-  useEffect(() => setDraft(formatTime(value)), [value]);
-  function commit() {
-    const parsed = parseTime(draft);
-    if (parsed == null) setDraft(formatTime(value));
-    else onCommit(parsed);
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => setDraft(formatTime(value)), 0);
+    return () => clearTimeout(timer);
+  }, [value]);
+  function commit() { const parsed = parseTime(draft); if (parsed == null) setDraft(formatTime(value)); else onCommit(parsed); }
   return <input aria-label={label} value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} />;
 }
 
+function NullableNumber({ value, onChange, scale = 1, min = 0, placeholder = "未设置" }: { value: number | null; onChange: (value: number | null) => void; scale?: number; min?: number; placeholder?: string }) {
+  return <input type="number" min={min} placeholder={placeholder} value={value == null ? "" : value / scale} onChange={(event) => onChange(event.target.value === "" ? null : Math.max(min, Number(event.target.value)) * scale)} />;
+}
+
+function TargetEditor({ target, plan, allowInherit, onChange }: { target: TargetSelection; plan: RaidPlanDocument; allowInherit?: boolean; onChange: (target: TargetSelection) => void }) {
+  const modes = [...(allowInherit ? [{ value: "inherit", label: "跟随机制" }] : []), { value: "all", label: "全团" }, { value: "groups", label: "自定义分组" }, { value: "roles", label: "职责" }, { value: "members", label: "具体成员" }];
+  function toggle(key: "groupIds" | "roles" | "memberIds", value: string) {
+    const current = new Set((target[key] ?? []) as string[]);
+    if (current.has(value)) current.delete(value); else current.add(value);
+    onChange({ ...target, [key]: [...current] });
+  }
+  return <div className="target-editor"><select value={target.mode} onChange={(event) => onChange({ mode: event.target.value as TargetSelection["mode"] })}>{modes.map((mode) => <option value={mode.value} key={mode.value}>{mode.label}</option>)}</select>
+    {target.mode === "groups" && <div className="check-grid">{plan.groups.map((group) => <label key={group.id}><input type="checkbox" checked={target.groupIds?.includes(group.id) ?? false} onChange={() => toggle("groupIds", group.id)} />{group.name}</label>)}</div>}
+    {target.mode === "roles" && <div className="check-grid">{Object.entries(roleLabels).map(([role, label]) => <label key={role}><input type="checkbox" checked={target.roles?.includes(role as keyof typeof roleLabels) ?? false} onChange={() => toggle("roles", role)} />{label}</label>)}</div>}
+    {target.mode === "members" && <div className="check-grid">{plan.roster.map((member) => <label key={member.id}><input type="checkbox" checked={target.memberIds?.includes(member.id) ?? false} onChange={() => toggle("memberIds", member.id)} />{member.name}</label>)}</div>}
+  </div>;
+}
+
 export function EditorClient({ planId }: { planId: string }) {
-  const router = useRouter();
   const [token, setToken] = useState("");
   const [stored, setStored] = useState<StoredPlan | null>(null);
   const [plan, setPlan] = useState<RaidPlanDocument | null>(null);
@@ -52,429 +66,318 @@ export function EditorClient({ planId }: { planId: string }) {
   const [conflict, setConflict] = useState<StoredPlan | null>(null);
   const [showWcl, setShowWcl] = useState(false);
   const [wclInitial, setWclInitial] = useState("");
+  const [leftTab, setLeftTab] = useState<LeftTab>("members");
   const [paletteSearch, setPaletteSearch] = useState("");
+  const [showAllSkills, setShowAllSkills] = useState(false);
+  const [orientation, setOrientation] = useState<TimelineOrientation>("horizontal");
+  const [zoom, setZoom] = useState(1);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [viewWidth, setViewWidth] = useState(1024);
+  const [viewReady, setViewReady] = useState(false);
+  const [personalPresets, setPersonalPresets] = useState<RaidPlanPreset[]>([]);
+  const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const undoStack = useRef<RaidPlanDocument[]>([]);
   const redoStack = useRef<RaidPlanDocument[]>([]);
+  const editRevision = useRef(0);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const importPresetRef = useRef<HTMLInputElement>(null);
 
   const rememberPlan = useCallback((value: StoredPlan, editToken: string) => {
     try {
       localStorage.setItem(`raidline:key:${value.id}`, editToken);
       const current = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") as Array<{ id: string; title: string; updatedAt: number }>;
-      const next = [{ id: value.id, title: value.document.encounter.name, updatedAt: value.updatedAt }, ...current.filter((item) => item.id !== value.id)].slice(0, 8);
-      localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-    } catch {
-      // Durable plan data remains in D1; recent-plan storage is only a device convenience.
-    }
+      localStorage.setItem(RECENT_KEY, JSON.stringify([{ id: value.id, title: value.document.encounter.name, updatedAt: value.updatedAt }, ...current.filter((item) => item.id !== value.id)].slice(0, 8)));
+    } catch { /* device convenience only */ }
   }, []);
 
   const loadPlan = useCallback(async (editToken: string) => {
-    setFatal("");
     const response = await fetch(`/api/plans/${planId}`, { headers: { authorization: `Bearer ${editToken}` } });
-    const payload = (await response.json()) as { data?: StoredPlan; error?: ApiError };
+    const payload = await response.json() as { data?: StoredPlan; error?: ApiError };
     if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "读取计划失败");
-    setStored(payload.data);
-    setPlan(payload.data.document);
-    setVersion(payload.data.version);
-    setSaveState("saved");
-    undoStack.current = [];
-    redoStack.current = [];
-    rememberPlan(payload.data, editToken);
+    const document = normalizePlanDocument(payload.data.document);
+    setStored({ ...payload.data, document }); setPlan(document); setVersion(payload.data.version); setSaveState("saved");
+    undoStack.current = []; redoStack.current = []; editRevision.current = 0; setHistoryState({ canUndo: false, canRedo: false }); rememberPlan(payload.data, editToken);
   }, [planId, rememberPlan]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const source = params.get("wcl") ?? "";
-    if (source) {
-      setWclInitial(source);
-      setShowWcl(true);
-    }
-    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const fromHash = hash.get("key") ?? "";
-    const local = localStorage.getItem(`raidline:key:${planId}`) ?? "";
-    const editToken = fromHash || local;
-    if (fromHash) {
-      localStorage.setItem(`raidline:key:${planId}`, fromHash);
-      history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
-    }
-    if (!editToken) {
-      setFatal("这条编辑链接缺少恢复密钥。请打开完整恢复链接，或使用只读分享链接查看。");
-      return;
-    }
-    setToken(editToken);
-    loadPlan(editToken).catch((error) => setFatal(error instanceof Error ? error.message : "读取计划失败"));
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const source = new URLSearchParams(location.search).get("wcl") ?? "";
+      if (source) { setWclInitial(source); setShowWcl(true); }
+      const fromHash = new URLSearchParams(location.hash.replace(/^#/, "")).get("key") ?? "";
+      const editToken = fromHash || localStorage.getItem(`raidline:key:${planId}`) || "";
+      if (fromHash) { localStorage.setItem(`raidline:key:${planId}`, fromHash); history.replaceState(null, "", `${location.pathname}${location.search}`); }
+      if (!editToken) { setFatal("这条编辑链接缺少恢复密钥。请打开完整恢复链接。"); return; }
+      setToken(editToken); loadPlan(editToken).catch((error) => { if (!cancelled) setFatal(error instanceof Error ? error.message : "读取计划失败"); });
+      try {
+        const view = JSON.parse(localStorage.getItem(viewPreferenceKey("plan", planId, innerWidth)) ?? "null") as { orientation?: TimelineOrientation; zoom?: number; leftCollapsed?: boolean; rightCollapsed?: boolean } | null;
+        const mobile = innerWidth < 720;
+        setViewWidth(innerWidth); setOrientation(view?.orientation ?? defaultOrientation(innerWidth)); setZoom(view?.zoom ?? 1); setLeftCollapsed(view?.leftCollapsed ?? mobile); setRightCollapsed(view?.rightCollapsed ?? mobile);
+      } catch { setViewWidth(innerWidth); setOrientation(defaultOrientation(innerWidth)); setLeftCollapsed(innerWidth < 720); setRightCollapsed(innerWidth < 720); }
+      setViewReady(true);
+      listPersonalPresets().then((items) => { if (!cancelled) setPersonalPresets(items); }).catch(() => { if (!cancelled) setPersonalPresets([]); });
+    });
+    return () => { cancelled = true; };
   }, [loadPlan, planId]);
+
+  useEffect(() => { if (viewReady) localStorage.setItem(viewPreferenceKey("plan", planId, viewWidth), JSON.stringify({ orientation, zoom, leftCollapsed, rightCollapsed })); }, [leftCollapsed, orientation, planId, rightCollapsed, viewReady, viewWidth, zoom]);
 
   function mutate(mutator: (draft: RaidPlanDocument) => void, nextSelection?: Selection) {
     setPlan((current) => {
       if (!current) return current;
-      undoStack.current = [...undoStack.current.slice(-49), clonePlan(current)];
-      redoStack.current = [];
-      const next = clonePlan(current);
-      mutator(next);
-      return next;
+      undoStack.current = [...undoStack.current.slice(-49), clonePlan(current)]; redoStack.current = [];
+      const next = clonePlan(current); mutator(next); return normalizePlanDocument(next);
     });
-    setSaveState("dirty");
-    setConflict(null);
-    if (nextSelection !== undefined) setSelection(nextSelection);
+    editRevision.current += 1; setHistoryState({ canUndo: true, canRedo: false });
+    setSaveState("dirty"); setConflict(null); if (nextSelection !== undefined) setSelection(nextSelection);
   }
 
-  function undo() {
-    const previous = undoStack.current.pop();
-    if (!previous || !plan) return;
-    redoStack.current.push(clonePlan(plan));
-    setPlan(previous);
-    setSaveState("dirty");
+  function replacePlan(next: RaidPlanDocument) {
+    if (plan) undoStack.current = [...undoStack.current.slice(-49), clonePlan(plan)];
+    redoStack.current = []; editRevision.current += 1; setHistoryState({ canUndo: Boolean(plan), canRedo: false }); setPlan(normalizePlanDocument(next)); setSelection(null); setSaveState("dirty"); setConflict(null);
   }
 
-  function redo() {
-    const next = redoStack.current.pop();
-    if (!next || !plan) return;
-    undoStack.current.push(clonePlan(plan));
-    setPlan(next);
-    setSaveState("dirty");
-  }
+  function undo() { const previous = undoStack.current.pop(); if (!previous || !plan) return; redoStack.current.push(clonePlan(plan)); editRevision.current += 1; setHistoryState({ canUndo: undoStack.current.length > 0, canRedo: true }); setPlan(previous); setSaveState("dirty"); }
+  function redo() { const next = redoStack.current.pop(); if (!next || !plan) return; undoStack.current.push(clonePlan(plan)); editRevision.current += 1; setHistoryState({ canUndo: true, canRedo: redoStack.current.length > 0 }); setPlan(next); setSaveState("dirty"); }
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "z") return;
+      event.preventDefault(); if (event.shiftKey) redo(); else undo();
+    };
+    addEventListener("keydown", onKey); return () => removeEventListener("keydown", onKey);
+  });
 
   useEffect(() => {
     if (!plan || !token || saveState !== "dirty" || conflict) return;
     const captured = plan;
-    const timer = window.setTimeout(async () => {
+    const capturedRevision = editRevision.current;
+    const timer = setTimeout(async () => {
       setSaveState("saving");
       try {
-        const response = await fetch(`/api/plans/${planId}`, {
-          method: "PUT",
-          headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-          body: JSON.stringify({ baseVersion: version, document: captured }),
-        });
-        const payload = (await response.json()) as { data?: StoredPlan; error?: ApiError };
-        if (response.status === 409) {
-          setConflict(payload.error?.details as StoredPlan | null);
-          setSaveState("conflict");
-          return;
-        }
+        const response = await fetch(`/api/plans/${planId}`, { method: "PUT", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ baseVersion: version, document: captured }) });
+        const payload = await response.json() as { data?: StoredPlan; error?: ApiError };
+        if (response.status === 409) { setConflict(payload.error?.details as StoredPlan | null); setSaveState("conflict"); return; }
         if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "保存失败");
-        setVersion(payload.data.version);
-        setStored(payload.data);
-        rememberPlan(payload.data, token);
-        setPlan((current) => {
-          if (current === captured) setSaveState("saved");
-          else setSaveState("dirty");
-          return current;
-        });
-      } catch (error) {
-        setSaveState("error");
-        setToast(error instanceof Error ? error.message : "保存失败");
-      }
+        setVersion(payload.data.version); setStored(payload.data); rememberPlan(payload.data, token);
+        setSaveState(editRevision.current === capturedRevision ? "saved" : "dirty");
+      } catch (error) { setSaveState("error"); setToast(error instanceof Error ? error.message : "保存失败"); }
     }, 800);
-    return () => window.clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [conflict, plan, planId, rememberPlan, saveState, token, version]);
 
+  useEffect(() => {
+    const element = timelineRef.current; if (!element) return;
+    const onWheel = (event: WheelEvent) => {
+      const pointerInTimeline = event.target instanceof Node && element.contains(event.target);
+      if (!shouldInterceptTimelineWheel(event.ctrlKey, pointerInTimeline)) return;
+      event.preventDefault();
+      setZoom((current) => {
+        const next = zoomFromWheel(current, event.deltaY); const rect = element.getBoundingClientRect();
+        if (orientation === "horizontal") element.scrollLeft = anchoredScroll(element.scrollLeft, event.clientX - rect.left, current, next);
+        else element.scrollTop = anchoredScroll(element.scrollTop, event.clientY - rect.top, current, next);
+        return next;
+      });
+    };
+    element.addEventListener("wheel", onWheel, { passive: false }); return () => element.removeEventListener("wheel", onWheel);
+  }, [orientation]);
+
   const warnings = useMemo(() => plan ? detectConflicts(plan) : [], [plan]);
-  const warningIds = useMemo(() => new Set(warnings.map((item) => item.assignmentId)), [warnings]);
+  const warningIds = useMemo(() => new Set(warnings.flatMap((item) => item.assignmentId ? [item.assignmentId] : [])), [warnings]);
+  const pressure = useMemo(() => plan ? calculateMechanicPressure(plan) : [], [plan]);
+  const pressureMap = useMemo(() => new Map(pressure.map((item) => [item.mechanicId, item])), [pressure]);
 
-  if (fatal) {
-    return <main className="state-page"><div className="state-card"><span className="brand-mark">轴</span><p className="eyebrow">EDIT LINK REQUIRED</p><h1>无法打开编辑器</h1><p>{fatal}</p><a className="button button-gold" href="/">回到首页</a></div></main>;
-  }
-  if (!plan || !stored) {
-    return <main className="state-page"><div className="loading-sigil"><span>轴</span><i /></div><p>正在展开时间线…</p></main>;
-  }
-
+  if (fatal) return <main className="state-page"><div className="state-card"><h1>无法打开编辑器</h1><p>{fatal}</p><a className="primary-action" href="/">回到首页</a></div></main>;
+  if (!plan || !stored) return <main className="state-page"><p>正在读取计划…</p></main>;
   const activePlan = plan;
 
-  const durationSeconds = Math.max(10, activePlan.encounter.durationMs / 1000);
-  const pixelsPerSecond = 5 * activePlan.settings.zoom;
-  const trackWidth = Math.max(980, Math.round(durationSeconds * pixelsPerSecond));
-  const ticks = Array.from({ length: Math.floor(durationSeconds / 15) + 1 }, (_, index) => index * 15);
   const selectedMember = selection?.type === "member" ? plan.roster.find((item) => item.id === selection.id) : null;
+  const selectedGroup = selection?.type === "group" ? plan.groups.find((item) => item.id === selection.id) : null;
   const selectedMechanic = selection?.type === "mechanic" ? plan.mechanics.find((item) => item.id === selection.id) : null;
+  const selectedCooldownDirect = selection?.type === "cooldown" ? plan.cooldowns.find((item) => item.id === selection.id) : null;
   const selectedAssignment = selection?.type === "assignment" ? plan.assignments.find((item) => item.id === selection.id) : null;
-  const selectedCooldown = selectedAssignment ? plan.cooldowns.find((item) => item.id === selectedAssignment.cooldownId) : null;
-  const filteredCooldowns = plan.cooldowns.filter((item) => `${item.name}${WOW_CLASS_LABELS[item.classSlug] ?? item.classSlug}`.toLowerCase().includes(paletteSearch.toLowerCase()));
+  const selectedCooldown = selectedCooldownDirect ?? (selectedAssignment ? plan.cooldowns.find((item) => item.id === selectedAssignment.cooldownId) : null);
+  const activeMember = selectedMember ?? plan.roster[0];
+  const filteredCooldowns = plan.cooldowns.filter((item) => (showAllSkills || !activeMember || item.classSlug === activeMember.classSlug) && `${item.name}${WOW_CLASS_LABELS[item.classSlug] ?? item.classSlug}`.toLowerCase().includes(paletteSearch.toLowerCase()));
 
   function addMember() {
     const id = makeId("member");
-    mutate((draft) => {
-      draft.roster.push({ id, name: `新成员 ${draft.roster.length + 1}`, classSlug: "Priest", specSlug: "神圣", role: "healer", color: WOW_CLASS_COLORS.Priest });
-    }, { type: "member", id });
+    mutate((draft) => draft.roster.push({ id, name: `新成员 ${draft.roster.length + 1}`, classSlug: "Priest", specSlug: "未知专精", role: "damage", color: WOW_CLASS_COLORS.Priest }), { type: "member", id });
   }
-
+  function addGroup() { const id = makeId("group"); mutate((draft) => draft.groups.push({ id, name: `分组 ${draft.groups.length + 1}`, color: "#6f7f91" }), { type: "group", id }); }
   function addMechanic(atMs = 30_000) {
-    const id = makeId("mechanic");
-    mutate((draft) => {
-      draft.mechanics.push({ id, name: "新机制", atMs: snapTime(atMs, draft.settings.snapMs), severity: "warning", source: "manual", note: "" });
-      draft.mechanics.sort((a, b) => a.atMs - b.atMs);
-    }, { type: "mechanic", id });
+    const id = makeId("mechanic"); mutate((draft) => draft.mechanics.push({ id, name: "新机制", description: "", atMs: snapTime(atMs, draft.settings.snapMs), castTimeMs: 0, durationMs: 0, damage: { school: "magic", directAmount: null, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false }, targets: structuredClone(ALL_TARGETS), severity: "warning", source: "manual", note: "" }), { type: "mechanic", id });
   }
-
+  function addCustomSkill() {
+    const id = makeId("custom-spell"); const classSlug = activeMember?.classSlug ?? "Warrior";
+    mutate((draft) => draft.cooldowns.push({ id, name: "自定义技能", description: "", classSlug, specSlugs: [], scope: "team", cooldownMs: null, castTimeMs: null, durationMs: null, triggersGcd: null, maxTargets: null, effects: [], category: "自定义", color: WOW_CLASS_COLORS[classSlug], catalogVersion: "custom", dataStatus: "custom" }), { type: "cooldown", id });
+  }
   function addAssignment(cooldownId: string) {
-    if (!activePlan.roster.length) {
-      setToast("先添加至少一名团队成员");
-      return;
-    }
-    const id = makeId("assignment");
-    const memberId = selectedMember?.id ?? selectedAssignment?.memberId ?? activePlan.roster[0].id;
-    const mechanicId = selectedMechanic?.id;
-    const atMs = selectedMechanic?.atMs ?? selectedAssignment?.atMs ?? 0;
-    mutate((draft) => {
-      draft.assignments.push({ id, memberId, cooldownId, mechanicId, atMs, note: "", source: "manual" });
-    }, { type: "assignment", id });
+    const cooldown = activePlan.cooldowns.find((item) => item.id === cooldownId); if (!cooldown) return;
+    const member = selectedMember ?? (selectedAssignment ? activePlan.roster.find((item) => item.id === selectedAssignment.memberId) : null) ?? activePlan.roster.find((item) => item.classSlug === cooldown.classSlug) ?? activePlan.roster[0];
+    if (!member) { setToast("先添加至少一名团队成员"); return; }
+    const mechanic = selectedMechanic ?? (selectedAssignment?.mechanicId ? activePlan.mechanics.find((item) => item.id === selectedAssignment.mechanicId) : null);
+    const id = makeId("assignment"); const atMs = mechanic ? defaultAssignmentStart(activePlan, cooldown, mechanic) : 0;
+    mutate((draft) => draft.assignments.push({ id, memberId: member.id, cooldownId, ...(mechanic ? { mechanicId: mechanic.id, offsetMs: atMs - mechanicImpactMs(mechanic) } : {}), atMs, targets: cooldown.scope === "personal" ? { mode: "members", memberIds: [member.id] } : mechanic ? structuredClone(INHERIT_TARGETS) : structuredClone(ALL_TARGETS), note: "", source: "manual" }), { type: "assignment", id });
+  }
+  function moveAssignment(id: string, atMs: number) {
+    mutate((draft) => { const item = draft.assignments.find((entry) => entry.id === id); if (!item) return; item.atMs = snapTime(atMs, draft.settings.snapMs); const mechanic = item.mechanicId ? draft.mechanics.find((entry) => entry.id === item.mechanicId) : undefined; if (mechanic) item.offsetMs = item.atMs - mechanicImpactMs(mechanic); }, { type: "assignment", id });
   }
 
-  function handleTrackDoubleClick(event: React.MouseEvent<HTMLDivElement>) {
-    const target = event.target as HTMLElement;
-    if (target.closest("button")) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const atMs = ((event.clientX - rect.left) / pixelsPerSecond) * 1000;
-    addMechanic(atMs);
-  }
-
-  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    const assignmentId = event.dataTransfer.getData("application/x-raidline-assignment");
-    if (!assignmentId) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const atMs = snapTime(((event.clientX - rect.left) / pixelsPerSecond) * 1000, activePlan.settings.snapMs);
-    mutate((draft) => {
-      const assignment = draft.assignments.find((item) => item.id === assignmentId);
-      if (assignment) assignment.atMs = Math.min(draft.encounter.durationMs, atMs);
-    }, { type: "assignment", id: assignmentId });
-  }
-
-  async function copyText(value: string, message: string) {
-    await navigator.clipboard.writeText(value);
-    setToast(message);
-  }
-
-  function downloadJson() {
-    const blob = new Blob([JSON.stringify(activePlan, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${activePlan.encounter.name || "raidline"}.raidline.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    setToast("JSON 备份已下载");
-  }
-
-  async function duplicateLocal() {
+  async function copyText(value: string, message: string) { await navigator.clipboard.writeText(value); setToast(message); }
+  function download(value: string, filename: string, type = "application/json") { const url = URL.createObjectURL(new Blob([value], { type })); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; anchor.click(); URL.revokeObjectURL(url); }
+  async function saveConflictAsNew() {
+    setSaveState("saving");
     try {
       const createdResponse = await fetch("/api/plans", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: `${activePlan.encounter.name}（副本）` }) });
-      const created = (await createdResponse.json()) as { data?: { id: string; editToken: string; version: number }; error?: ApiError };
-      if (!created.data) throw new Error(created.error?.message ?? "创建副本失败");
-      const cloned = clonePlan(activePlan);
-      cloned.encounter.name = `${cloned.encounter.name}（副本）`;
-      const savedResponse = await fetch(`/api/plans/${created.data.id}`, { method: "PUT", headers: { authorization: `Bearer ${created.data.editToken}`, "content-type": "application/json" }, body: JSON.stringify({ baseVersion: created.data.version, document: cloned }) });
-      if (!savedResponse.ok) throw new Error("保存副本失败");
-      localStorage.setItem(`raidline:key:${created.data.id}`, created.data.editToken);
-      router.replace(`/plans/${created.data.id}#key=${encodeURIComponent(created.data.editToken)}`);
+      const created = await createdResponse.json() as { data?: { id: string; editToken: string; version: number }; error?: ApiError };
+      if (!createdResponse.ok || !created.data) throw new Error(created.error?.message ?? "创建新计划失败");
+      const savedResponse = await fetch(`/api/plans/${created.data.id}`, { method: "PUT", headers: { authorization: `Bearer ${created.data.editToken}`, "content-type": "application/json" }, body: JSON.stringify({ baseVersion: created.data.version, document: activePlan }) });
+      const saved = await savedResponse.json() as { data?: StoredPlan; error?: ApiError };
+      if (!savedResponse.ok || !saved.data) throw new Error(saved.error?.message ?? "另存计划失败");
+      rememberPlan(saved.data, created.data.editToken);
+      location.assign(`/plans/${created.data.id}#key=${encodeURIComponent(created.data.editToken)}`);
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "创建副本失败");
+      setSaveState("conflict");
+      setToast(error instanceof Error ? error.message : "另存计划失败");
     }
   }
 
-  return (
-    <main className="editor-shell">
-      <header className="editor-header">
-        <a className="brand compact" href="/"><span className="brand-mark">轴</span><span><strong>团轴</strong><small>RAIDLINE</small></span></a>
-        <div className="plan-title-block">
-          <span className="crumb">个人排轴 /</span>
-          <input aria-label="排轴名称" value={plan.encounter.name} onChange={(event) => mutate((draft) => { draft.encounter.name = event.target.value; })} />
-          <span className={`save-badge ${saveState}`}><i />{{ saved: "已保存", dirty: "待保存", saving: "保存中", error: "保存失败", conflict: "版本冲突" }[saveState]}</span>
-        </div>
-        <div className="editor-actions">
-          <button onClick={undo} disabled={!undoStack.current.length} title="撤销 (Ctrl+Z)">↶</button>
-          <button onClick={redo} disabled={!redoStack.current.length} title="重做">↷</button>
-          <button onClick={() => setShowWcl(true)}>WCL 导入</button>
-          <button onClick={() => copyText(exportMrtNote(plan), "MRT 文本已复制")}>复制 MRT</button>
-          <button onClick={() => copyText(`${location.origin}/s/${stored.shareSlug}`, "只读链接已复制")}>分享</button>
-          <button className="gold-mini" onClick={() => copyText(`${location.origin}/plans/${planId}#key=${encodeURIComponent(token)}`, "编辑恢复链接已复制")}>恢复链接</button>
-        </div>
-      </header>
+  async function saveAsPreset() {
+    const name = prompt("个人预设名称", activePlan.encounter.name); if (!name) return;
+    const preset = createPersonalPreset(name, activePlan); await savePersonalPreset(preset); setPersonalPresets(await listPersonalPresets()); setToast("完整计划已保存为当前设备预设");
+  }
+  function applyPreset(preset: RaidPlanPreset) {
+    if (!confirm(`应用“${preset.name}”？当前计划内容会被替换，可使用撤销恢复。`)) return;
+    replacePlan(preset.kind === "built-in" ? applyBuiltInPreset(activePlan, preset) : preset.document); setToast("预设已应用");
+  }
+  async function importPreset(file: File) {
+    try { const preset = parsePresetJson(await file.text()); await savePersonalPreset(preset); setPersonalPresets(await listPersonalPresets()); setToast("个人预设已导入"); } catch (error) { setToast(error instanceof Error ? error.message : "导入预设失败"); }
+  }
 
-      {saveState === "conflict" && (
-        <div className="conflict-banner">
-          <span>服务器上有另一份更新，本地修改尚未覆盖它。</span>
-          <button onClick={() => { if (conflict) { setPlan(conflict.document); setStored(conflict); setVersion(conflict.version); setConflict(null); setSaveState("saved"); } }}>加载服务器版本</button>
-          <button onClick={duplicateLocal}>将本地修改另存为新计划</button>
-        </div>
-      )}
-
-      <div className="editor-grid">
-        <aside className="roster-panel panel">
-          <div className="panel-heading"><span><small>01</small><strong>团队成员</strong></span><button onClick={addMember} aria-label="添加成员">＋</button></div>
-          <div className="roster-summary"><span><b>{plan.roster.length}</b> / 40 人</span><span><b>{plan.roster.filter((item) => item.role === "healer").length}</b> 治疗</span></div>
-          <div className="roster-list">
-            {plan.roster.map((member) => (
-              <button className={`roster-item ${selection?.type === "member" && selection.id === member.id ? "selected" : ""}`} key={member.id} onClick={() => setSelection({ type: "member", id: member.id })}>
-                <i style={{ background: member.color }} /><span><strong>{member.name}</strong><small>{WOW_CLASS_LABELS[member.classSlug] ?? member.classSlug} · {roleLabels[member.role]}</small></span><b>›</b>
-              </button>
-            ))}
-            {!plan.roster.length && <div className="panel-empty"><span>＋</span><p>还没有团队成员<br /><small>添加成员后即可安排技能</small></p><button onClick={addMember}>添加第一位成员</button></div>}
-          </div>
-
-          <div className="palette-heading"><span>团队技能</span><button onClick={() => {
-            const id = makeId("custom-spell");
-            mutate((draft) => draft.cooldowns.push({ id, name: "自定义技能", classSlug: "Warrior", cooldownMs: 120000, durationMs: 8000, category: "自定义", color: "#c69b6d" }));
-            setToast("已添加自定义技能，可在分配后编辑");
-          }}>＋ 自定义</button></div>
-          <input className="palette-search" aria-label="搜索团队技能" placeholder="搜索技能或职业…" value={paletteSearch} onChange={(event) => setPaletteSearch(event.target.value)} />
-          <div className="cooldown-palette">
-            {filteredCooldowns.map((cooldown) => (
-              <button key={cooldown.id} onClick={() => addAssignment(cooldown.id)} title={`添加 ${cooldown.name}`}>
-                <i style={{ borderColor: cooldown.color, color: cooldown.color }}>{cooldown.name.slice(0, 1)}</i><span><strong>{cooldown.name}</strong><small>{Math.round(cooldown.cooldownMs / 1000)}s · {cooldown.category}</small></span><b>＋</b>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <section className="timeline-panel panel">
-          <div className="timeline-toolbar">
-            <div><span className="difficulty-tag">{plan.encounter.difficulty}</span><b>{formatTime(plan.encounter.durationMs)}</b><span>{plan.mechanics.length} 个机制</span><span>{plan.assignments.length} 项分配</span></div>
-            <div><button onClick={() => addMechanic()}>＋ 添加机制</button><label>缩放 <input type="range" min="0.6" max="1.8" step="0.1" value={plan.settings.zoom} onChange={(event) => mutate((draft) => { draft.settings.zoom = Number(event.target.value); })} /></label></div>
-          </div>
-          <div className="timeline-scroll" ref={timelineRef}>
-            <div className="timeline-canvas" style={{ width: trackWidth }} onDoubleClick={handleTrackDoubleClick} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
-              <div className="tick-layer" aria-hidden="true">{ticks.map((second) => <i key={second} style={{ left: second * pixelsPerSecond }} className={second % 30 === 0 ? "major" : ""} />)}</div>
-              <div className="timeline-ruler">{ticks.filter((second) => second % 30 === 0).map((second) => <span key={second} style={{ left: second * pixelsPerSecond }}>{formatTime(second * 1000)}</span>)}</div>
-              <div className="mechanic-lane">
-                <div className="lane-label">BOSS 机制</div>
-                {plan.phases.map((phase) => <span className="phase-flag" key={phase.id} style={{ left: phase.atMs / 1000 * pixelsPerSecond }}>{phase.name}</span>)}
-                {plan.mechanics.map((mechanic) => (
-                  <button key={mechanic.id} className={`mechanic-marker severity-${mechanic.severity} ${selection?.type === "mechanic" && selection.id === mechanic.id ? "selected" : ""}`} style={{ left: mechanic.atMs / 1000 * pixelsPerSecond }} onClick={() => setSelection({ type: "mechanic", id: mechanic.id })} title={`${formatTime(mechanic.atMs)} ${mechanic.name}`}>
-                    <i /><span>{mechanic.name}</span>
-                  </button>
-                ))}
-              </div>
-              {plan.roster.map((member) => (
-                <div className="member-lane" key={member.id}>
-                  <div className="lane-label member-label"><i style={{ background: member.color }} /><span><strong>{member.name}</strong><small>{roleLabels[member.role]}</small></span></div>
-                  {plan.assignments.filter((assignment) => assignment.memberId === member.id).map((assignment) => {
-                    const cooldown = plan.cooldowns.find((item) => item.id === assignment.cooldownId);
-                    if (!cooldown) return null;
-                    return (
-                      <button draggable key={assignment.id} className={`assignment-chip ${warningIds.has(assignment.id) ? "has-warning" : ""} ${selection?.type === "assignment" && selection.id === assignment.id ? "selected" : ""}`} style={{ left: assignment.atMs / 1000 * pixelsPerSecond, borderColor: cooldown.color }} onDragStart={(event) => event.dataTransfer.setData("application/x-raidline-assignment", assignment.id)} onClick={() => setSelection({ type: "assignment", id: assignment.id })} title={`${formatTime(assignment.atMs)} ${cooldown.name}`}>
-                        <i style={{ background: cooldown.color }} />{cooldown.name}{warningIds.has(assignment.id) && <b>!</b>}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-              {!plan.roster.length && <div className="timeline-empty">添加成员与机制，让这条轴开始运转。<small>双击时间线也可以快速创建机制</small></div>}
-            </div>
-          </div>
-          <div className="timeline-legend"><span><i className="legend-danger" />高危机制</span><span><i className="legend-warning" />常规机制</span><span><i className="legend-assignment" />技能分配</span><small>拖动技能块可调整时间 · 双击空白处添加机制</small></div>
-        </section>
-
-        <aside className="inspector-panel panel">
-          <div className="panel-heading"><span><small>03</small><strong>属性与检查</strong></span></div>
-          {!selection && (
-            <div className="inspector-form">
-              <p className="inspector-kicker">ENCOUNTER</p><h3>战斗设置</h3>
-              <label>首领 / 计划名称<input value={plan.encounter.name} onChange={(event) => mutate((draft) => { draft.encounter.name = event.target.value; })} /></label>
-              <label>难度<select value={plan.encounter.difficulty} onChange={(event) => mutate((draft) => { draft.encounter.difficulty = event.target.value; })}><option>随机</option><option>普通</option><option>英雄</option><option>史诗</option></select></label>
-              <label>战斗时长<TimeField value={plan.encounter.durationMs} label="战斗时长" onCommit={(value) => mutate((draft) => { draft.encounter.durationMs = Math.max(10000, value); })} /></label>
-              {plan.encounter.source && <div className="source-card"><span>WCL</span><p><strong>{plan.encounter.source.reportCode}</strong><small>Fight #{plan.encounter.source.fightId} · revision {plan.encounter.source.reportRevision}</small></p></div>}
-            </div>
-          )}
-          {selectedMember && (
-            <div className="inspector-form"><p className="inspector-kicker">RAIDER</p><h3>成员设置</h3>
-              <label>角色名<input value={selectedMember.name} onChange={(event) => mutate((draft) => { const item = draft.roster.find((member) => member.id === selectedMember.id); if (item) item.name = event.target.value; })} /></label>
-              <label>职业<select value={selectedMember.classSlug} onChange={(event) => mutate((draft) => { const item = draft.roster.find((member) => member.id === selectedMember.id); if (item) { item.classSlug = event.target.value; item.color = WOW_CLASS_COLORS[event.target.value] ?? "#b6ad9a"; } })}>{Object.entries(WOW_CLASS_LABELS).map(([slug, label]) => <option key={slug} value={slug}>{label}</option>)}</select></label>
-              <label>专精<input value={selectedMember.specSlug} onChange={(event) => mutate((draft) => { const item = draft.roster.find((member) => member.id === selectedMember.id); if (item) item.specSlug = event.target.value; })} /></label>
-              <label>职责<select value={selectedMember.role} onChange={(event) => mutate((draft) => { const item = draft.roster.find((member) => member.id === selectedMember.id); if (item) item.role = event.target.value as typeof item.role; })}><option value="tank">坦克</option><option value="healer">治疗</option><option value="damage">输出</option></select></label>
-              <button className="danger-button" onClick={() => { if (confirm(`删除成员“${selectedMember.name}”及其全部分配？`)) mutate((draft) => { draft.roster = draft.roster.filter((item) => item.id !== selectedMember.id); draft.assignments = draft.assignments.filter((item) => item.memberId !== selectedMember.id); }, null); }}>删除成员</button>
-            </div>
-          )}
-          {selectedMechanic && (
-            <div className="inspector-form"><p className="inspector-kicker">MECHANIC</p><h3>机制设置</h3>
-              <label>机制名称<input value={selectedMechanic.name} onChange={(event) => mutate((draft) => { const item = draft.mechanics.find((mechanic) => mechanic.id === selectedMechanic.id); if (item) item.name = event.target.value; })} /></label>
-              <label>发生时间<TimeField value={selectedMechanic.atMs} onCommit={(value) => mutate((draft) => { const item = draft.mechanics.find((mechanic) => mechanic.id === selectedMechanic.id); if (item) item.atMs = Math.min(draft.encounter.durationMs, snapTime(value, draft.settings.snapMs)); })} /></label>
-              <label>危险等级<select value={selectedMechanic.severity} onChange={(event) => mutate((draft) => { const item = draft.mechanics.find((mechanic) => mechanic.id === selectedMechanic.id); if (item) item.severity = event.target.value as typeof item.severity; })}><option value="info">提示</option><option value="warning">常规</option><option value="danger">高危</option></select></label>
-              <label>备注<textarea value={selectedMechanic.note} onChange={(event) => mutate((draft) => { const item = draft.mechanics.find((mechanic) => mechanic.id === selectedMechanic.id); if (item) item.note = event.target.value; })} /></label>
-              <button className="danger-button" onClick={() => mutate((draft) => { draft.mechanics = draft.mechanics.filter((item) => item.id !== selectedMechanic.id); draft.assignments = draft.assignments.map((item) => item.mechanicId === selectedMechanic.id ? { ...item, mechanicId: undefined } : item); }, null)}>删除机制</button>
-            </div>
-          )}
-          {selectedAssignment && (
-            <div className="inspector-form"><p className="inspector-kicker">ASSIGNMENT</p><h3>技能分配</h3>
-              <label>成员<select value={selectedAssignment.memberId} onChange={(event) => mutate((draft) => { const item = draft.assignments.find((assignment) => assignment.id === selectedAssignment.id); if (item) item.memberId = event.target.value; })}>{plan.roster.map((member) => <option value={member.id} key={member.id}>{member.name}</option>)}</select></label>
-              <label>技能<select value={selectedAssignment.cooldownId} onChange={(event) => mutate((draft) => { const item = draft.assignments.find((assignment) => assignment.id === selectedAssignment.id); if (item) item.cooldownId = event.target.value; })}>{plan.cooldowns.map((cooldown) => <option value={cooldown.id} key={cooldown.id}>{cooldown.name}</option>)}</select></label>
-              {selectedCooldown && <><label>技能名称<input value={selectedCooldown.name} onChange={(event) => mutate((draft) => { const item = draft.cooldowns.find((cooldown) => cooldown.id === selectedCooldown.id); if (item) item.name = event.target.value; })} /></label><label>冷却秒数<input type="number" min="0" max="3600" value={Math.round(selectedCooldown.cooldownMs / 1000)} onChange={(event) => mutate((draft) => { const item = draft.cooldowns.find((cooldown) => cooldown.id === selectedCooldown.id); if (item) item.cooldownMs = Math.max(0, Number(event.target.value) * 1000); })} /></label><label>持续秒数<input type="number" min="0" max="600" value={Math.round(selectedCooldown.durationMs / 1000)} onChange={(event) => mutate((draft) => { const item = draft.cooldowns.find((cooldown) => cooldown.id === selectedCooldown.id); if (item) item.durationMs = Math.max(0, Number(event.target.value) * 1000); })} /></label></>}
-              <label>施放时间<TimeField value={selectedAssignment.atMs} onCommit={(value) => mutate((draft) => { const item = draft.assignments.find((assignment) => assignment.id === selectedAssignment.id); if (item) item.atMs = Math.min(draft.encounter.durationMs, snapTime(value, draft.settings.snapMs)); })} /></label>
-              <label>关联机制<select value={selectedAssignment.mechanicId ?? ""} onChange={(event) => mutate((draft) => { const item = draft.assignments.find((assignment) => assignment.id === selectedAssignment.id); if (item) { item.mechanicId = event.target.value || undefined; const mechanic = draft.mechanics.find((candidate) => candidate.id === event.target.value); if (mechanic) item.atMs = mechanic.atMs; } })}><option value="">自由时间点</option>{plan.mechanics.map((mechanic) => <option value={mechanic.id} key={mechanic.id}>{formatTime(mechanic.atMs)} {mechanic.name}</option>)}</select></label>
-              <label>备注<textarea value={selectedAssignment.note} onChange={(event) => mutate((draft) => { const item = draft.assignments.find((assignment) => assignment.id === selectedAssignment.id); if (item) item.note = event.target.value; })} /></label>
-              {warnings.filter((warning) => warning.assignmentId === selectedAssignment.id).map((warning) => <div className="warning-box" key={warning.type}>! {warning.message}</div>)}
-              <button className="danger-button" onClick={() => mutate((draft) => { draft.assignments = draft.assignments.filter((item) => item.id !== selectedAssignment.id); }, null)}>删除分配</button>
-            </div>
-          )}
-          <div className="checks-card"><div><span>排轴检查</span><b className={warnings.length ? "warn" : "ok"}>{warnings.length ? `${warnings.length} 项` : "通过"}</b></div>{warnings.slice(0, 4).map((warning, index) => <button key={`${warning.assignmentId}-${warning.type}-${index}`} onClick={() => setSelection({ type: "assignment", id: warning.assignmentId })}><i>!</i>{warning.message}</button>)}{!warnings.length && <p><i>✓</i>当前没有发现冷却或时间冲突</p>}</div>
-          <div className="backup-actions"><button onClick={downloadJson}>下载 JSON 备份</button><button onClick={() => copyText(`${location.origin}/plans/${planId}#key=${encodeURIComponent(token)}`, "恢复链接已复制")}>复制编辑恢复链接</button></div>
-        </aside>
-      </div>
-
-      {showWcl && <WclModal planId={planId} token={token} version={version} initialSource={wclInitial} onClose={() => { setShowWcl(false); setWclInitial(""); }} onImported={(value) => { undoStack.current.push(clonePlan(activePlan)); setPlan(value.document); setStored(value); setVersion(value.version); setSaveState("saved"); setSelection(null); setShowWcl(false); rememberPlan(value, token); setToast("WCL 战报已导入"); }} />}
-      {toast && <div className="toast" role="status">{toast}<button onClick={() => setToast("")} aria-label="关闭">×</button></div>}
-    </main>
-  );
+  const timelineSelection = selection?.type === "mechanic" ? `mechanic:${selection.id}` as const : selection?.type === "assignment" ? `assignment:${selection.id}` as const : null;
+  const gridClass = `${leftCollapsed ? "left-collapsed" : ""} ${rightCollapsed ? "right-collapsed" : ""}`;
+  return <main className="editor-workspace">
+    <header className="editor-utility-header"><a className="utility-brand" href="/"><span>轴</span><strong>团轴</strong></a><div className="plan-name"><input aria-label="计划名称" value={plan.encounter.name} onChange={(event) => mutate((draft) => { draft.encounter.name = event.target.value; })} /><span className={`save-state ${saveState}`}>{{ saved: "已保存", dirty: "待保存", saving: "保存中", error: "保存失败", conflict: "版本冲突" }[saveState]}</span></div><div className="header-actions"><button onClick={undo} disabled={!historyState.canUndo}>撤销</button><button onClick={redo} disabled={!historyState.canRedo}>重做</button><button onClick={() => setShowWcl(true)}>WCL</button><button onClick={() => copyText(exportMrtNote(plan), "MRT 已复制")}>MRT</button><button onClick={() => download(JSON.stringify(plan, null, 2), "raidline-plan.json")}>JSON</button><button onClick={() => copyText(`${location.origin}/s/${stored.shareSlug}`, "只读链接已复制")}>分享</button><button onClick={() => copyText(`${location.origin}/plans/${planId}#key=${encodeURIComponent(token)}`, "恢复链接已复制")}>恢复链接</button><ThemeControl compact /></div></header>
+    {saveState === "conflict" && <div className="conflict-banner"><span>服务器已有更新，本地修改尚未覆盖。</span><button onClick={() => { if (conflict) { setPlan(normalizePlanDocument(conflict.document)); setVersion(conflict.version); setConflict(null); setSaveState("saved"); } }}>加载服务器版本</button><button onClick={saveConflictAsNew}>另存为新计划</button></div>}
+    <div className={`editor-table-grid ${gridClass}`}>
+      <aside className={`left-table-panel ${leftCollapsed ? "collapsed" : ""}`}><button className="panel-collapse" onClick={() => setLeftCollapsed((value) => !value)}>{leftCollapsed ? "›" : "‹"}</button>{!leftCollapsed && <><nav className="panel-tabs">{([['members','成员'],['skills','技能'],['groups','分组'],['presets','预设']] as const).map(([id,label]) => <button className={leftTab === id ? "active" : ""} key={id} onClick={() => setLeftTab(id)}>{label}</button>)}</nav>
+        {leftTab === "members" && <div className="panel-body"><div className="table-tools"><span>{plan.roster.length}/40 人</span><button onClick={addMember}>＋ 添加</button></div><div className="dense-list">{plan.roster.map((member) => <button className={selection?.type === "member" && selection.id === member.id ? "selected" : ""} key={member.id} onClick={() => setSelection({ type: "member", id: member.id })}><i style={{ background: member.color }} /><span><strong>{member.name}</strong><small>{WOW_CLASS_LABELS[member.classSlug]} · {roleLabels[member.role]} · {plan.groups.find((group) => group.id === member.groupId)?.name ?? "未分组"}</small></span></button>)}</div></div>}
+        {leftTab === "skills" && <div className="panel-body"><div className="table-tools"><button onClick={addCustomSkill}>＋ 自定义</button><label><input type="checkbox" checked={showAllSkills} onChange={(event) => setShowAllSkills(event.target.checked)} />显示全部</label></div><input className="panel-search" placeholder="搜索技能" value={paletteSearch} onChange={(event) => setPaletteSearch(event.target.value)} /><div className="skill-list">{filteredCooldowns.map((cooldown) => <div className={selection?.type === "cooldown" && selection.id === cooldown.id ? "selected" : ""} key={cooldown.id}><button onClick={() => setSelection({ type: "cooldown", id: cooldown.id })}><i style={{ background: cooldown.color }} /><span><strong>{cooldown.name}</strong><small>{WOW_CLASS_LABELS[cooldown.classSlug]} · {cooldown.category} · {cooldown.durationMs == null ? "持续待补" : `${cooldown.durationMs / 1000}s`}</small></span></button><button title="添加分配" onClick={() => addAssignment(cooldown.id)}>＋</button></div>)}</div></div>}
+        {leftTab === "groups" && <div className="panel-body"><div className="table-tools"><span>每人最多一个自定义组</span><button onClick={addGroup}>＋ 添加</button></div><div className="dense-list">{plan.groups.map((group) => <button className={selection?.type === "group" && selection.id === group.id ? "selected" : ""} key={group.id} onClick={() => setSelection({ type: "group", id: group.id })}><i style={{ background: group.color }} /><span><strong>{group.name}</strong><small>{plan.roster.filter((member) => member.groupId === group.id).length} 人</small></span></button>)}{!plan.groups.length && <p className="table-empty">可建立左场、右场等站位组。</p>}</div></div>}
+        {leftTab === "presets" && <div className="panel-body"><div className="preset-actions"><button onClick={saveAsPreset}>保存当前完整计划</button><button onClick={() => importPresetRef.current?.click()}>导入 JSON</button><input ref={importPresetRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) importPreset(file); event.currentTarget.value = ""; }} /></div><div className="preset-list">{[...BUILT_IN_PRESETS, ...personalPresets].map((preset) => <div key={preset.id}><span><strong>{preset.name}</strong><small>{preset.kind === "built-in" ? "内置" : "当前设备"} · {preset.description}</small></span><button onClick={() => applyPreset(preset)}>应用</button>{preset.kind === "personal" && <><button onClick={() => download(stringifyPreset(preset), `${preset.name}.raidline-preset.json`)}>导出</button><button onClick={async () => { if (confirm(`删除预设“${preset.name}”？`)) { await deletePersonalPreset(preset.id); setPersonalPresets(await listPersonalPresets()); } }}>删除</button></>}</div>)}</div></div>}
+      </>}</aside>
+      <section className="timeline-work-panel"><div className="axis-toolbar"><div><button onClick={() => setLeftCollapsed((value) => !value)}>成员/技能</button><b>{plan.encounter.difficulty}</b><span>{formatTime(plan.encounter.durationMs)}</span><span>{plan.mechanics.length} 机制</span><span>{plan.assignments.length} 分配</span></div><div><button onClick={() => addMechanic()}>＋ 机制</button><button onClick={() => setOrientation((value) => value === "horizontal" ? "vertical" : "horizontal")}>{orientation === "horizontal" ? "时间横向" : "时间纵向"}</button><ZoomControl zoom={zoom} onChange={setZoom} /><button onClick={() => { setSelection(null); setRightCollapsed(false); }}>计划设置</button><button onClick={() => setRightCollapsed((value) => !value)}>属性/检查</button></div></div><div className="axis-scroll" ref={timelineRef}><TimelineView plan={plan} orientation={orientation} zoom={zoom} selected={timelineSelection} warningIds={warningIds} pressure={pressureMap} onSelect={(key) => { if (!key) setSelection(null); else { const [type,id] = key.split(":"); setSelection({ type: type as "mechanic" | "assignment", id }); } }} onAddMechanic={addMechanic} onMoveAssignment={moveAssignment} /></div><div className="axis-statusbar"><span>Ctrl + 滚轮缩放 · 双击空白添加机制 · 拖动技能调整开始时间</span><b className={warnings.length ? "warn" : "ok"}>{warnings.length ? `${warnings.length} 项提醒` : "检查通过"}</b></div></section>
+      <aside className={`right-table-panel ${rightCollapsed ? "collapsed" : ""}`}><button className="panel-collapse" onClick={() => setRightCollapsed((value) => !value)}>{rightCollapsed ? "‹" : "›"}</button>{!rightCollapsed && <Inspector plan={plan} selection={selection} selectedMember={selectedMember} selectedGroup={selectedGroup} selectedMechanic={selectedMechanic} selectedCooldown={selectedCooldown} selectedAssignment={selectedAssignment} warnings={warnings} pressureMap={pressureMap} mutate={mutate} setSelection={setSelection} />}</aside>
+    </div>
+    {showWcl && <WclModal planId={planId} token={token} version={version} initialSource={wclInitial} onClose={() => { setShowWcl(false); setWclInitial(""); }} onImported={(value) => { undoStack.current.push(clonePlan(plan)); redoStack.current = []; editRevision.current += 1; setHistoryState({ canUndo: true, canRedo: false }); const document = normalizePlanDocument(value.document); setPlan(document); setStored({ ...value, document }); setVersion(value.version); setSaveState("saved"); setSelection(null); setShowWcl(false); rememberPlan(value, token); setToast("WCL 战报已导入，伤害数据等待补充"); }} />}
+    {toast && <div className="toast" role="status">{toast}<button onClick={() => setToast("")}>×</button></div>}
+  </main>;
 }
 
-function WclModal({ planId, token, version, initialSource, onClose, onImported }: { planId: string; token: string; version: number; initialSource: string; onClose: () => void; onImported: (plan: StoredPlan) => void }) {
-  const [source, setSource] = useState(initialSource);
-  const [preview, setPreview] = useState<WclPreview | null>(null);
-  const [fightId, setFightId] = useState<number | null>(null);
-  const [analysis, setAnalysis] = useState<WclImportAnalysis | null>(null);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [includeCooldowns, setIncludeCooldowns] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<ApiError | null>(null);
+type MutatePlan = (mutator: (draft: RaidPlanDocument) => void, nextSelection?: Selection) => void;
 
-  async function requestPreview() {
-    setBusy(true); setError(null); setAnalysis(null);
-    try {
-      const response = await fetch(`/api/plans/${planId}/wcl/preview`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ source }) });
-      const payload = (await response.json()) as { data?: WclPreview; error?: ApiError };
-      if (!response.ok || !payload.data) throw payload.error ?? { code: "UNKNOWN", message: "读取战报失败" };
-      setPreview(payload.data);
-      const embedded = source.match(/(?:[?#&]fight=)(\d+)/i)?.[1];
-      const preferred = embedded ? Number(embedded) : payload.data.fights.at(-1)?.id ?? null;
-      setFightId(preferred);
-    } catch (caught) {
-      setError(caught as ApiError);
-    } finally { setBusy(false); }
+interface InspectorProps {
+  plan: RaidPlanDocument;
+  selection: Selection;
+  selectedMember: RosterMember | null | undefined;
+  selectedGroup: RaidGroup | null | undefined;
+  selectedMechanic: RaidMechanic | null | undefined;
+  selectedCooldown: CooldownDefinition | null | undefined;
+  selectedAssignment: RaidAssignment | null | undefined;
+  warnings: ConflictWarning[];
+  pressureMap: Map<string, MechanicPressureResult>;
+  mutate: MutatePlan;
+  setSelection: Dispatch<SetStateAction<Selection>>;
+}
+
+function Inspector({ plan, selection, selectedMember, selectedGroup, selectedMechanic, selectedCooldown, selectedAssignment, warnings, pressureMap, mutate, setSelection }: InspectorProps) {
+  const updateMechanic = (fn: (item: any) => void) => mutate((draft) => { const item = draft.mechanics.find((entry) => entry.id === selectedMechanic?.id); if (item) { fn(item); syncLinkedAssignments(draft, item.id); } });
+  const updateCooldown = (fn: (item: CooldownDefinition) => void) => mutate((draft: RaidPlanDocument) => { const item = draft.cooldowns.find((entry) => entry.id === selectedCooldown?.id); if (item) { fn(item); item.dataStatus = "custom"; if (item.scope === "personal") { item.maxTargets = 1; for (const assignment of draft.assignments.filter((entry) => entry.cooldownId === item.id)) assignment.targets = { mode: "members", memberIds: [assignment.memberId] }; } } });
+  if (!selection) return <PlanSettingsInspector plan={plan} warnings={warnings} mutate={mutate} setSelection={setSelection} />;
+  if (selectedMember) return <div className="inspector"><header><h2>成员</h2><span>RAIDER</span></header><label>角色名<input value={selectedMember.name} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.name = event.target.value; })} /></label><label>职业<select value={selectedMember.classSlug} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) { item.classSlug = event.target.value; item.color = WOW_CLASS_COLORS[event.target.value]; } })}>{Object.entries(WOW_CLASS_LABELS).map(([slug,label]) => <option value={slug} key={slug}>{label}</option>)}</select></label><label>专精<input value={selectedMember.specSlug} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.specSlug = event.target.value; })} /></label><label>职责<select value={selectedMember.role} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.role = event.target.value as any; })}><option value="tank">坦克</option><option value="healer">治疗</option><option value="damage">输出</option></select></label><label>自定义分组<select value={selectedMember.groupId ?? ""} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.groupId = event.target.value || undefined; })}><option value="">未分组</option>{plan.groups.map((group: any) => <option value={group.id} key={group.id}>{group.name}</option>)}</select></label><button className="danger-button" onClick={() => { if (confirm(`删除成员“${selectedMember.name}”及其分配？`)) mutate((draft: RaidPlanDocument) => { draft.roster = draft.roster.filter((entry) => entry.id !== selectedMember.id); draft.assignments = draft.assignments.filter((entry) => entry.memberId !== selectedMember.id); }, null); }}>删除成员</button></div>;
+  if (selectedGroup) return <div className="inspector"><header><h2>分组</h2><span>GROUP</span></header><label>名称<input value={selectedGroup.name} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.groups.find((entry) => entry.id === selectedGroup.id); if (item) item.name = event.target.value; })} /></label><label>标识色<input type="color" value={selectedGroup.color} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.groups.find((entry) => entry.id === selectedGroup.id); if (item) item.color = event.target.value; })} /></label><p className="field-note">{plan.roster.filter((member: any) => member.groupId === selectedGroup.id).map((member: any) => member.name).join("、") || "暂无成员"}</p><button className="danger-button" onClick={() => mutate((draft: RaidPlanDocument) => { draft.groups = draft.groups.filter((entry) => entry.id !== selectedGroup.id); draft.roster.forEach((member) => { if (member.groupId === selectedGroup.id) member.groupId = undefined; }); }, null)}>删除分组</button></div>;
+  if (selectedMechanic) { const result = pressureMap.get(selectedMechanic.id); return <div className="inspector"><header><h2>机制</h2><span>MECHANIC</span></header><label>名称<input value={selectedMechanic.name} onChange={(event) => updateMechanic((item) => { item.name = event.target.value; })} /></label><label>简介<textarea value={selectedMechanic.description} onChange={(event) => updateMechanic((item) => { item.description = event.target.value; })} /></label><label>Boss 开始施法<TimeField value={selectedMechanic.atMs} onCommit={(value) => updateMechanic((item) => { item.atMs = snapTime(value, plan.settings.snapMs); })} /></label><label>所属阶段<select value={selectedMechanic.phaseId ?? ""} onChange={(event) => updateMechanic((item) => { item.phaseId = event.target.value || undefined; })}><option value="">未指定</option>{plan.phases.map((phase) => <option value={phase.id} key={phase.id}>{formatTime(phase.atMs)} {phase.name}</option>)}</select></label><div className="field-grid"><label>施法秒数<NullableNumber value={selectedMechanic.castTimeMs} scale={1000} onChange={(value) => updateMechanic((item) => { item.castTimeMs = value; })} /></label><label>持续秒数<NullableNumber value={selectedMechanic.durationMs} scale={1000} onChange={(value) => updateMechanic((item) => { item.durationMs = value; })} /></label></div><label>伤害类型<select value={selectedMechanic.damage.school} onChange={(event) => updateMechanic((item) => { item.damage.school = event.target.value; })}><option value="magic">魔法</option><option value="physical">物理</option></select></label><div className="field-grid"><label>直接伤害<NullableNumber value={selectedMechanic.damage.directAmount} onChange={(value) => updateMechanic((item) => { item.damage.directAmount = value; })} /></label><label>每跳伤害<NullableNumber value={selectedMechanic.damage.periodicAmount} onChange={(value) => updateMechanic((item) => { item.damage.periodicAmount = value; })} /></label></div><div className="field-grid"><label>跳伤间隔秒<NullableNumber value={selectedMechanic.damage.periodicIntervalMs} scale={1000} onChange={(value) => updateMechanic((item) => { item.damage.periodicIntervalMs = value; })} /></label><label className="inline-check"><input type="checkbox" checked={selectedMechanic.damage.tickOnStart} onChange={(event) => updateMechanic((item) => { item.damage.tickOnStart = event.target.checked; })} />首跳立即</label></div><label>目标<TargetEditor target={selectedMechanic.targets} plan={plan} onChange={(target) => updateMechanic((item) => { item.targets = target; })} /></label><label>危险等级<select value={selectedMechanic.severity} onChange={(event) => updateMechanic((item) => { item.severity = event.target.value; })}><option value="info">提示</option><option value="warning">常规</option><option value="danger">高危</option></select></label><label>计划备注<textarea value={selectedMechanic.note} onChange={(event) => updateMechanic((item) => { item.note = event.target.value; })} /></label><div className={`pressure-card ${result?.members.some((item: any) => item.lethal) ? "lethal" : ""}`}><span>最高个人治疗需求</span><strong>{formatCompactNumber(result?.headlinePressure)}</strong><small>单目标原始总量 {formatCompactNumber(result?.rawPerTarget)} · 平均 DPS {formatCompactNumber(result?.averageDps)}</small><small>团队本次伤害 {formatCompactNumber(result?.teamCurrentDamage)} · 团队相邻压力 {formatCompactNumber(result?.teamPressure)}</small>{result?.missing.map((item: string) => <em key={item}>{item}</em>)}{result?.members.map((item: any) => <p key={item.memberId}><b>{plan.roster.find((member: any) => member.id === item.memberId)?.name}</b><span>{formatCompactNumber(item.currentDamage)} + {formatCompactNumber(item.previousDamage)} = {formatCompactNumber(item.pressure)}</span>{item.lethal && <i>致死</i>}</p>)}</div><button className="danger-button" onClick={() => mutate((draft: RaidPlanDocument) => { draft.mechanics = draft.mechanics.filter((entry) => entry.id !== selectedMechanic.id); draft.assignments = draft.assignments.map((entry) => entry.mechanicId === selectedMechanic.id ? { ...entry, mechanicId: undefined, offsetMs: undefined, targets: entry.targets.mode === "inherit" ? structuredClone(ALL_TARGETS) : entry.targets } : entry); }, null)}>删除机制</button></div>; }
+  if (selectedCooldown && !selectedAssignment) return <SkillInspector cooldown={selectedCooldown} update={updateCooldown} mutate={mutate} />;
+  if (selectedAssignment && selectedCooldown) return <div className="inspector"><header><h2>技能分配</h2><span>ASSIGNMENT</span></header><label>成员<select value={selectedAssignment.memberId} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; item.memberId = event.target.value; const cooldown = draft.cooldowns.find((entry) => entry.id === item.cooldownId); if (cooldown?.scope === "personal") item.targets = { mode: "members", memberIds: [item.memberId] }; })}>{plan.roster.map((member: any) => <option value={member.id} key={member.id}>{member.name}</option>)}</select></label><label>技能<select value={selectedAssignment.cooldownId} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; item.cooldownId = event.target.value; const cooldown = draft.cooldowns.find((entry) => entry.id === item.cooldownId); if (cooldown?.scope === "personal") item.targets = { mode: "members", memberIds: [item.memberId] }; })}>{plan.cooldowns.map((cooldown: any) => <option value={cooldown.id} key={cooldown.id}>{cooldown.name}</option>)}</select></label><label>开始施法<TimeField value={selectedAssignment.atMs} onCommit={(value) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; item.atMs = snapTime(value, draft.settings.snapMs); const mechanic = item.mechanicId ? draft.mechanics.find((entry) => entry.id === item.mechanicId) : undefined; if (mechanic) item.offsetMs = item.atMs - mechanicImpactMs(mechanic); })} /></label><label>关联机制<select value={selectedAssignment.mechanicId ?? ""} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; const mechanic = draft.mechanics.find((entry) => entry.id === event.target.value); item.mechanicId = mechanic?.id; if (mechanic) { item.atMs = defaultAssignmentStart(draft, selectedCooldown, mechanic); item.offsetMs = item.atMs - mechanicImpactMs(mechanic); item.targets = selectedCooldown.scope === "personal" ? { mode: "members", memberIds: [item.memberId] } : structuredClone(INHERIT_TARGETS); } else { item.offsetMs = undefined; if (item.targets.mode === "inherit") item.targets = structuredClone(ALL_TARGETS); } })}><option value="">自由时间点</option>{plan.mechanics.map((mechanic: any) => <option value={mechanic.id} key={mechanic.id}>{formatTime(mechanic.atMs)} {mechanic.name}</option>)}</select></label>{selectedCooldown.scope === "personal" ? <div className="field-note"><b>实际目标：施放者本人</b><br />个人技能固定作用于当前成员，不能改为其他目标。</div> : <label>实际目标<TargetEditor target={selectedAssignment.targets} plan={plan} allowInherit onChange={(target) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (item) item.targets = target; })} /></label>}<label>备注<textarea value={selectedAssignment.note} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (item) item.note = event.target.value; })} /></label>{warnings.filter((warning: any) => warning.assignmentId === selectedAssignment.id).map((warning: any, index: number) => <div className="warning-box" key={`${warning.type}-${index}`}>{warning.message}</div>)}<button className="danger-button" onClick={() => mutate((draft: RaidPlanDocument) => { draft.assignments = draft.assignments.filter((entry) => entry.id !== selectedAssignment.id); }, null)}>删除分配</button></div>;
+  return null;
+}
+
+function PlanSettingsInspector({ plan, warnings, mutate, setSelection }: { plan: RaidPlanDocument; warnings: ConflictWarning[]; mutate: MutatePlan; setSelection: Dispatch<SetStateAction<Selection>> }) {
+  return <div className="inspector">
+    <header><h2>计划设置</h2><span>PLAN</span></header>
+    <label>计划名称<input value={plan.encounter.name} onChange={(event) => mutate((draft) => { draft.encounter.name = event.target.value; })} /></label>
+    <label>难度<select value={plan.encounter.difficulty} onChange={(event) => mutate((draft) => { draft.encounter.difficulty = event.target.value; })}><option>随机</option><option>普通</option><option>英雄</option><option>史诗</option><option>练习</option></select></label>
+    <label>战斗时长<TimeField value={plan.encounter.durationMs} onCommit={(value) => mutate((draft) => { draft.encounter.durationMs = Math.max(10_000, value); })} /></label>
+    <div className="field-grid"><label>参考最大生命<NullableNumber value={plan.settings.referenceMaxHealth} onChange={(value) => mutate((draft) => { draft.settings.referenceMaxHealth = value; })} /></label><label>时间吸附秒数<NullableNumber value={plan.settings.snapMs} scale={1000} min={0.1} onChange={(value) => mutate((draft) => { draft.settings.snapMs = value ?? 1000; })} /></label></div>
+    <div className="field-grid"><label>压力刷新秒数<NullableNumber value={plan.settings.pressureResetMs} scale={1000} onChange={(value) => mutate((draft) => { draft.settings.pressureResetMs = value ?? 10_000; })} /></label><label>防御默认提前秒数<NullableNumber value={plan.settings.defensiveLeadMs} scale={1000} onChange={(value) => mutate((draft) => { draft.settings.defensiveLeadMs = value ?? 3000; })} /></label></div>
+    <label className="inline-check"><input type="checkbox" checked={plan.settings.showMinorMechanics} onChange={(event) => mutate((draft) => { draft.settings.showMinorMechanics = event.target.checked; })} />显示次要机制</label>
+    <section className="phase-editor">
+      <header><b>阶段</b><button onClick={() => mutate((draft) => draft.phases.push({ id: makeId("phase"), name: `P${draft.phases.length + 1}`, atMs: Math.min(draft.encounter.durationMs, (draft.phases.at(-1)?.atMs ?? 0) + 60_000) }))}>＋ 阶段</button></header>
+      {plan.phases.map((phase, index) => <div key={phase.id}><input aria-label={`阶段 ${index + 1} 名称`} value={phase.name} onChange={(event) => mutate((draft) => { const item = draft.phases.find((entry) => entry.id === phase.id); if (item) item.name = event.target.value; })} /><TimeField label={`阶段 ${index + 1} 时间`} value={phase.atMs} onCommit={(value) => mutate((draft) => { const item = draft.phases.find((entry) => entry.id === phase.id); if (item) item.atMs = snapTime(value, draft.settings.snapMs); })} />{plan.phases.length > 1 && <button aria-label={`删除阶段 ${phase.name}`} onClick={() => mutate((draft) => { draft.phases = draft.phases.filter((entry) => entry.id !== phase.id); draft.mechanics.forEach((item) => { if (item.phaseId === phase.id) item.phaseId = undefined; }); })}>×</button>}</div>)}
+    </section>
+    <Checks warnings={warnings} setSelection={setSelection} />
+  </div>;
+}
+
+function SkillInspector({ cooldown, update, mutate }: { cooldown: CooldownDefinition; update: (fn: (item: CooldownDefinition) => void) => void; mutate: MutatePlan }) {
+  function addEffect(type: CooldownEffect["type"]) {
+    update((item) => {
+      if (type === "damageReduction") item.effects.push({ type, percent: null, schools: ["physical", "magic"] });
+      if (type === "absorb") item.effects.push({ type, amount: null, allocation: "perTarget", schools: ["physical", "magic"] });
+      if (type === "maxHealth") item.effects.push({ type, percent: null });
+      if (type === "immunity") item.effects.push({ type, schools: ["physical", "magic"] });
+    });
   }
-
-  useEffect(() => { if (initialSource) requestPreview(); /* run once for the deep-linked source */ }, []);
-
-  async function analyze() {
-    if (!preview || fightId == null) return;
-    setBusy(true); setError(null);
-    try {
-      const response = await fetch(`/api/plans/${planId}/wcl/import`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ reportCode: preview.reportCode, fightId }) });
-      const payload = (await response.json()) as { data?: { analysis: WclImportAnalysis }; error?: ApiError };
-      if (!response.ok || !payload.data) throw payload.error ?? { code: "UNKNOWN", message: "分析战斗失败" };
-      setAnalysis(payload.data.analysis);
-      setSelected(new Set());
-    } catch (caught) { setError(caught as ApiError); } finally { setBusy(false); }
+  function effectUpdate(index: number, values: Record<string, unknown>) {
+    update((item) => Object.assign(item.effects[index] as unknown as Record<string, unknown>, values));
   }
-
-  async function applyImport() {
-    if (!analysis) return;
-    setBusy(true); setError(null);
-    try {
-      const response = await fetch(`/api/plans/${planId}/wcl/import`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ reportCode: analysis.reportCode, fightId: analysis.fight.id, selectedAbilityIds: Array.from(selected), includeObservedCooldowns: includeCooldowns, baseVersion: version }) });
-      const payload = (await response.json()) as { data?: StoredPlan; error?: ApiError };
-      if (!response.ok || !payload.data) throw payload.error ?? { code: "UNKNOWN", message: "导入失败" };
-      onImported(payload.data);
-    } catch (caught) { setError(caught as ApiError); } finally { setBusy(false); }
-  }
-
-  return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="wcl-modal" role="dialog" aria-modal="true" aria-labelledby="wcl-title">
-        <header><div><span className="wcl-logo">WCL</span><p><small>WARCRAFT LOGS</small><strong id="wcl-title">导入真实战斗时间线</strong></p></div><button onClick={onClose} aria-label="关闭">×</button></header>
-        {!preview && <div className="wcl-step"><p>粘贴公开战报链接。首版不会请求你的 WCL 账号或私密战报权限。</p><label>战报链接 / 报告代码<div><input value={source} onChange={(event) => setSource(event.target.value)} placeholder="https://www.warcraftlogs.com/reports/…" /><button className="button button-gold" onClick={requestPreview} disabled={busy}>{busy ? "读取中…" : "读取战报"}</button></div></label><ApiMessage error={error} /></div>}
-        {preview && !analysis && <div className="wcl-step"><div className="wcl-report"><span><small>报告</small><strong>{preview.title}</strong></span><span><small>公开场次</small><strong>{preview.fights.length}</strong></span><button onClick={() => { setPreview(null); setError(null); }}>更换战报</button></div><h3>选择要分析的 Boss 场次</h3><div className="fight-list">{preview.fights.map((fight) => <button className={fightId === fight.id ? "selected" : ""} key={fight.id} onClick={() => setFightId(fight.id)}><i>{fight.kill ? "✓" : `${Math.max(0, Math.round(fight.durationMs / 1000 / 60))}m`}</i><span><strong>{fight.name}</strong><small>{fight.difficultyLabel} · Fight #{fight.id} · {formatTime(fight.durationMs)}</small></span><b>{fightId === fight.id ? "●" : "○"}</b></button>)}</div><ApiMessage error={error} /><footer><span>将读取敌方施法与已识别的团队技能</span><button className="button button-gold" onClick={analyze} disabled={busy || fightId == null}>{busy ? "分析中…" : "分析这个场次"}</button></footer></div>}
-        {analysis && <div className="wcl-step"><div className="analysis-heading"><span><small>已识别场次</small><strong>{analysis.fight.name}</strong><em>{analysis.fight.difficultyLabel} · {formatTime(analysis.fight.durationMs)} · {analysis.roster.length} 人</em></span><button onClick={() => setAnalysis(null)}>返回场次</button></div><div className="ability-toolbar"><h3>勾选要放进时间线的 Boss 技能</h3><span><button onClick={() => setSelected(new Set(analysis.abilityGroups.map((group) => group.spellId)))}>全选</button><button onClick={() => setSelected(new Set())}>清空</button></span></div><div className="ability-list">{analysis.abilityGroups.map((group) => <label key={group.spellId}><input type="checkbox" checked={selected.has(group.spellId)} onChange={(event) => setSelected((current) => { const next = new Set(current); if (event.target.checked) next.add(group.spellId); else next.delete(group.spellId); return next; })} /><i>{group.name.slice(0, 1)}</i><span><strong>{group.name}</strong><small>#{group.spellId} · 首次 {formatTime(group.timestamps[0] ?? 0)}</small></span><b>{group.count} 次</b></label>)}</div><label className="observed-toggle"><input type="checkbox" checked={includeCooldowns} onChange={(event) => setIncludeCooldowns(event.target.checked)} /><span><strong>导入已识别的团队技能施放</strong><small>检测到 {analysis.suggestedAssignments.length} 次，可作为上一把的参考</small></span></label><ApiMessage error={error} /><footer><span>已选择 {selected.size} 个技能，共 {analysis.abilityGroups.filter((group) => selected.has(group.spellId)).reduce((sum, group) => sum + group.count, 0)} 个时间点</span><button className="button button-gold" onClick={applyImport} disabled={busy}>{busy ? "正在写入…" : "导入并替换当前时间线"}</button></footer></div>}
-      </section>
+  const status = cooldown.dataStatus === "unconfigured" ? "数值待补" : cooldown.dataStatus === "legacy" ? "旧数据" : "已自定义";
+  return <div className="inspector">
+    <header><h2>技能定义</h2><span>{status}</span></header>
+    <label>名称<input value={cooldown.name} onChange={(event) => update((item) => { item.name = event.target.value; })} /></label>
+    <label>简介<textarea value={cooldown.description} onChange={(event) => update((item) => { item.description = event.target.value; })} /></label>
+    <div className="field-grid">
+      <label>范围<select value={cooldown.scope} onChange={(event) => update((item) => { item.scope = event.target.value as CooldownDefinition["scope"]; if (item.scope === "personal") item.maxTargets = 1; })}><option value="team">团队</option><option value="external">单体外部</option><option value="personal">个人</option></select></label>
+      <label>类别<select value={cooldown.category} onChange={(event) => update((item) => { item.category = event.target.value as CooldownDefinition["category"]; })}>{["团队减伤","外部减伤","个人减伤","治疗","免疫","位移","自定义"].map((value) => <option key={value}>{value}</option>)}</select></label>
     </div>
-  );
+    <div className="field-grid">
+      <label>职业<select value={cooldown.classSlug} onChange={(event) => update((item) => { item.classSlug = event.target.value; item.color = WOW_CLASS_COLORS[event.target.value]; })}>{Object.entries(WOW_CLASS_LABELS).map(([slug,label]) => <option value={slug} key={slug}>{label}</option>)}</select></label>
+      <label>专精归属<input placeholder="多个专精用逗号分隔" value={cooldown.specSlugs.join("、")} onChange={(event) => update((item) => { item.specSlugs = event.target.value.split(/[、,，]/).map((value) => value.trim()).filter(Boolean); })} /></label>
+    </div>
+    <div className="field-grid">
+      <label>冷却秒数<NullableNumber value={cooldown.cooldownMs} scale={1000} onChange={(value) => update((item) => { item.cooldownMs = value; })} /></label>
+      <label>最大目标数{cooldown.scope === "personal" ? <input value="1" disabled /> : <NullableNumber value={cooldown.maxTargets} onChange={(value) => update((item) => { item.maxTargets = value; })} />}</label>
+    </div>
+    <div className="field-grid">
+      <label>施法秒数<NullableNumber value={cooldown.castTimeMs} scale={1000} onChange={(value) => update((item) => { item.castTimeMs = value; })} /></label>
+      <label>持续秒数<NullableNumber value={cooldown.durationMs} scale={1000} onChange={(value) => update((item) => { item.durationMs = value; })} /></label>
+    </div>
+    <p className="field-note">留空表示未知；填写 0 表示明确瞬发或无持续时间。目录 {cooldown.catalogVersion}</p>
+    <label>GCD<select value={cooldown.triggersGcd == null ? "unknown" : cooldown.triggersGcd ? "yes" : "no"} onChange={(event) => update((item) => { item.triggersGcd = event.target.value === "unknown" ? null : event.target.value === "yes"; })}><option value="unknown">未设置</option><option value="yes">占用 GCD</option><option value="no">不占用 GCD</option></select></label>
+    <div className="effect-list">
+      <div className="effect-tools"><span>计算效果</span><select defaultValue="" onChange={(event) => { if (event.target.value) addEffect(event.target.value as CooldownEffect["type"]); event.currentTarget.value = ""; }}><option value="">＋ 添加效果</option><option value="damageReduction">减伤</option><option value="absorb">吸收盾</option><option value="maxHealth">最大生命提升</option><option value="immunity">免疫</option></select></div>
+      {cooldown.effects.map((effect,index) => <div className="effect-card" key={index}>
+        <header><b>{{ damageReduction: "减伤", absorb: "吸收盾", maxHealth: "最大生命提升", immunity: "免疫" }[effect.type]}</b><button onClick={() => update((item) => { item.effects.splice(index,1); })}>删除</button></header>
+        {effect.type === "damageReduction" && <label>减伤百分比<NullableNumber value={effect.percent} onChange={(value) => effectUpdate(index,{ percent:value })} /></label>}
+        {effect.type === "absorb" && <><label>吸收量<NullableNumber value={effect.amount} onChange={(value) => effectUpdate(index,{ amount:value })} /></label><label>分配方式<select value={effect.allocation} onChange={(event) => effectUpdate(index,{ allocation:event.target.value })}><option value="perTarget">每目标独立</option><option value="shared">共享总池</option></select></label></>}
+        {effect.type === "maxHealth" && <label>提升百分比<NullableNumber value={effect.percent} onChange={(value) => effectUpdate(index,{ percent:value })} /></label>}
+        {effect.type !== "maxHealth" && <div className="check-grid">{(["physical","magic"] as const).map((school) => <label key={school}><input type="checkbox" checked={effect.schools.includes(school)} onChange={() => effectUpdate(index,{ schools: effect.schools.includes(school) ? effect.schools.filter((item) => item !== school) : [...effect.schools,school] })} />{school === "physical" ? "物理" : "魔法"}</label>)}</div>}
+      </div>)}
+    </div>
+    <button className="danger-button" onClick={() => { if (confirm(`删除技能“${cooldown.name}”及其分配？`)) mutate((draft) => { draft.cooldowns = draft.cooldowns.filter((entry) => entry.id !== cooldown.id); draft.assignments = draft.assignments.filter((entry) => entry.cooldownId !== cooldown.id); }, null); }}>删除技能</button>
+  </div>;
+}
+
+function Checks({ warnings, setSelection }: any) { return <div className="checks"><header><b>排轴检查</b><span>{warnings.length ? `${warnings.length} 项` : "通过"}</span></header>{warnings.slice(0,8).map((warning: any,index: number) => <button key={index} onClick={() => warning.assignmentId ? setSelection({ type:"assignment", id:warning.assignmentId }) : warning.mechanicId ? setSelection({ type:"mechanic", id:warning.mechanicId }) : null}>{warning.message}</button>)}</div>; }
+
+function WclModal({ planId, token, version, initialSource, onClose, onImported }: { planId: string; token: string; version: number; initialSource: string; onClose: () => void; onImported: (plan: StoredPlan) => void }) {
+  const [source,setSource] = useState(initialSource); const [preview,setPreview] = useState<WclPreview|null>(null); const [fightId,setFightId] = useState<number|null>(null); const [analysis,setAnalysis] = useState<WclImportAnalysis|null>(null); const [selected,setSelected] = useState<Set<number>>(new Set()); const [includeCooldowns,setIncludeCooldowns] = useState(true); const [busy,setBusy] = useState(false); const [error,setError] = useState("");
+  async function request(body: unknown) { const response = await fetch(`/api/plans/${planId}/wcl/${analysis ? "import" : "preview"}`, { method:"POST", headers:{ authorization:`Bearer ${token}`, "content-type":"application/json" }, body:JSON.stringify(body) }); const payload = await response.json() as { data?: any; error?: ApiError }; if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "WCL 请求失败"); return payload.data; }
+  async function previewReport() { setBusy(true); setError(""); try { const value = await request({ source }); setPreview(value); setFightId(value.fights[0]?.id ?? null); } catch (caught) { setError(caught instanceof Error ? caught.message : "读取失败"); } finally { setBusy(false); } }
+  async function analyzeFight() { if (!preview || fightId == null) return; setBusy(true); setError(""); try { const response = await fetch(`/api/plans/${planId}/wcl/import`, { method:"POST", headers:{ authorization:`Bearer ${token}`, "content-type":"application/json" }, body:JSON.stringify({ reportCode:preview.reportCode,fightId }) }); const payload = await response.json() as { data?: { analysis:WclImportAnalysis }; error?:ApiError }; if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "分析失败"); setAnalysis(payload.data.analysis); setSelected(new Set()); } catch(caught){ setError(caught instanceof Error?caught.message:"分析失败"); } finally { setBusy(false); } }
+  async function applyImport() { if(!analysis)return; setBusy(true); setError(""); try { const response=await fetch(`/api/plans/${planId}/wcl/import`,{method:"POST",headers:{authorization:`Bearer ${token}`,"content-type":"application/json"},body:JSON.stringify({reportCode:analysis.reportCode,fightId:analysis.fight.id,selectedAbilityIds:[...selected],includeObservedCooldowns:includeCooldowns,baseVersion:version})}); const payload=await response.json() as {data?:StoredPlan;error?:ApiError}; if(!response.ok||!payload.data)throw new Error(payload.error?.message??"导入失败"); onImported(payload.data); }catch(caught){setError(caught instanceof Error?caught.message:"导入失败");}finally{setBusy(false);} }
+  return <div className="modal-backdrop"><div className="wcl-dialog"><header><div><strong>WCL 导入</strong><small>仅公开战报</small></div><button onClick={onClose}>×</button></header>{!preview && <div className="dialog-body"><label>战报链接或代码<input value={source} onChange={(event)=>setSource(event.target.value)} /></label><button className="primary-action" onClick={previewReport} disabled={busy}>{busy?"读取中…":"读取场次"}</button>{error&&<p className="dialog-error">{error}</p>}</div>}{preview&&!analysis&&<div className="dialog-body"><label>选择场次<select value={fightId??""} onChange={(event)=>setFightId(Number(event.target.value))}>{preview.fights.map((fight)=><option value={fight.id} key={fight.id}>{fight.name} · {fight.difficultyLabel} · {formatTime(fight.durationMs)}</option>)}</select></label><button className="primary-action" onClick={analyzeFight} disabled={busy||fightId==null}>{busy?"分析中…":"分析敌方施法"}</button>{error&&<p className="dialog-error">{error}</p>}</div>}{analysis&&<div className="dialog-body"><h3>{analysis.fight.name}</h3><p>勾选要加入时间线的 Boss 施法。伤害、施法长度和持续时间会保持待补充。</p><div className="ability-checks">{analysis.abilityGroups.map((group)=><label key={group.spellId}><input type="checkbox" checked={selected.has(group.spellId)} onChange={(event)=>setSelected((current)=>{const next=new Set(current);if(event.target.checked){next.add(group.spellId);}else{next.delete(group.spellId);}return next;})}/><span><b>{group.name}</b><small>{group.count} 次 · 首次 {formatTime(group.timestamps[0]??0)}</small></span></label>)}</div><label className="inline-check"><input type="checkbox" checked={includeCooldowns} onChange={(event)=>setIncludeCooldowns(event.target.checked)} />导入已识别的玩家技能施放</label><button className="primary-action" onClick={applyImport} disabled={busy}>{busy?"导入中…":"替换当前时间线"}</button>{error&&<p className="dialog-error">{error}</p>}</div>}</div></div>;
 }

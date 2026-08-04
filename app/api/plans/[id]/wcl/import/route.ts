@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { plans } from "@/db/schema";
-import { assertPlanDocument, makeId } from "@/lib/core";
+import { ALL_TARGETS, makeId, normalizePlanDocument } from "@/lib/core";
 import { authorizePlan, jsonData, jsonError, toStoredPlan } from "@/lib/server";
 import type { RaidMechanic, RaidPlanDocument } from "@/lib/types";
 import { analyzeWclFight, WclError } from "@/lib/wcl";
@@ -33,16 +33,21 @@ export async function POST(request: Request, context: RouteContext) {
       .flatMap((group) => group.timestamps.map((atMs, index) => ({
         id: `wcl-mechanic-${group.spellId}-${Math.round(atMs)}-${index}`,
         name: group.name,
+        description: "从 WCL 敌方施法事件导入；伤害、施法长度和持续时间需要手动补充。",
         atMs,
+        castTimeMs: null,
+        durationMs: null,
+        damage: { school: "magic" as const, directAmount: null, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false },
+        targets: structuredClone(ALL_TARGETS),
         spellId: group.spellId,
         severity: "warning" as const,
         source: "wcl" as const,
         note: "",
       })));
-    const current = JSON.parse(auth.row.documentJson) as RaidPlanDocument;
+    const current = normalizePlanDocument(JSON.parse(auth.row.documentJson)) as RaidPlanDocument;
     const cooldownMap = new Map(current.cooldowns.map((cooldown) => [cooldown.id, cooldown]));
     for (const cooldown of analysis.detectedCooldowns) cooldownMap.set(cooldown.id, cooldown);
-    const next: RaidPlanDocument = {
+    const next = normalizePlanDocument({
       ...current,
       encounter: {
         name: analysis.fight.name,
@@ -61,8 +66,7 @@ export async function POST(request: Request, context: RouteContext) {
       mechanics: mechanics.sort((a, b) => a.atMs - b.atMs),
       cooldowns: Array.from(cooldownMap.values()),
       assignments: payload.includeObservedCooldowns ? analysis.suggestedAssignments.map((item) => ({ ...item, id: makeId("assignment") })) : [],
-    };
-    assertPlanDocument(next);
+    });
     const now = Date.now();
     const [updated] = await getDb().update(plans).set({
       title: next.encounter.name,
