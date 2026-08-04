@@ -10,9 +10,9 @@ export interface RaidPlanPreset {
   document: RaidPlanDocument;
 }
 
-function exampleMechanic(name: string, atMs: number, directAmount: number): RaidMechanic {
+function exampleMechanic(id: string, name: string, atMs: number, directAmount: number): RaidMechanic {
   return {
-    id: makeId("preset-mechanic"), name, description: "用于验证相邻机制压力的示例数据。",
+    id, name, description: "用于验证相邻机制压力的示例数据。",
     atMs, castTimeMs: 0, durationMs: 0,
     damage: { school: "magic", directAmount, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false },
     targets: structuredClone(ALL_TARGETS), severity: "danger", source: "preset", note: "",
@@ -20,16 +20,16 @@ function exampleMechanic(name: string, atMs: number, directAmount: number): Raid
 }
 
 export function createPressureExamplePreset(): RaidPlanPreset {
-  const document = createBlankPlan("连续 AoE 压力示例");
+  const document = createBlankPlan("连续 AoE 压力示例", "preset-phase-p1");
   document.encounter = { name: "连续 AoE 压力示例", difficulty: "练习", durationMs: 90_000 };
   document.phases = [{ id: "preset-phase-p1", name: "P1", atMs: 0 }];
   document.mechanics = [
-    exampleMechanic("AoE 1 · 50万", 10_000, 500_000),
-    exampleMechanic("AoE 2 · 60万", 18_000, 600_000),
-    exampleMechanic("AoE 3 · 80万", 26_000, 800_000),
-    exampleMechanic("AoE 4 · 30万", 34_000, 300_000),
+    exampleMechanic("preset-mechanic-aoe-1", "AoE 1 · 50万", 10_000, 500_000),
+    exampleMechanic("preset-mechanic-aoe-2", "AoE 2 · 60万", 18_000, 600_000),
+    exampleMechanic("preset-mechanic-aoe-3", "AoE 3 · 80万", 26_000, 800_000),
+    exampleMechanic("preset-mechanic-aoe-4", "AoE 4 · 30万", 34_000, 300_000),
     {
-      ...exampleMechanic("持续灼烧", 55_000, 100_000),
+      ...exampleMechanic("preset-mechanic-dot", "持续灼烧", 55_000, 100_000),
       durationMs: 6000,
       damage: { school: "magic", directAmount: 100_000, periodicAmount: 100_000, periodicIntervalMs: 2000, tickOnStart: false },
       description: "直接伤害后每 2 秒跳伤，演示持续总量和平均 DPS。",

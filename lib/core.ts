@@ -30,13 +30,13 @@ export function makeId(prefix = "id") {
   return `${prefix}-${random}`;
 }
 
-export function createBlankPlan(title = "新建团本排轴"): RaidPlanDocument {
+export function createBlankPlan(title = "新建团本排轴", initialPhaseId = makeId("phase")): RaidPlanDocument {
   return {
     schemaVersion: 2,
     encounter: { name: title, difficulty: "史诗", durationMs: 480_000 },
     groups: [],
     roster: [],
-    phases: [{ id: makeId("phase"), name: "P1", atMs: 0 }],
+    phases: [{ id: initialPhaseId, name: "P1", atMs: 0 }],
     mechanics: [],
     cooldowns: DEFAULT_COOLDOWNS.map((item) => structuredClone(item)),
     assignments: [],
