@@ -1,4 +1,4 @@
-import { DEFAULT_COOLDOWNS, WOW_CLASS_COLORS } from "./cooldowns.ts";
+import { DEFAULT_COOLDOWNS, WOW_CLASS_COLORS, specializationFor } from "./cooldowns.ts";
 import type {
   CooldownDefinition,
   CooldownEffect,
@@ -44,7 +44,7 @@ export function makeId(prefix = "id") {
 export function createBlankPlan(title = "新建团本排轴", initialPhaseId = makeId("phase")): RaidPlanDocument {
   return {
     schemaVersion: 2,
-    encounter: { name: title, difficulty: "史诗", durationMs: 480_000 },
+    encounter: { name: title, difficulty: "史诗", durationMs: 3_600_000 },
     groups: [],
     roster: createDefaultRoster(),
     phases: [{ id: initialPhaseId, name: "P1", atMs: 0 }],
@@ -199,19 +199,23 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
     encounter: {
       name: String(encounter.name ?? "未命名排轴"),
       difficulty: String(encounter.difficulty ?? "未设置"),
-      durationMs: nullableNumber(encounter.durationMs, 480_000) ?? 480_000,
+      durationMs: nullableNumber(encounter.durationMs, 3_600_000) ?? 3_600_000,
       ...(encounter.source ? { source: encounter.source as RaidPlanDocument["encounter"]["source"] } : {}),
     },
     groups: (Array.isArray(source.groups) ? source.groups as Array<Record<string, unknown>> : []).map((group) => ({
       id: String(group.id ?? makeId("group")), name: String(group.name ?? "未命名分组"), color: String(group.color ?? "#7b8490"),
     })),
-    roster: (Array.isArray(source.roster) ? source.roster as Array<Record<string, unknown>> : []).map((member) => ({
-      id: String(member.id ?? makeId("member")), name: String(member.name ?? "未命名成员"),
-      classSlug: String(member.classSlug ?? "Warrior"), specSlug: String(member.specSlug ?? "未知专精"),
-      role: member.role === "tank" || member.role === "healer" ? member.role : "damage",
-      color: String(member.color ?? WOW_CLASS_COLORS[String(member.classSlug)] ?? "#7b8490"),
-      ...(member.groupId ? { groupId: String(member.groupId) } : {}),
-    })),
+    roster: (Array.isArray(source.roster) ? source.roster as Array<Record<string, unknown>> : []).map((member) => {
+      const classSlug = String(member.classSlug ?? "Warrior");
+      const specSlug = String(member.specSlug ?? "未知专精");
+      return {
+        id: String(member.id ?? makeId("member")), name: String(member.name ?? "未命名成员"),
+        classSlug, specSlug,
+        role: specializationFor(classSlug, specSlug)?.role ?? (member.role === "tank" || member.role === "healer" ? member.role : "damage"),
+        color: String(member.color ?? WOW_CLASS_COLORS[classSlug] ?? "#7b8490"),
+        ...(member.groupId ? { groupId: String(member.groupId) } : {}),
+      };
+    }),
     phases: (Array.isArray(source.phases) ? source.phases as Array<Record<string, unknown>> : []).map((phase) => ({
       id: String(phase.id ?? makeId("phase")), name: String(phase.name ?? "阶段"), atMs: Math.max(0, nullableNumber(phase.atMs, 0) ?? 0),
     })),

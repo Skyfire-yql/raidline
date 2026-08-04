@@ -152,17 +152,15 @@ small { color: var(--text-2); }
 .skill-picker { padding: 10px; }
 .skill-picker > label { display: grid; gap: 4px; margin-bottom: 10px; color: var(--text-2); font-size: 11px; }
 .skill-picker .secondary-action { width: 100%; margin-bottom: 10px; }
-.selected-skill-card { display: grid; grid-template-columns: 7px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
-.selected-skill-card > i { width: 7px; height: 42px; border-radius: 2px; }
-.selected-skill-card strong, .selected-skill-card small { display: block; }
-.selected-skill-card small { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); font-size: 10px; line-height: 1.4; }
-
+.skill-picker .skill-list { margin: 0 -10px; border-top: 1px solid var(--line); }
+.skill-target { margin: -2px 0 8px; padding: 6px 8px; border: 1px solid var(--accent); border-radius: 3px; color: var(--accent-text); background: var(--accent-soft); font-size: 11px; }
 /* 时间轴 */
 .timeline-work-panel { display: grid; min-width: 0; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--surface-2); }
 .axis-toolbar { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--surface); }
 .axis-toolbar > div { display: flex; align-items: center; gap: 6px; }
 .axis-toolbar span { color: var(--text-2); font-size: 11px; }
 .axis-toolbar label { display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); font-size: 11px; }
+.timeline-limit select { width: 86px; min-height: 29px; padding: 3px 22px 3px 6px; font-size: 11px; }
 .zoom-control { display: inline-flex; align-items: center; gap: 4px; }
 .zoom-control > button { min-width: 28px; padding-inline: 5px; }
 .axis-scroll { min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; background: var(--surface-2); }
@@ -192,18 +190,23 @@ small { color: var(--text-2); }
 .axis-lane-label span { min-width: 0; }
 .axis-lane-label b, .axis-lane-label small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .axis-lane-label small { margin-top: 2px; font-size: 9px; }
+.member-lane-label:not(.readonly) { gap: 0; padding: 0; }
+.axis-member-main { display: flex; min-width: 0; height: 100%; flex: 1; align-items: center; gap: 7px; overflow: hidden; padding: 6px 7px; border: 0; border-radius: 0; background: transparent; text-align: left; }
+.axis-member-main:hover { background: var(--surface-2); }
+.axis-member-skill { width: 27px; height: 100%; flex: 0 0 27px; padding: 0; border-block: 0; border-right: 0; border-radius: 0; color: var(--accent-text); background: var(--accent-soft); font-size: 15px; }
 .mechanic-label { color: var(--danger); font-size: 10px; font-weight: 800; }
 .axis-segment { position: absolute; z-index: 2; display: block; min-width: 2px; min-height: 2px; border-radius: 2px; pointer-events: none; opacity: .62; }
 .cast-segment { background: repeating-linear-gradient(135deg, var(--warning) 0, var(--warning) 3px, transparent 3px, transparent 6px); }
 .effect-segment { background: var(--accent); opacity: .32; }
 .mechanic-effect { background: var(--danger); }
-.axis-event { position: absolute; z-index: 4; display: flex; align-items: center; gap: 5px; max-width: 142px; min-height: 27px; padding: 3px 6px; transform: translate(-2px, -50%); border-left-width: 3px; background: var(--surface); box-shadow: 0 2px 7px rgb(0 0 0 / 10%); white-space: nowrap; }
+.axis-event { position: absolute; z-index: 4; display: flex; align-items: center; gap: 5px; max-width: 142px; min-height: 27px; padding: 3px 6px; transform: translate(-2px, -50%); border-left-width: 3px; background: var(--surface); box-shadow: 0 2px 7px rgb(0 0 0 / 10%); white-space: nowrap; touch-action: none; cursor: grab; }
+.axis-event:active { cursor: grabbing; }
 .axis-vertical .axis-event { max-width: 140px; transform: translate(-50%, -2px); }
 .axis-event strong { overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
 .axis-event small { overflow: hidden; text-overflow: ellipsis; color: var(--text-3); font-size: 9px; }
 .axis-event i { width: 6px; height: 18px; border-radius: 1px; }
 .axis-event.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
-.mechanic-event { border-color: var(--danger); }
+.mechanic-event { max-width: 220px; border-color: var(--danger); }
 .mechanic-event.lethal { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
 .assignment-event.warning { box-shadow: 0 0 0 2px var(--warning); }
 .assignment-event > b { color: var(--warning); }
@@ -215,6 +218,7 @@ small { color: var(--text-2); }
 .inspector > header h2 { margin: 0; font-size: 13px; }
 .inspector > header span { color: var(--text-3); font-size: 9px; letter-spacing: .08em; }
 .inspector > label { display: grid; gap: 4px; margin-bottom: 10px; color: var(--text-2); font-size: 11px; }
+.readonly-field { display: flex; min-height: 32px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 3px; color: var(--text); background: var(--surface-2); }
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .field-grid > label { display: grid; gap: 4px; margin-bottom: 10px; color: var(--text-2); font-size: 11px; }
 .inline-check, label.inline-check { display: flex !important; min-height: 32px; grid-template-columns: auto 1fr; align-items: center; gap: 6px !important; }
@@ -248,6 +252,11 @@ small { color: var(--text-2); }
 .summary-cells .ok b { color: var(--success); }
 .shared-axis-card { overflow: hidden; }
 .shared-axis-card .axis-scroll { height: min(58vh, 620px); }
+.shared-mechanic-detail { display: flex; min-height: 54px; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border-top: 1px solid var(--danger); background: var(--danger-soft); }
+.shared-mechanic-detail span { min-width: 0; }
+.shared-mechanic-detail b, .shared-mechanic-detail small { display: block; }
+.shared-mechanic-detail small { margin-top: 3px; color: var(--text-2); line-height: 1.45; }
+.shared-mechanic-detail button { min-width: 28px; padding: 0; }
 .mechanic-list-card { overflow: hidden; margin-bottom: 24px; }
 .mechanic-list-card > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border-bottom: 1px solid var(--line); }
 .mechanic-list-card > header h2 { margin: 0; font-size: 13px; }

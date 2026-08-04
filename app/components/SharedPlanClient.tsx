@@ -15,6 +15,8 @@ export function SharedPlanClient({ shareSlug }: { shareSlug: string }) {
   const [toast, setToast] = useState("");
   const [orientation, setOrientation] = useState<TimelineOrientation>("horizontal");
   const [zoom, setZoom] = useState(1);
+  const [timelineScroll, setTimelineScroll] = useState({ left: 0, top: 0 });
+  const [selectedMechanicId, setSelectedMechanicId] = useState("");
   const [viewWidth, setViewWidth] = useState(1024);
   const [viewReady, setViewReady] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -62,6 +64,7 @@ export function SharedPlanClient({ shareSlug }: { shareSlug: string }) {
 
   const plan = stored?.document ?? null;
   const warnings = useMemo(() => plan ? detectConflicts(plan) : [], [plan]);
+  const selectedMechanic = plan?.mechanics.find((item) => item.id === selectedMechanicId);
 
   if (error) return <main className="state-page"><div className="state-card"><h1>分享链接不可用</h1><p>{error}</p><a className="primary-action" href="/">回到首页</a></div></main>;
   if (!plan || !stored) return <main className="state-page"><p>正在读取只读排轴…</p></main>;
@@ -78,7 +81,8 @@ export function SharedPlanClient({ shareSlug }: { shareSlug: string }) {
       </section>
       <section className="shared-axis-card">
         <div className="axis-toolbar"><strong>战斗时间轴</strong><div><button onClick={() => setOrientation((value) => value === "horizontal" ? "vertical" : "horizontal")}>{orientation === "horizontal" ? "转为时间纵向" : "转为时间横向"}</button><ZoomControl zoom={zoom} onChange={setZoom} /></div></div>
-        <div className="axis-scroll" ref={scrollRef}><TimelineView plan={plan} orientation={orientation} zoom={zoom} readOnly /></div>
+        <div className="axis-scroll" ref={scrollRef} onScroll={(event) => setTimelineScroll({ left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop })}><TimelineView plan={plan} orientation={orientation} zoom={zoom} scrollOffset={timelineScroll} readOnly onSelect={(key) => { if (key?.startsWith("mechanic:")) setSelectedMechanicId(key.slice("mechanic:".length)); }} /></div>
+        {selectedMechanic && <div className="shared-mechanic-detail"><span><b>{formatTime(selectedMechanic.atMs)} · {selectedMechanic.name}</b><small>{selectedMechanic.description || "暂无说明"}</small></span><button onClick={() => setSelectedMechanicId("")} aria-label="关闭机制说明">×</button></div>}
       </section>
       <section className="mechanic-list-card">
         <header><h2>机制说明</h2><span>{plan.mechanics.length} 项</span></header>

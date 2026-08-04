@@ -18,9 +18,9 @@ import {
   syncLinkedAssignments,
 } from "../lib/core.ts";
 import { applyBuiltInPreset, BUILT_IN_PRESETS, createPersonalPreset, parsePresetJson, stringifyPreset } from "../lib/presets.ts";
-import { cooldownsForClass } from "../lib/cooldowns.ts";
+import { cooldownsForClass, specializationFor, specializationLabel, specializationsForClass } from "../lib/cooldowns.ts";
 import type { CooldownDefinition, CooldownEffect, RaidMechanic, TargetSelection } from "../lib/types.ts";
-import { anchoredScroll, defaultOrientation, shouldInterceptTimelineWheel, timeAxisPosition, viewPreferenceKey, zoomFromWheel } from "../lib/view.ts";
+import { anchoredScroll, defaultOrientation, shouldInterceptTimelineWheel, timeAxisPosition, timelineTimeFromDrag, viewPreferenceKey, zoomFromWheel } from "../lib/view.ts";
 
 function member(id: string, classSlug = "Priest", groupId?: string) {
   return { id, name: id.toUpperCase(), classSlug, specSlug: "测试专精", role: "damage" as const, color: "#fff", ...(groupId ? { groupId } : {}) };
@@ -98,6 +98,7 @@ test("distinguishes unknown null from explicit zero and validates v2 documents",
   const plan = createBlankPlan();
   assert.equal(plan.schemaVersion, 2);
   assert.equal(plan.roster.length, 20);
+  assert.equal(plan.encounter.durationMs, 3_600_000);
   assert.equal(plan.roster[0].name, "成员 01");
   assert.equal(plan.roster[19].name, "成员 20");
   assert.ok(plan.roster.every((item) => item.classSlug === ""));
@@ -119,6 +120,18 @@ test("filters skills only after a class is selected", () => {
   assert.ok(priestSkills.length > 0);
   assert.ok(priestSkills.every((item) => item.classSlug === "Priest"));
   assert.ok(priestSkills.length < plan.cooldowns.length);
+});
+
+test("maps specialization dropdown values to labels and roles", () => {
+  assert.equal(specializationFor("Priest", "discipline")?.role, "healer");
+  assert.equal(specializationFor("Druid", "guardian")?.role, "tank");
+  assert.equal(specializationLabel("Mage", "fire"), "火焰");
+  assert.equal(specializationLabel("Mage", "旧专精"), "旧专精");
+  assert.equal(specializationsForClass("Hunter").length, 3);
+
+  const plan = createBlankPlan();
+  plan.roster[0] = { ...plan.roster[0], classSlug: "Druid", specSlug: "guardian", role: "damage" };
+  assert.equal(normalizePlanDocument(plan).roster[0].role, "tank");
 });
 
 test("calculates the 50/60/80/30 adjacent-pressure example without compounding older pressure", () => {
@@ -340,4 +353,7 @@ test("exports MRT text and converts view coordinates and pointer-anchored zoom",
   assert.equal(shouldInterceptTimelineWheel(true, false), false);
   assert.equal(anchoredScroll(100, 50, 1, 2), 250);
   assert.equal(timeAxisPosition(2000, 5), 10);
+  assert.equal(timelineTimeFromDrag(30_000, 13, 5, 3_600_000, 1000), 33_000);
+  assert.equal(timelineTimeFromDrag(1000, -100, 5, 3_600_000, 1000), 0);
+  assert.equal(timelineTimeFromDrag(3_599_000, 100, 5, 3_600_000, 1000), 3_600_000);
 });

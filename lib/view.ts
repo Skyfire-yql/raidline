@@ -33,3 +33,15 @@ export function viewPreferenceKey(scope: "plan" | "shared", id: string, width: n
 export function timeAxisPosition(ms: number, pixelsPerSecond: number) {
   return Math.max(0, ms / 1000 * pixelsPerSecond);
 }
+
+export function timelineTimeFromDrag(
+  startAtMs: number,
+  deltaPixels: number,
+  pixelsPerSecond: number,
+  maximumMs: number,
+  snapMs: number,
+) {
+  const raw = startAtMs + deltaPixels / Math.max(0.1, pixelsPerSecond) * 1000;
+  const snap = Math.max(100, snapMs || 1000);
+  return Math.min(maximumMs, Math.max(0, Math.round(raw / snap) * snap));
+}

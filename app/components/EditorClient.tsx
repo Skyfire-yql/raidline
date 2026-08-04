@@ -3,7 +3,14 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- Vinext's Next Link shim loads a second React instance in the client bundle. */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { cooldownsForClass, WOW_CLASS_COLORS, WOW_CLASS_LABELS } from "@/lib/cooldowns";
+import {
+  cooldownsForClass,
+  specializationFor,
+  specializationLabel,
+  specializationsForClass,
+  WOW_CLASS_COLORS,
+  WOW_CLASS_LABELS,
+} from "@/lib/cooldowns";
 import {
   ALL_TARGETS, INHERIT_TARGETS, defaultAssignmentStart, detectConflicts,
   exportMrtNote, formatTime, makeId, mechanicImpactMs,
@@ -23,6 +30,7 @@ type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict";
 type LeftTab = "members" | "skills" | "groups" | "presets";
 const RECENT_KEY = "raidline:recent";
 const roleLabels = { tank: "坦克", healer: "治疗", damage: "输出" } as const;
+const TIMELINE_LIMITS = [600_000, 1_200_000, 1_800_000, 3_600_000, 7_200_000] as const;
 
 function clonePlan(plan: RaidPlanDocument) { return structuredClone(plan); }
 
@@ -66,9 +74,10 @@ export function EditorClient({ planId }: { planId: string }) {
   const [conflict, setConflict] = useState<StoredPlan | null>(null);
   const [leftTab, setLeftTab] = useState<LeftTab>("members");
   const [skillClassSlug, setSkillClassSlug] = useState("");
-  const [skillCooldownId, setSkillCooldownId] = useState("");
+  const [skillMemberId, setSkillMemberId] = useState("");
   const [orientation, setOrientation] = useState<TimelineOrientation>("horizontal");
   const [zoom, setZoom] = useState(1);
+  const [timelineScroll, setTimelineScroll] = useState({ left: 0, top: 0 });
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [viewWidth, setViewWidth] = useState(1024);
@@ -194,8 +203,6 @@ export function EditorClient({ planId }: { planId: string }) {
   const selectedCooldownDirect = selection?.type === "cooldown" ? plan.cooldowns.find((item) => item.id === selection.id) : null;
   const selectedAssignment = selection?.type === "assignment" ? plan.assignments.find((item) => item.id === selection.id) : null;
   const selectedCooldown = selectedCooldownDirect ?? (selectedAssignment ? plan.cooldowns.find((item) => item.id === selectedAssignment.cooldownId) : null);
-  const selectedSkill = classCooldowns.find((item) => item.id === skillCooldownId) ?? null;
-
   function addMember() {
     const id = makeId("member");
     mutate((draft) => draft.roster.push({ id, name: `成员 ${String(draft.roster.length + 1).padStart(2, "0")}`, classSlug: "", specSlug: "", role: "damage", color: "#7b8490" }), { type: "member", id });
@@ -208,13 +215,13 @@ export function EditorClient({ planId }: { planId: string }) {
     if (!skillClassSlug) { setToast("请先选择职业"); return; }
     const id = makeId("custom-spell"); const classSlug = skillClassSlug;
     mutate((draft) => draft.cooldowns.push({ id, name: "自定义技能", description: "", classSlug, specSlugs: [], scope: "team", cooldownMs: null, castTimeMs: null, durationMs: null, triggersGcd: null, maxTargets: null, effects: [], category: "自定义", color: WOW_CLASS_COLORS[classSlug], catalogVersion: "custom", dataStatus: "custom" }), { type: "cooldown", id });
-    setSkillCooldownId(id);
   }
   function addAssignment(cooldownId: string) {
     const cooldown = activePlan.cooldowns.find((item) => item.id === cooldownId); if (!cooldown) return;
+    const timelineMember = activePlan.roster.find((item) => item.id === skillMemberId && item.classSlug === cooldown.classSlug);
     const selectedAssignmentMember = selectedAssignment ? activePlan.roster.find((item) => item.id === selectedAssignment.memberId) : null;
     const preferredMember = selectedMember?.classSlug === cooldown.classSlug ? selectedMember : selectedAssignmentMember?.classSlug === cooldown.classSlug ? selectedAssignmentMember : null;
-    const member = preferredMember ?? activePlan.roster.find((item) => item.classSlug === cooldown.classSlug);
+    const member = timelineMember ?? preferredMember ?? activePlan.roster.find((item) => item.classSlug === cooldown.classSlug);
     if (!member) { setToast(`先为至少一名成员选择${WOW_CLASS_LABELS[cooldown.classSlug] ?? "对应"}职业`); return; }
     const mechanic = selectedMechanic ?? (selectedAssignment?.mechanicId ? activePlan.mechanics.find((item) => item.id === selectedAssignment.mechanicId) : null);
     const id = makeId("assignment"); const atMs = mechanic ? defaultAssignmentStart(activePlan, cooldown, mechanic) : 0;
@@ -222,6 +229,28 @@ export function EditorClient({ planId }: { planId: string }) {
   }
   function moveAssignment(id: string, atMs: number) {
     mutate((draft) => { const item = draft.assignments.find((entry) => entry.id === id); if (!item) return; item.atMs = snapTime(atMs, draft.settings.snapMs); const mechanic = item.mechanicId ? draft.mechanics.find((entry) => entry.id === item.mechanicId) : undefined; if (mechanic) item.offsetMs = item.atMs - mechanicImpactMs(mechanic); }, { type: "assignment", id });
+  }
+  function moveMechanic(id: string, atMs: number) {
+    mutate((draft) => {
+      const item = draft.mechanics.find((entry) => entry.id === id);
+      if (!item) return;
+      item.atMs = snapTime(atMs, draft.settings.snapMs);
+      syncLinkedAssignments(draft, item.id);
+    }, { type: "mechanic", id });
+  }
+  function openMemberSkills(memberId: string) {
+    const member = activePlan.roster.find((item) => item.id === memberId);
+    if (!member) return;
+    setSelection({ type: "member", id: member.id });
+    if (!member.classSlug) {
+      setRightCollapsed(false);
+      setToast("请先为该成员选择职业和专精");
+      return;
+    }
+    setSkillMemberId(member.id);
+    setSkillClassSlug(member.classSlug);
+    setLeftTab("skills");
+    setLeftCollapsed(false);
   }
 
   async function copyText(value: string, message: string) { await navigator.clipboard.writeText(value); setToast(message); }
@@ -262,12 +291,25 @@ export function EditorClient({ planId }: { planId: string }) {
     {saveState === "conflict" && <div className="conflict-banner"><span>服务器已有更新，本地修改尚未覆盖。</span><button onClick={() => { if (conflict) { setPlan(normalizePlanDocument(conflict.document)); setVersion(conflict.version); setConflict(null); setSaveState("saved"); } }}>加载服务器版本</button><button onClick={saveConflictAsNew}>另存为新计划</button></div>}
     <div className={`editor-table-grid ${gridClass}`}>
       <aside className={`left-table-panel ${leftCollapsed ? "collapsed" : ""}`}><button className="panel-collapse" onClick={() => setLeftCollapsed((value) => !value)}>{leftCollapsed ? "›" : "‹"}</button>{!leftCollapsed && <><nav className="panel-tabs">{([['members','成员'],['skills','技能'],['groups','分组'],['presets','预设']] as const).map(([id,label]) => <button className={leftTab === id ? "active" : ""} key={id} onClick={() => setLeftTab(id)}>{label}</button>)}</nav>
-        {leftTab === "members" && <div className="panel-body"><div className="table-tools"><span>{plan.roster.length}/40 人</span><button onClick={addMember}>＋ 添加</button></div><div className="dense-list">{plan.roster.map((member) => <button className={selection?.type === "member" && selection.id === member.id ? "selected" : ""} key={member.id} onClick={() => setSelection({ type: "member", id: member.id })}><i style={{ background: member.color }} /><span><strong>{member.name}</strong><small>{WOW_CLASS_LABELS[member.classSlug] ?? "待选择职业"} · {roleLabels[member.role]} · {plan.groups.find((group) => group.id === member.groupId)?.name ?? "未分组"}</small></span></button>)}</div></div>}
-        {leftTab === "skills" && <div className="panel-body skill-picker"><label>职业<select value={skillClassSlug} onChange={(event) => { setSkillClassSlug(event.target.value); setSkillCooldownId(""); setSelection(null); }}><option value="">先选择职业</option>{Object.entries(WOW_CLASS_LABELS).map(([slug,label]) => <option value={slug} key={slug}>{label}</option>)}</select></label>{skillClassSlug && <><label>技能<select value={skillCooldownId} onChange={(event) => { setSkillCooldownId(event.target.value); setSelection(event.target.value ? { type: "cooldown", id: event.target.value } : null); }}><option value="">再选择技能</option>{classCooldowns.map((cooldown) => <option value={cooldown.id} key={cooldown.id}>{cooldown.name}</option>)}</select></label><button className="secondary-action" onClick={addCustomSkill}>＋ 为{WOW_CLASS_LABELS[skillClassSlug]}添加自定义技能</button></>}{!skillClassSlug && <p className="table-empty">选择职业后，才会显示该职业的技能。</p>}{selectedSkill && <div className="selected-skill-card"><i style={{ background: selectedSkill.color }} /><span><strong>{selectedSkill.name}</strong><small>{selectedSkill.description || "暂无说明"}</small><small>{selectedSkill.category} · {selectedSkill.durationMs == null ? "持续时间待补" : `${selectedSkill.durationMs / 1000}s`}</small></span><button onClick={() => addAssignment(selectedSkill.id)}>＋ 分配</button></div>}</div>}
+        {leftTab === "members" && <div className="panel-body"><div className="table-tools"><span>{plan.roster.length}/40 人</span><button onClick={addMember}>＋ 添加</button></div><div className="dense-list">{plan.roster.map((member) => <button className={selection?.type === "member" && selection.id === member.id ? "selected" : ""} key={member.id} onClick={() => setSelection({ type: "member", id: member.id })}><i style={{ background: member.color }} /><span><strong>{member.name}</strong><small>{WOW_CLASS_LABELS[member.classSlug] ?? "待选择职业"} · {specializationLabel(member.classSlug, member.specSlug)} · {roleLabels[member.role]}</small></span></button>)}</div></div>}
+        {leftTab === "skills" && <div className="panel-body skill-picker">
+          <label>职业<select value={skillClassSlug} onChange={(event) => { setSkillClassSlug(event.target.value); setSkillMemberId(""); setSelection(null); }}><option value="">先选择职业</option>{Object.entries(WOW_CLASS_LABELS).map(([slug,label]) => <option value={slug} key={slug}>{label}</option>)}</select></label>
+          {skillMemberId && <p className="skill-target">分配给：<b>{plan.roster.find((member) => member.id === skillMemberId)?.name}</b></p>}
+          {skillClassSlug && <button className="secondary-action" onClick={addCustomSkill}>＋ 为{WOW_CLASS_LABELS[skillClassSlug]}添加自定义技能</button>}
+          {!skillClassSlug && <p className="table-empty">选择职业后，直接显示该职业的可用技能。</p>}
+          {skillClassSlug && <div className="skill-list">{classCooldowns.map((cooldown) => <div className={selection?.type === "cooldown" && selection.id === cooldown.id ? "selected" : ""} key={cooldown.id} title={cooldown.description || "暂无说明"}>
+            <button onClick={() => setSelection({ type: "cooldown", id: cooldown.id })}><i style={{ background: cooldown.color }} /><span><strong>{cooldown.name}</strong><small>{cooldown.category} · {cooldown.durationMs == null ? "持续待补" : `${cooldown.durationMs / 1000}s`}</small></span></button>
+            <button onClick={() => addAssignment(cooldown.id)} title={`分配 ${cooldown.name}`} aria-label={`分配 ${cooldown.name}`}>＋</button>
+          </div>)}{!classCooldowns.length && <p className="table-empty">该职业暂无技能，可添加自定义技能。</p>}</div>}
+        </div>}
         {leftTab === "groups" && <div className="panel-body"><div className="table-tools"><span>每人最多一个自定义组</span><button onClick={addGroup}>＋ 添加</button></div><div className="dense-list">{plan.groups.map((group) => <button className={selection?.type === "group" && selection.id === group.id ? "selected" : ""} key={group.id} onClick={() => setSelection({ type: "group", id: group.id })}><i style={{ background: group.color }} /><span><strong>{group.name}</strong><small>{plan.roster.filter((member) => member.groupId === group.id).length} 人</small></span></button>)}{!plan.groups.length && <p className="table-empty">可建立左场、右场等站位组。</p>}</div></div>}
         {leftTab === "presets" && <div className="panel-body"><div className="preset-actions"><button onClick={saveAsPreset}>保存当前完整计划</button><button onClick={() => importPresetRef.current?.click()}>导入 JSON</button><input ref={importPresetRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) importPreset(file); event.currentTarget.value = ""; }} /></div><div className="preset-list">{[...BUILT_IN_PRESETS, ...personalPresets].map((preset) => <div key={preset.id}><span><strong>{preset.name}</strong><small>{preset.kind === "built-in" ? "内置" : "当前设备"} · {preset.description}</small></span><button onClick={() => applyPreset(preset)}>应用</button>{preset.kind === "personal" && <><button onClick={() => download(stringifyPreset(preset), `${preset.name}.raidline-preset.json`)}>导出</button><button onClick={async () => { if (confirm(`删除预设“${preset.name}”？`)) { await deletePersonalPreset(preset.id); setPersonalPresets(await listPersonalPresets()); } }}>删除</button></>}</div>)}</div></div>}
       </>}</aside>
-      <section className="timeline-work-panel"><div className="axis-toolbar"><div><button onClick={() => setLeftCollapsed((value) => !value)}>成员/技能</button><b>{plan.encounter.difficulty}</b><span>{formatTime(plan.encounter.durationMs)}</span><span>{plan.mechanics.length} 机制</span><span>{plan.assignments.length} 分配</span></div><div><button onClick={() => addMechanic()}>＋ 机制</button><button onClick={() => setOrientation((value) => value === "horizontal" ? "vertical" : "horizontal")}>{orientation === "horizontal" ? "时间横向" : "时间纵向"}</button><ZoomControl zoom={zoom} onChange={setZoom} /><button onClick={() => { setSelection(null); setRightCollapsed(false); }}>计划设置</button><button onClick={() => setRightCollapsed((value) => !value)}>属性/检查</button></div></div><div className="axis-scroll" ref={timelineRef}><TimelineView plan={plan} orientation={orientation} zoom={zoom} selected={timelineSelection} warningIds={warningIds} onSelect={(key) => { if (!key) setSelection(null); else { const [type,id] = key.split(":"); setSelection({ type: type as "mechanic" | "assignment", id }); } }} onAddMechanic={addMechanic} onMoveAssignment={moveAssignment} /></div><div className="axis-statusbar"><span>Ctrl + 滚轮缩放 · 双击空白添加机制 · 拖动技能调整开始时间</span><b className={warnings.length ? "warn" : "ok"}>{warnings.length ? `${warnings.length} 项提醒` : "检查通过"}</b></div></section>
+      <section className="timeline-work-panel">
+        <div className="axis-toolbar"><div><button onClick={() => setLeftCollapsed((value) => !value)}>成员/技能</button><b>{plan.encounter.difficulty}</b><label className="timeline-limit">上限<select aria-label="时间轴上限" value={TIMELINE_LIMITS.some((value) => value === plan.encounter.durationMs) ? String(plan.encounter.durationMs) : "custom"} onChange={(event) => { if (event.target.value !== "custom") mutate((draft) => { draft.encounter.durationMs = Number(event.target.value); }); }}><option value="600000">10 分钟</option><option value="1200000">20 分钟</option><option value="1800000">30 分钟</option><option value="3600000">60 分钟</option><option value="7200000">120 分钟</option>{!TIMELINE_LIMITS.some((value) => value === plan.encounter.durationMs) && <option value="custom">自定义 {formatTime(plan.encounter.durationMs)}</option>}</select></label><span>{plan.mechanics.length} 机制</span><span>{plan.assignments.length} 分配</span></div><div><button onClick={() => addMechanic()}>＋ 机制</button><button onClick={() => setOrientation((value) => value === "horizontal" ? "vertical" : "horizontal")}>{orientation === "horizontal" ? "时间横向" : "时间纵向"}</button><ZoomControl zoom={zoom} onChange={setZoom} /><button onClick={() => { setSelection(null); setRightCollapsed(false); }}>计划设置</button><button onClick={() => setRightCollapsed((value) => !value)}>属性/检查</button></div></div>
+        <div className="axis-scroll" ref={timelineRef} onScroll={(event) => setTimelineScroll({ left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop })}><TimelineView plan={plan} orientation={orientation} zoom={zoom} scrollOffset={timelineScroll} selected={timelineSelection} warningIds={warningIds} onSelect={(key) => { if (!key) setSelection(null); else { const [type,id] = key.split(":"); setSelection({ type: type as "mechanic" | "assignment", id }); setRightCollapsed(false); } }} onSelectMember={(id) => { setSelection({ type: "member", id }); setRightCollapsed(false); }} onOpenMemberSkills={openMemberSkills} onAddMechanic={addMechanic} onMoveMechanic={moveMechanic} onMoveAssignment={moveAssignment} /></div>
+        <div className="axis-statusbar"><span>Ctrl + 滚轮缩放 · 双击空白添加机制 · 拖动机制或技能改时间 · 成员栏已冻结</span><b className={warnings.length ? "warn" : "ok"}>{warnings.length ? `${warnings.length} 项提醒` : "检查通过"}</b></div>
+      </section>
       <aside className={`right-table-panel ${rightCollapsed ? "collapsed" : ""}`}><button className="panel-collapse" onClick={() => setRightCollapsed((value) => !value)}>{rightCollapsed ? "‹" : "›"}</button>{!rightCollapsed && <Inspector plan={plan} selection={selection} selectedMember={selectedMember} selectedGroup={selectedGroup} selectedMechanic={selectedMechanic} selectedCooldown={selectedCooldown} selectedAssignment={selectedAssignment} warnings={warnings} mutate={mutate} setSelection={setSelection} />}</aside>
     </div>
     {toast && <div className="toast" role="status">{toast}<button onClick={() => setToast("")}>×</button></div>}
@@ -293,7 +335,19 @@ function Inspector({ plan, selection, selectedMember, selectedGroup, selectedMec
   const updateMechanic = (fn: (item: any) => void) => mutate((draft) => { const item = draft.mechanics.find((entry) => entry.id === selectedMechanic?.id); if (item) { fn(item); syncLinkedAssignments(draft, item.id); } });
   const updateCooldown = (fn: (item: CooldownDefinition) => void) => mutate((draft: RaidPlanDocument) => { const item = draft.cooldowns.find((entry) => entry.id === selectedCooldown?.id); if (item) { fn(item); item.dataStatus = "custom"; if (item.scope === "personal") { item.maxTargets = 1; for (const assignment of draft.assignments.filter((entry) => entry.cooldownId === item.id)) assignment.targets = { mode: "members", memberIds: [assignment.memberId] }; } } });
   if (!selection) return <PlanSettingsInspector plan={plan} warnings={warnings} mutate={mutate} setSelection={setSelection} />;
-  if (selectedMember) return <div className="inspector"><header><h2>成员</h2><span>RAIDER</span></header><label>角色名<input value={selectedMember.name} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.name = event.target.value; })} /></label><label>职业<select value={selectedMember.classSlug} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) { item.classSlug = event.target.value; item.color = WOW_CLASS_COLORS[event.target.value] ?? "#7b8490"; } })}><option value="">待选择</option>{Object.entries(WOW_CLASS_LABELS).map(([slug,label]) => <option value={slug} key={slug}>{label}</option>)}</select></label><label>专精<input value={selectedMember.specSlug} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.specSlug = event.target.value; })} /></label><label>职责<select value={selectedMember.role} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.role = event.target.value as any; })}><option value="tank">坦克</option><option value="healer">治疗</option><option value="damage">输出</option></select></label><label>自定义分组<select value={selectedMember.groupId ?? ""} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.groupId = event.target.value || undefined; })}><option value="">未分组</option>{plan.groups.map((group: any) => <option value={group.id} key={group.id}>{group.name}</option>)}</select></label><button className="danger-button" onClick={() => { if (confirm(`删除成员“${selectedMember.name}”及其分配？`)) mutate((draft: RaidPlanDocument) => { draft.roster = draft.roster.filter((entry) => entry.id !== selectedMember.id); draft.assignments = draft.assignments.filter((entry) => entry.memberId !== selectedMember.id); }, null); }}>删除成员</button></div>;
+  if (selectedMember) {
+    const specializations = specializationsForClass(selectedMember.classSlug);
+    const knownSpecialization = specializationFor(selectedMember.classSlug, selectedMember.specSlug);
+    return <div className="inspector">
+      <header><h2>成员</h2><span>RAIDER</span></header>
+      <label>角色名<input value={selectedMember.name} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.name = event.target.value; })} /></label>
+      <label>职业<select value={selectedMember.classSlug} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) { item.classSlug = event.target.value; item.specSlug = ""; item.role = "damage"; item.color = WOW_CLASS_COLORS[event.target.value] ?? "#7b8490"; } })}><option value="">待选择</option>{Object.entries(WOW_CLASS_LABELS).map(([slug,label]) => <option value={slug} key={slug}>{label}</option>)}</select></label>
+      <label>专精<select value={selectedMember.specSlug} disabled={!selectedMember.classSlug} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (!item) return; item.specSlug = event.target.value; item.role = specializationFor(item.classSlug, item.specSlug)?.role ?? "damage"; })}><option value="">待选择专精</option>{selectedMember.specSlug && !knownSpecialization && <option value={selectedMember.specSlug}>{selectedMember.specSlug}（旧专精）</option>}{specializations.map((spec) => <option value={spec.slug} key={spec.slug}>{spec.label}</option>)}</select></label>
+      <label>职责<output className="readonly-field">{knownSpecialization ? roleLabels[knownSpecialization.role] : "选择专精后自动匹配"}</output></label>
+      <label>自定义分组<select value={selectedMember.groupId ?? ""} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.groupId = event.target.value || undefined; })}><option value="">未分组</option>{plan.groups.map((group: any) => <option value={group.id} key={group.id}>{group.name}</option>)}</select></label>
+      <button className="danger-button" onClick={() => { if (confirm(`删除成员“${selectedMember.name}”及其分配？`)) mutate((draft: RaidPlanDocument) => { draft.roster = draft.roster.filter((entry) => entry.id !== selectedMember.id); draft.assignments = draft.assignments.filter((entry) => entry.memberId !== selectedMember.id); }, null); }}>删除成员</button>
+    </div>;
+  }
   if (selectedGroup) return <div className="inspector"><header><h2>分组</h2><span>GROUP</span></header><label>名称<input value={selectedGroup.name} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.groups.find((entry) => entry.id === selectedGroup.id); if (item) item.name = event.target.value; })} /></label><label>标识色<input type="color" value={selectedGroup.color} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.groups.find((entry) => entry.id === selectedGroup.id); if (item) item.color = event.target.value; })} /></label><p className="field-note">{plan.roster.filter((member: any) => member.groupId === selectedGroup.id).map((member: any) => member.name).join("、") || "暂无成员"}</p><button className="danger-button" onClick={() => mutate((draft: RaidPlanDocument) => { draft.groups = draft.groups.filter((entry) => entry.id !== selectedGroup.id); draft.roster.forEach((member) => { if (member.groupId === selectedGroup.id) member.groupId = undefined; }); }, null)}>删除分组</button></div>;
   if (selectedMechanic) return <div className="inspector"><header><h2>机制</h2><span>MECHANIC</span></header><label>名称<input value={selectedMechanic.name} onChange={(event) => updateMechanic((item) => { item.name = event.target.value; })} /></label><label>说明<textarea rows={5} value={selectedMechanic.description} onChange={(event) => updateMechanic((item) => { item.description = event.target.value; })} /></label><label>时间点<TimeField value={selectedMechanic.atMs} onCommit={(value) => updateMechanic((item) => { item.atMs = snapTime(value, plan.settings.snapMs); })} /></label><label>所属阶段<select value={selectedMechanic.phaseId ?? ""} onChange={(event) => updateMechanic((item) => { item.phaseId = event.target.value || undefined; })}><option value="">未指定</option>{plan.phases.map((phase) => <option value={phase.id} key={phase.id}>{formatTime(phase.atMs)} {phase.name}</option>)}</select></label><button className="danger-button" onClick={() => mutate((draft: RaidPlanDocument) => { draft.mechanics = draft.mechanics.filter((entry) => entry.id !== selectedMechanic.id); draft.assignments = draft.assignments.map((entry) => entry.mechanicId === selectedMechanic.id ? { ...entry, mechanicId: undefined, offsetMs: undefined, targets: entry.targets.mode === "inherit" ? structuredClone(ALL_TARGETS) : entry.targets } : entry); }, null)}>删除机制</button></div>;
   if (selectedCooldown && !selectedAssignment) return <SkillInspector cooldown={selectedCooldown} update={updateCooldown} mutate={mutate} />;
@@ -310,7 +364,8 @@ function PlanSettingsInspector({ plan, warnings, mutate, setSelection }: { plan:
     <header><h2>计划设置</h2><span>PLAN</span></header>
     <label>计划名称<input value={plan.encounter.name} onChange={(event) => mutate((draft) => { draft.encounter.name = event.target.value; })} /></label>
     <label>难度<select value={plan.encounter.difficulty} onChange={(event) => mutate((draft) => { draft.encounter.difficulty = event.target.value; })}><option>随机</option><option>普通</option><option>英雄</option><option>史诗</option><option>练习</option></select></label>
-    <label>战斗时长<TimeField value={plan.encounter.durationMs} onCommit={(value) => mutate((draft) => { draft.encounter.durationMs = Math.max(10_000, value); })} /></label>
+    <label>时间轴上限<TimeField value={plan.encounter.durationMs} onCommit={(value) => mutate((draft) => { draft.encounter.durationMs = Math.min(7_200_000, Math.max(10_000, value)); })} /></label>
+    <p className="field-note">可设置 00:10–120:00；工具栏提供常用上限。缩短上限不会删除已有内容，越界项会显示提醒。</p>
     <label>时间吸附秒数<NullableNumber value={plan.settings.snapMs} scale={1000} min={0.1} onChange={(value) => mutate((draft) => { draft.settings.snapMs = value ?? 1000; })} /></label>
     <section className="phase-editor">
       <header><b>阶段</b><button onClick={() => mutate((draft) => draft.phases.push({ id: makeId("phase"), name: `P${draft.phases.length + 1}`, atMs: Math.min(draft.encounter.durationMs, (draft.phases.at(-1)?.atMs ?? 0) + 60_000) }))}>＋ 阶段</button></header>

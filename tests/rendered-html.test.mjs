@@ -61,6 +61,7 @@ test("server-renders the Raidline product entry", async () => {
     assert.equal(read.data.document.schemaVersion, 2);
     assert.equal(read.data.document.roster.length, 20);
     assert.equal(read.data.document.roster[0].classSlug, "");
+    assert.equal(read.data.document.encounter.durationMs, 3600000);
     assert.equal(read.data.document.settings.referenceMaxHealth, null);
     read.data.document.encounter.name = "更新后的首领";
     read.data.document.settings.referenceMaxHealth = 1_000_000;
