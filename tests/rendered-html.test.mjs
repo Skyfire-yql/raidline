@@ -25,8 +25,6 @@ test("server-renders the Raidline product entry", async () => {
   const port = 31873;
   const logs = [];
   const childEnv = { ...process.env, PORT: String(port) };
-  delete childEnv.WCL_CLIENT_ID;
-  delete childEnv.WCL_CLIENT_SECRET;
   const child = spawn(process.execPath, [cli, "dev", "--port", String(port)], {
     cwd: root,
     env: childEnv,
@@ -41,9 +39,9 @@ test("server-renders the Raidline product entry", async () => {
     const html = await response.text();
     assert.match(html, /团轴/);
     assert.match(html, /创建空白计划/);
-    assert.match(html, /WCL/);
     assert.match(html, /团本排轴工作台/);
     assert.match(html, /仅所有者可见/);
+    assert.doesNotMatch(html, /WCL|战报|治疗缺口|治疗需求|机制压力/);
     assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 
     const base = `http://localhost:${port}`;
@@ -61,6 +59,8 @@ test("server-renders the Raidline product entry", async () => {
     assert.equal(readResponse.status, 200);
     const read = await readResponse.json();
     assert.equal(read.data.document.schemaVersion, 2);
+    assert.equal(read.data.document.roster.length, 20);
+    assert.equal(read.data.document.roster[0].classSlug, "");
     assert.equal(read.data.document.settings.referenceMaxHealth, null);
     read.data.document.encounter.name = "更新后的首领";
     read.data.document.settings.referenceMaxHealth = 1_000_000;
@@ -109,12 +109,12 @@ test("server-renders the Raidline product entry", async () => {
     assert.equal(migrated.data.document.encounter.name, "旧版兼容计划");
     assert.equal(migrated.data.document.settings.pressureResetMs, 10000);
 
-    const wclResponse = await fetch(`${base}/api/plans/${created.data.id}/wcl/preview`, {
+    const removedImportResponse = await fetch(`${base}/api/plans/${created.data.id}/wcl/preview`, {
       method: "POST",
       headers: { ...authorization, "content-type": "application/json" },
-      body: JSON.stringify({ source: "AbC123xy" }),
+      body: JSON.stringify({ source: "removed" }),
     });
-    assert.equal(wclResponse.status, 503);
+    assert.equal(removedImportResponse.status, 404);
   } finally {
     child.kill();
   }

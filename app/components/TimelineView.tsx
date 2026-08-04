@@ -1,8 +1,7 @@
 "use client";
 
 import type { CSSProperties, DragEvent, MouseEvent } from "react";
-import { buildMechanicDamageEvents, formatCompactNumber, formatTime, mechanicImpactMs } from "@/lib/core";
-import type { MechanicPressureResult } from "@/lib/core";
+import { formatTime } from "@/lib/core";
 import type { RaidPlanDocument } from "@/lib/types";
 import { timeAxisPosition, type TimelineOrientation } from "@/lib/view";
 
@@ -14,7 +13,6 @@ interface TimelineViewProps {
   zoom: number;
   selected?: SelectionKey;
   warningIds?: Set<string>;
-  pressure?: Map<string, MechanicPressureResult>;
   readOnly?: boolean;
   onSelect?: (key: SelectionKey) => void;
   onAddMechanic?: (atMs: number) => void;
@@ -41,7 +39,7 @@ function pointStyle(orientation: TimelineOrientation, atMs: number, lane: number
     : { top: HEADER + axis, left: LABEL + lane * COLUMN + 27 };
 }
 
-export function TimelineView({ plan, orientation, zoom, selected = null, warningIds = new Set(), pressure = new Map(), readOnly = false, onSelect, onAddMechanic, onMoveAssignment }: TimelineViewProps) {
+export function TimelineView({ plan, orientation, zoom, selected = null, warningIds = new Set(), readOnly = false, onSelect, onAddMechanic, onMoveAssignment }: TimelineViewProps) {
   const pixelsPerSecond = 5 * zoom;
   const durationPx = timeAxisPosition(plan.encounter.durationMs, pixelsPerSecond);
   const laneCount = plan.roster.length + 1;
@@ -88,18 +86,9 @@ export function TimelineView({ plan, orientation, zoom, selected = null, warning
         </div>
       ))}
       {plan.mechanics.map((mechanic) => {
-        const cast = mechanic.castTimeMs;
-        const duration = mechanic.durationMs;
-        const impact = mechanicImpactMs(mechanic);
-        const result = pressure.get(mechanic.id);
-        const damageEvents = buildMechanicDamageEvents(mechanic);
-        const rawDamage = damageEvents.length ? damageEvents.reduce((sum, event) => sum + event.amount, 0) : null;
-        const activeLength = damageEvents.length ? Math.max(duration ?? 0, (damageEvents.at(-1)?.atMs ?? impact) - impact) : duration ?? 0;
         return <div key={mechanic.id}>
-          {cast != null && cast > 0 && <span className="axis-segment cast-segment" style={lengthStyle(orientation, mechanic.atMs, cast, 0, pixelsPerSecond)} />}
-          {duration != null && activeLength > 0 && <span className="axis-segment effect-segment mechanic-effect" style={lengthStyle(orientation, impact, activeLength, 0, pixelsPerSecond)} />}
-          <button className={`axis-event mechanic-event severity-${mechanic.severity} ${selected === `mechanic:${mechanic.id}` ? "selected" : ""} ${result?.members.some((item) => item.lethal) ? "lethal" : ""}`} style={pointStyle(orientation, mechanic.atMs, 0, pixelsPerSecond)} onClick={() => onSelect?.(`mechanic:${mechanic.id}`)} title={`${formatTime(mechanic.atMs)} 开始 · ${mechanic.name}`}>
-            <strong>{mechanic.name}</strong><small>{result?.headlinePressure != null ? `需求 ${formatCompactNumber(result.headlinePressure)}` : rawDamage != null ? `每人 ${formatCompactNumber(rawDamage)}` : "伤害待补"}</small>
+          <button className={`axis-event mechanic-event ${selected === `mechanic:${mechanic.id}` ? "selected" : ""}`} style={pointStyle(orientation, mechanic.atMs, 0, pixelsPerSecond)} onClick={() => onSelect?.(`mechanic:${mechanic.id}`)} title={`${formatTime(mechanic.atMs)} · ${mechanic.name}${mechanic.description ? ` · ${mechanic.description}` : ""}`}>
+            <strong>{mechanic.name}</strong><small>{mechanic.description || "暂无说明"}</small>
           </button>
         </div>;
       })}

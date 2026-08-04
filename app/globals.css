@@ -84,7 +84,7 @@ small { color: var(--text-2); }
 .home-intro p { max-width: 620px; margin: 0; color: var(--text-2); line-height: 1.7; }
 .primary-action { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; padding: 6px 14px; border-color: var(--accent); color: var(--accent-text); background: var(--accent-soft); font-weight: 700; white-space: nowrap; }
 .primary-action:hover:not(:disabled) { border-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 72%, var(--accent)); }
-.home-workbench { display: grid; width: min(1060px, calc(100% - 40px)); grid-template-columns: 1.1fr 1fr 1fr; gap: 14px; margin: 0 auto; }
+.home-workbench { display: grid; width: min(1060px, calc(100% - 40px)); grid-template-columns: 1fr 1fr; gap: 14px; margin: 0 auto; }
 .work-table { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); }
 .work-table > header { display: flex; min-height: 39px; align-items: center; justify-content: space-between; padding: 7px 10px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
 .work-table > header h2 { margin: 0; font-size: 13px; }
@@ -149,6 +149,13 @@ small { color: var(--text-2); }
 .preset-list strong, .preset-list small { display: block; }
 .preset-list small { margin-top: 3px; line-height: 1.45; }
 .preset-list button { min-height: 25px; padding: 2px 6px; font-size: 11px; }
+.skill-picker { padding: 10px; }
+.skill-picker > label { display: grid; gap: 4px; margin-bottom: 10px; color: var(--text-2); font-size: 11px; }
+.skill-picker .secondary-action { width: 100%; margin-bottom: 10px; }
+.selected-skill-card { display: grid; grid-template-columns: 7px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
+.selected-skill-card > i { width: 7px; height: 42px; border-radius: 2px; }
+.selected-skill-card strong, .selected-skill-card small { display: block; }
+.selected-skill-card small { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); font-size: 10px; line-height: 1.4; }
 
 /* 时间轴 */
 .timeline-work-panel { display: grid; min-width: 0; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--surface-2); }
@@ -207,7 +214,7 @@ small { color: var(--text-2); }
 .inspector > header { display: flex; align-items: center; justify-content: space-between; margin: -10px -10px 10px; padding: 9px 10px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
 .inspector > header h2 { margin: 0; font-size: 13px; }
 .inspector > header span { color: var(--text-3); font-size: 9px; letter-spacing: .08em; }
-.inspector > label, .dialog-body > label { display: grid; gap: 4px; margin-bottom: 10px; color: var(--text-2); font-size: 11px; }
+.inspector > label { display: grid; gap: 4px; margin-bottom: 10px; color: var(--text-2); font-size: 11px; }
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .field-grid > label { display: grid; gap: 4px; margin-bottom: 10px; color: var(--text-2); font-size: 11px; }
 .inline-check, label.inline-check { display: flex !important; min-height: 32px; grid-template-columns: auto 1fr; align-items: center; gap: 6px !important; }
@@ -216,23 +223,6 @@ small { color: var(--text-2); }
 .check-grid label { display: flex; align-items: center; gap: 5px; color: var(--text-2); font-size: 11px; }
 .field-note { margin: 4px 0 12px; padding: 8px; color: var(--text-2); border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); line-height: 1.6; }
 .danger-button { width: 100%; margin-top: 8px; color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); background: var(--danger-soft); }
-.pressure-card { margin: 12px 0; padding: 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
-.pressure-card > span, .pressure-card > small { display: block; color: var(--text-2); }
-.pressure-card > strong { display: block; margin: 3px 0; font-size: 22px; }
-.pressure-card > em { display: block; margin-top: 5px; color: var(--warning); font-size: 10px; font-style: normal; }
-.pressure-card > p { display: grid; grid-template-columns: 72px 1fr auto; gap: 6px; margin: 8px 0 0; padding-top: 7px; border-top: 1px solid var(--line); font-size: 10px; }
-.pressure-card > p b { overflow: hidden; text-overflow: ellipsis; }
-.pressure-card > p span { color: var(--text-2); }
-.pressure-card > p i { color: var(--danger); font-style: normal; }
-.pressure-card.lethal { border-color: var(--danger); background: var(--danger-soft); }
-.effect-list { margin: 10px 0; border: 1px solid var(--line); border-radius: 4px; }
-.effect-tools { display: flex; align-items: center; justify-content: space-between; padding: 6px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
-.effect-tools select { width: auto; min-height: 29px; }
-.effect-card { padding: 7px; border-bottom: 1px solid var(--line); }
-.effect-card:last-child { border-bottom: 0; }
-.effect-card > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.effect-card > header button { min-height: 24px; padding: 2px 6px; color: var(--danger); font-size: 10px; }
-.effect-card > label { display: grid; gap: 4px; margin-bottom: 6px; color: var(--text-2); font-size: 11px; }
 .warning-box { margin: 6px 0; padding: 7px; color: var(--warning); border: 1px solid var(--warning); border-radius: 4px; background: var(--warning-soft); font-size: 11px; line-height: 1.45; }
 .checks { margin-top: 14px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
 .checks header { display: flex; justify-content: space-between; padding: 7px; background: var(--surface-2); }
@@ -246,7 +236,7 @@ small { color: var(--text-2); }
 
 /* 分享页与状态 */
 .shared-workspace { min-height: 100vh; }
-.shared-summary, .shared-axis-card, .pressure-table-card { width: min(1320px, calc(100% - 28px)); margin: 14px auto 0; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); }
+.shared-summary, .shared-axis-card, .mechanic-list-card { width: min(1320px, calc(100% - 28px)); margin: 14px auto 0; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); }
 .shared-summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px; }
 .shared-summary h1 { margin: 0 0 4px; font-size: 18px; }
 .shared-summary p { margin: 0; color: var(--text-2); }
@@ -258,12 +248,12 @@ small { color: var(--text-2); }
 .summary-cells .ok b { color: var(--success); }
 .shared-axis-card { overflow: hidden; }
 .shared-axis-card .axis-scroll { height: min(58vh, 620px); }
-.pressure-table-card { overflow: hidden; margin-bottom: 24px; }
-.pressure-table-card > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border-bottom: 1px solid var(--line); }
-.pressure-table-card > header h2 { margin: 0; font-size: 13px; }
-.pressure-table-card > header span { color: var(--text-3); font-size: 10px; }
-.data-table { min-width: 720px; }
-.table-row { display: grid; min-height: 42px; grid-template-columns: 80px minmax(180px, 1.4fr) 80px 130px 130px 90px; align-items: center; border-bottom: 1px solid var(--line); }
+.mechanic-list-card { overflow: hidden; margin-bottom: 24px; }
+.mechanic-list-card > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+.mechanic-list-card > header h2 { margin: 0; font-size: 13px; }
+.mechanic-list-card > header span { color: var(--text-3); font-size: 10px; }
+.data-table { min-width: 540px; }
+.table-row { display: grid; min-height: 42px; grid-template-columns: 80px minmax(140px, .6fr) minmax(260px, 1.4fr); align-items: center; border-bottom: 1px solid var(--line); }
 .table-row:last-child { border-bottom: 0; }
 .table-row > span { min-width: 0; padding: 7px 9px; overflow: hidden; text-overflow: ellipsis; }
 .table-row span > b, .table-row span > small { display: block; }
@@ -277,26 +267,13 @@ small { color: var(--text-2); }
 .state-card h1 { margin: 0 0 8px; }
 .state-card p { color: var(--text-2); line-height: 1.6; }
 
-/* 对话框与提示 */
-.modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 18px; background: rgb(0 0 0 / 60%); }
-.wcl-dialog { width: min(560px, 100%); max-height: min(720px, 92vh); overflow: auto; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); box-shadow: var(--shadow); }
-.wcl-dialog > header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
-.wcl-dialog > header strong, .wcl-dialog > header small { display: block; }
-.dialog-body { padding: 14px; }
-.dialog-body h3 { margin: 0 0 6px; }
-.dialog-body p { color: var(--text-2); line-height: 1.55; }
-.dialog-error { color: var(--danger) !important; }
-.ability-checks { max-height: 320px; overflow: auto; margin: 9px 0; border: 1px solid var(--line); }
-.ability-checks > label { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid var(--line); }
-.ability-checks > label:last-child { border-bottom: 0; }
-.ability-checks span, .ability-checks b, .ability-checks small { display: block; }
+/* 提示 */
 .toast { position: fixed; z-index: 120; right: 18px; bottom: 18px; display: flex; max-width: min(420px, calc(100vw - 36px)); align-items: center; gap: 12px; padding: 9px 10px 9px 13px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface); box-shadow: var(--shadow); }
 .toast button { min-width: 26px; min-height: 26px; padding: 0; }
 .toast-error { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
 
 @media (max-width: 980px) {
   .home-workbench { grid-template-columns: 1fr 1fr; }
-  .home-workbench .work-table:first-child { grid-column: 1 / -1; }
   .editor-table-grid, .editor-table-grid.left-collapsed, .editor-table-grid.right-collapsed, .editor-table-grid.left-collapsed.right-collapsed { grid-template-columns: 230px minmax(330px, 1fr) 286px; }
   .editor-table-grid.left-collapsed { grid-template-columns: 28px minmax(330px, 1fr) 286px; }
   .editor-table-grid.right-collapsed { grid-template-columns: 230px minmax(330px, 1fr) 28px; }
@@ -311,7 +288,6 @@ small { color: var(--text-2); }
   .home-intro { width: calc(100% - 20px); align-items: stretch; flex-direction: column; padding: 28px 0 16px; }
   .home-intro .primary-action { width: 100%; }
   .home-workbench { width: calc(100% - 20px); grid-template-columns: 1fr; }
-  .home-workbench .work-table:first-child { grid-column: auto; }
   .utility-footer { width: calc(100% - 20px); flex-direction: column; }
   .editor-workspace { min-height: 480px; }
   .editor-utility-header { grid-template-columns: auto minmax(110px, 1fr); gap: 7px; }
@@ -335,9 +311,9 @@ small { color: var(--text-2); }
   .shared-summary { align-items: stretch; flex-direction: column; }
   .summary-cells > span { min-width: 25%; padding-inline: 6px; }
   .summary-cells > span:first-child { border-left: 0; }
-  .shared-axis-card, .pressure-table-card, .shared-summary { width: calc(100% - 16px); margin-top: 8px; }
+  .shared-axis-card, .mechanic-list-card, .shared-summary { width: calc(100% - 16px); margin-top: 8px; }
   .shared-axis-card .axis-toolbar { flex-direction: column; }
-  .pressure-table-card { overflow-x: auto; }
+  .mechanic-list-card { overflow-x: auto; }
   .field-grid { grid-template-columns: 1fr; gap: 0; }
 }
 

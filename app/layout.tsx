@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: base,
     title: { default: "团轴 Raidline", template: "%s｜团轴 Raidline" },
-    description: "表格式魔兽世界团本排轴、机制压力与减伤计算工具。",
+    description: "简洁的魔兽世界团本机制与团队技能排轴工具。",
     applicationName: "团轴 Raidline",
     icons: { icon: "/og.png", shortcut: "/og.png" },
     openGraph: {

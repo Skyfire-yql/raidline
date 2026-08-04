@@ -16,7 +16,6 @@ export function HomeClient() {
   const router = useRouter();
   const [recent, setRecent] = useState<RecentPlan[]>([]);
   const [personalPresets, setPersonalPresets] = useState<RaidPlanPreset[]>([]);
-  const [source, setSource] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
@@ -30,23 +29,20 @@ export function HomeClient() {
     return () => { cancelled = true; };
   }, []);
 
-  async function createPlan(mode: "blank" | "wcl" | "preset", preset?: RaidPlanPreset) {
-    if (mode === "wcl" && !source.trim()) { setError("先粘贴一条 WCL 战报链接或报告代码"); return; }
+  async function createPlan(mode: "blank" | "preset", preset?: RaidPlanPreset) {
     setBusy(mode + (preset?.id ?? "")); setError("");
     try {
-      const response = await fetch("/api/plans", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: preset?.name ?? (mode === "wcl" ? "正在导入 WCL…" : "新建团本排轴") }) });
+      const response = await fetch("/api/plans", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: preset?.name ?? "新建团本排轴" }) });
       const payload = await response.json() as CreateResponse;
       if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "创建失败");
       if (preset) {
         const base = createBlankPlan();
-        if (preset.kind === "built-in") base.roster.push({ id: "preset-sample-member", name: "示例成员", classSlug: "Priest", specSlug: "示例专精", role: "healer", color: "#e7e7e7" });
         const document = preset.kind === "built-in" ? applyBuiltInPreset(base, preset) : structuredClone(preset.document);
         const saved = await fetch(`/api/plans/${payload.data.id}`, { method: "PUT", headers: { authorization: `Bearer ${payload.data.editToken}`, "content-type": "application/json" }, body: JSON.stringify({ baseVersion: payload.data.version, document }) });
         if (!saved.ok) throw new Error("创建预设计划失败");
       }
       localStorage.setItem(`raidline:key:${payload.data.id}`, payload.data.editToken);
-      const query = mode === "wcl" ? `?wcl=${encodeURIComponent(source.trim())}` : "";
-      router.push(`/plans/${payload.data.id}${query}#key=${encodeURIComponent(payload.data.editToken)}`);
+      router.push(`/plans/${payload.data.id}#key=${encodeURIComponent(payload.data.editToken)}`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "创建失败，请稍后再试"); setBusy("");
     }
@@ -59,19 +55,10 @@ export function HomeClient() {
         <div><span className="private-state">● 仅所有者可见</span><ThemeControl compact /></div>
       </header>
       <section className="home-intro">
-        <div><h1>团本排轴工作台</h1><p>成员、机制、减伤和治疗需求放进同一张可计算的时间表。</p></div>
+        <div><h1>团本排轴工作台</h1><p>用一张简洁时间轴安排机制与团队技能。</p></div>
         <button className="primary-action" onClick={() => createPlan("blank")} disabled={Boolean(busy)}>＋ 创建空白计划</button>
       </section>
       <div className="home-workbench">
-        <section className="work-table">
-          <header><h2>从 WCL 导入</h2><span>公开战报</span></header>
-          <form onSubmit={(event) => { event.preventDefault(); createPlan("wcl"); }}>
-            <label htmlFor="wcl-source">战报链接或报告代码</label>
-            <input id="wcl-source" value={source} onChange={(event) => setSource(event.target.value)} placeholder="warcraftlogs.com/reports/…" />
-            <button type="submit" disabled={Boolean(busy)}>{busy === "wcl" ? "正在读取…" : "创建并分析"}</button>
-            <small>伤害与持续时间不会猜测，导入后由你补充。</small>
-          </form>
-        </section>
         <section className="work-table">
           <header><h2>从预设创建</h2><span>{BUILT_IN_PRESETS.length + personalPresets.length} 项</span></header>
           <div className="compact-list">
@@ -87,7 +74,7 @@ export function HomeClient() {
           </div>
         </section>
       </div>
-      <footer className="utility-footer"><span>团轴 Raidline</span><span>非暴雪或 Warcraft Logs 官方产品</span></footer>
+      <footer className="utility-footer"><span>团轴 Raidline</span><span>个人团本排轴工具</span></footer>
       {error && <div className="toast toast-error" role="alert">{error}<button onClick={() => setError("")}>×</button></div>}
     </main>
   );

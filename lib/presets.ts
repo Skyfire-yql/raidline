@@ -10,35 +10,29 @@ export interface RaidPlanPreset {
   document: RaidPlanDocument;
 }
 
-function exampleMechanic(id: string, name: string, atMs: number, directAmount: number): RaidMechanic {
+function exampleMechanic(id: string, name: string, description: string, atMs: number): RaidMechanic {
   return {
-    id, name, description: "用于验证相邻机制压力的示例数据。",
+    id, name, description,
     atMs, castTimeMs: 0, durationMs: 0,
-    damage: { school: "magic", directAmount, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false },
-    targets: structuredClone(ALL_TARGETS), severity: "danger", source: "preset", note: "",
+    damage: { school: "magic", directAmount: null, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false },
+    targets: structuredClone(ALL_TARGETS), severity: "warning", source: "preset", note: "",
   };
 }
 
-export function createPressureExamplePreset(): RaidPlanPreset {
-  const document = createBlankPlan("连续 AoE 压力示例", "preset-phase-p1");
-  document.encounter = { name: "连续 AoE 压力示例", difficulty: "练习", durationMs: 90_000 };
-  document.phases = [{ id: "preset-phase-p1", name: "P1", atMs: 0 }];
+export function createBasicMechanicsPreset(): RaidPlanPreset {
+  const document = createBlankPlan("基础机制示例", "preset-phase-p1");
+  document.encounter = { name: "基础机制示例", difficulty: "练习", durationMs: 120_000 };
+  document.phases = [{ id: "preset-phase-p1", name: "P1", atMs: 0 }, { id: "preset-phase-p2", name: "P2", atMs: 60_000 }];
   document.mechanics = [
-    exampleMechanic("preset-mechanic-aoe-1", "AoE 1 · 50万", 10_000, 500_000),
-    exampleMechanic("preset-mechanic-aoe-2", "AoE 2 · 60万", 18_000, 600_000),
-    exampleMechanic("preset-mechanic-aoe-3", "AoE 3 · 80万", 26_000, 800_000),
-    exampleMechanic("preset-mechanic-aoe-4", "AoE 4 · 30万", 34_000, 300_000),
-    {
-      ...exampleMechanic("preset-mechanic-dot", "持续灼烧", 55_000, 100_000),
-      durationMs: 6000,
-      damage: { school: "magic", directAmount: 100_000, periodicAmount: 100_000, periodicIntervalMs: 2000, tickOnStart: false },
-      description: "直接伤害后每 2 秒跳伤，演示持续总量和平均 DPS。",
-    },
+    exampleMechanic("preset-mechanic-stack", "集合", "全团在标记位置集合。", 15_000),
+    exampleMechanic("preset-mechanic-spread", "分散", "队员彼此拉开距离，避免范围重叠。", 35_000),
+    exampleMechanic("preset-mechanic-transition", "转阶段", "停止输出并处理场地或转火目标。", 60_000),
+    exampleMechanic("preset-mechanic-soak", "分组站位", "按预先安排的队伍进入各自区域。", 85_000),
   ];
-  return { id: "builtin-pressure-example-v1", name: "连续 AoE 压力示例", description: "50/60/80/30 万相邻压力与持续跳伤示例，不代表任何真实 Boss。", kind: "built-in", createdAt: 0, document };
+  return { id: "builtin-basic-mechanics-v1", name: "基础机制示例", description: "集合、分散、转阶段与分组站位的简洁时间轴。", kind: "built-in", createdAt: 0, document };
 }
 
-export const BUILT_IN_PRESETS = [createPressureExamplePreset()];
+export const BUILT_IN_PRESETS = [createBasicMechanicsPreset()];
 
 export function applyBuiltInPreset(current: RaidPlanDocument, preset: RaidPlanPreset) {
   const source = normalizePlanDocument(preset.document);

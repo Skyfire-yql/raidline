@@ -118,3 +118,8 @@ export const DEFAULT_COOLDOWNS: CooldownDefinition[] = [
 export const COOLDOWN_BY_SPELL_ID = new Map(
   DEFAULT_COOLDOWNS.filter((item) => item.spellId).map((item) => [item.spellId!, item]),
 );
+
+export function cooldownsForClass(cooldowns: CooldownDefinition[], classSlug: string) {
+  if (!classSlug) return [];
+  return cooldowns.filter((item) => item.classSlug === classSlug);
+}
