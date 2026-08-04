@@ -23,6 +23,17 @@ export const PLAN_LIMITS = {
 export const ALL_TARGETS: TargetSelection = { mode: "all" };
 export const INHERIT_TARGETS: TargetSelection = { mode: "inherit" };
 
+function createDefaultRoster(): RosterMember[] {
+  return Array.from({ length: 20 }, (_, index) => ({
+    id: `member-slot-${String(index + 1).padStart(2, "0")}`,
+    name: `成员 ${String(index + 1).padStart(2, "0")}`,
+    classSlug: "",
+    specSlug: "",
+    role: "damage" as const,
+    color: "#7b8490",
+  }));
+}
+
 export function makeId(prefix = "id") {
   const random = typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -35,7 +46,7 @@ export function createBlankPlan(title = "新建团本排轴", initialPhaseId = m
     schemaVersion: 2,
     encounter: { name: title, difficulty: "史诗", durationMs: 480_000 },
     groups: [],
-    roster: [],
+    roster: createDefaultRoster(),
     phases: [{ id: initialPhaseId, name: "P1", atMs: 0 }],
     mechanics: [],
     cooldowns: DEFAULT_COOLDOWNS.map((item) => structuredClone(item)),
@@ -276,12 +287,7 @@ export function resolveTargetMemberIds(
   assignment?: RaidAssignment,
   mechanic?: RaidMechanic,
 ) {
-  if (target.mode === "inherit") return resolveTargetMemberIds(plan, mechanic?.targets ?? ALL_TARGETS, assignment, mechanic);
-  if (target.mode === "all") return plan.roster.map((member) => member.id);
-  if (target.mode === "groups") {
-    const groups = new Set(target.groupIds ?? []);
-    return plan.roster.filter((member) => member.groupId && groups.has(member.groupId)).map((member) => member.id);
-  }
+  if (target.mode === "inherit") return resolv�m-�G����ƭy�}
   if (target.mode === "roles") {
     const roles = new Set(target.roles ?? []);
     return plan.roster.filter((member) => roles.has(member.role)).map((member) => member.id);
@@ -489,9 +495,6 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
     }
     if (cooldown.castTimeMs == null) warnings.push({ assignmentId: assignment.id, type: "configuration", message: `${cooldown.name} 的施法长度未知；0 才表示明确瞬发` });
     if (cooldown.durationMs == null) warnings.push({ assignmentId: assignment.id, type: "configuration", message: `${cooldown.name} 的持续时间未知；0 才表示明确无持续` });
-    if (cooldown.effects.some((effect) => (effect.type === "damageReduction" || effect.type === "maxHealth") ? effect.percent == null : effect.type === "absorb" && effect.amount == null)) {
-      warnings.push({ assignmentId: assignment.id, type: "configuration", message: `${cooldown.name} 的计算效果数值尚未填写` });
-    }
     const endMs = assignment.atMs + (cooldown.castTimeMs ?? 0) + (cooldown.durationMs ?? 0);
     if (assignment.atMs < 0 || endMs > plan.encounter.durationMs) warnings.push({ assignmentId: assignment.id, type: "bounds", message: `${member.name} 的 ${cooldown.name} 超出战斗时间` });
     if (cooldown.classSlug && cooldown.classSlug !== member.classSlug) warnings.push({ assignmentId: assignment.id, type: "ownership", message: `${member.name} 的职业与 ${cooldown.name} 不匹配` });
@@ -530,11 +533,6 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
       if (current.atMs < previousEnd) warnings.push({ assignmentId: current.id, type: "cast", message: `${members.get(current.memberId)?.name ?? "成员"} 的施法区间重叠` });
       if (currentCooldown.triggersGcd === true && previousCooldown.triggersGcd === true && current.atMs - previous.atMs < 1500) warnings.push({ assignmentId: current.id, type: "gcd", message: "两项占用 GCD 的技能相隔不足 1.5 秒" });
     }
-  }
-  for (const mechanic of plan.mechanics) {
-    if (mechanic.damage.directAmount == null && mechanic.damage.periodicAmount == null) warnings.push({ mechanicId: mechanic.id, type: "configuration", message: `${mechanic.name} 尚未填写伤害` });
-    if (mechanic.castTimeMs == null) warnings.push({ mechanicId: mechanic.id, type: "configuration", message: `${mechanic.name} 的施法长度未知；0 才表示明确瞬发` });
-    if (mechanic.durationMs == null) warnings.push({ mechanicId: mechanic.id, type: "configuration", message: `${mechanic.name} 的持续时间未知；0 才表示明确无持续` });
   }
   return warnings;
 }

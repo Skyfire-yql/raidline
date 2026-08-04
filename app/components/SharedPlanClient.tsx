@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- Vinext's Next Link shim is not client-runtime compatible here. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { calculateMechanicPressure, detectConflicts, exportMrtNote, formatCompactNumber, formatTime } from "@/lib/core";
+import { detectConflicts, exportMrtNote, formatTime } from "@/lib/core";
 import type { ApiError, StoredPlan } from "@/lib/types";
 import { anchoredScroll, defaultOrientation, shouldInterceptTimelineWheel, viewPreferenceKey, zoomFromWheel, type TimelineOrientation } from "@/lib/view";
 import { ThemeControl } from "./ThemeControl";
@@ -62,8 +62,6 @@ export function SharedPlanClient({ shareSlug }: { shareSlug: string }) {
 
   const plan = stored?.document ?? null;
   const warnings = useMemo(() => plan ? detectConflicts(plan) : [], [plan]);
-  const pressure = useMemo(() => plan ? calculateMechanicPressure(plan) : [], [plan]);
-  const pressureMap = useMemo(() => new Map(pressure.map((item) => [item.mechanicId, item])), [pressure]);
 
   if (error) return <main className="state-page"><div className="state-card"><h1>分享链接不可用</h1><p>{error}</p><a className="primary-action" href="/">回到首页</a></div></main>;
   if (!plan || !stored) return <main className="state-page"><p>正在读取只读排轴…</p></main>;
@@ -80,11 +78,11 @@ export function SharedPlanClient({ shareSlug }: { shareSlug: string }) {
       </section>
       <section className="shared-axis-card">
         <div className="axis-toolbar"><strong>战斗时间轴</strong><div><button onClick={() => setOrientation((value) => value === "horizontal" ? "vertical" : "horizontal")}>{orientation === "horizontal" ? "转为时间纵向" : "转为时间横向"}</button><ZoomControl zoom={zoom} onChange={setZoom} /></div></div>
-        <div className="axis-scroll" ref={scrollRef}><TimelineView plan={plan} orientation={orientation} zoom={zoom} pressure={pressureMap} readOnly /></div>
+        <div className="axis-scroll" ref={scrollRef}><TimelineView plan={plan} orientation={orientation} zoom={zoom} readOnly /></div>
       </section>
-      <section className="pressure-table-card">
-        <header><h2>机制压力</h2><span>计划治疗不从需求中扣除</span></header>
-        <div className="data-table pressure-table"><div className="table-row table-head"><span>时间</span><span>机制</span><span>目标</span><span>最高个人需求</span><span>团队本次伤害</span><span>状态</span></div>{plan.mechanics.map((mechanic) => { const result = pressureMap.get(mechanic.id); const lethal = result?.members.some((item) => item.lethal); return <div className="table-row" key={mechanic.id}><span>{formatTime(mechanic.atMs)}</span><span><b>{mechanic.name}</b><small>{mechanic.description || mechanic.note}</small><small>单目标原始总量 {formatCompactNumber(result?.rawPerTarget)} · 平均 DPS {formatCompactNumber(result?.averageDps)}</small></span><span>{result?.members.length ?? 0} 人</span><span>{formatCompactNumber(result?.headlinePressure)}</span><span>{formatCompactNumber(result?.teamCurrentDamage)}</span><span className={lethal ? "danger-text" : result?.configured ? "ok-text" : "muted-text"}>{lethal ? "致死风险" : result?.configured ? "已计算" : "待补数据"}</span></div>; })}</div>
+      <section className="mechanic-list-card">
+        <header><h2>机制说明</h2><span>{plan.mechanics.length} 项</span></header>
+        <div className="data-table mechanic-table"><div className="table-row table-head"><span>时间</span><span>机制</span><span>说明</span></div>{plan.mechanics.map((mechanic) => <div className="table-row" key={mechanic.id}><span>{formatTime(mechanic.atMs)}</span><span><b>{mechanic.name}</b></span><span>{mechanic.description || "暂无说明"}</span></div>)}</div>
       </section>
       {toast && <div className="toast" role="status">{toast}<button onClick={() => setToast("")}>×</button></div>}
     </main>

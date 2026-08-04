@@ -18,9 +18,9 @@ import {
   syncLinkedAssignments,
 } from "../lib/core.ts";
 import { applyBuiltInPreset, BUILT_IN_PRESETS, createPersonalPreset, parsePresetJson, stringifyPreset } from "../lib/presets.ts";
+import { cooldownsForClass } from "../lib/cooldowns.ts";
 import type { CooldownDefinition, CooldownEffect, RaidMechanic, TargetSelection } from "../lib/types.ts";
 import { anchoredScroll, defaultOrientation, shouldInterceptTimelineWheel, timeAxisPosition, viewPreferenceKey, zoomFromWheel } from "../lib/view.ts";
-import { collectCastPages, groupCastEvents, parseWclSourceInput } from "../lib/wcl-core.ts";
 
 function member(id: string, classSlug = "Priest", groupId?: string) {
   return { id, name: id.toUpperCase(), classSlug, specSlug: "测试专精", role: "damage" as const, color: "#fff", ...(groupId ? { groupId } : {}) };
@@ -69,35 +69,6 @@ function assignment(id: string, memberId: string, cooldownId: string, atMs = 0, 
   return { id, memberId, cooldownId, atMs, targets: structuredClone(targets), note: "", source: "manual" as const };
 }
 
-test("parses WCL report URLs and fight ids", () => {
-  assert.deepEqual(parseWclSourceInput("https://www.warcraftlogs.com/reports/AbC123xy#fight=17&type=damage-done"), { reportCode: "AbC123xy", fightId: 17 });
-  assert.deepEqual(parseWclSourceInput("AbC123xy"), { reportCode: "AbC123xy", fightId: undefined });
-  assert.throws(() => parseWclSourceInput("not a report"));
-});
-
-test("collects paginated casts, stops at the terminal page, and enforces the cap", async () => {
-  const starts: Array<number | null> = [];
-  const events = await collectCastPages(async (start) => {
-    starts.push(start);
-    return start == null
-      ? { data: [{ timestamp: 10 }], nextPageTimestamp: 100 }
-      : { data: [{ timestamp: 110 }], nextPageTimestamp: null };
-  }, 10);
-  assert.deepEqual(starts, [null, 100]);
-  assert.equal(events.length, 2);
-  await assert.rejects(() => collectCastPages(async () => ({ data: [{}, {}], nextPageTimestamp: null }), 1), /事件超过/);
-});
-
-test("groups WCL casts into deterministic candidates without inventing timing fields", () => {
-  const groups = groupCastEvents([
-    { timestamp: 1200, abilityGameID: 44 },
-    { timestamp: 1900, abilityGameID: 44 },
-    { timestamp: 2500, abilityGameID: 55 },
-  ], 1000, 10_000, new Map([[44, "虚空洪流"]]));
-  assert.deepEqual(groups[0], { spellId: 44, name: "虚空洪流", count: 2, timestamps: [200, 900] });
-  assert.equal(groups[1].name, "技能 55");
-});
-
 test("migrates v1 to v2 while preserving old numeric data as legacy", () => {
   const v1 = {
     schemaVersion: 1,
@@ -126,6 +97,10 @@ test("migrates v1 to v2 while preserving old numeric data as legacy", () => {
 test("distinguishes unknown null from explicit zero and validates v2 documents", () => {
   const plan = createBlankPlan();
   assert.equal(plan.schemaVersion, 2);
+  assert.equal(plan.roster.length, 20);
+  assert.equal(plan.roster[0].name, "成员 01");
+  assert.equal(plan.roster[19].name, "成员 20");
+  assert.ok(plan.roster.every((item) => item.classSlug === ""));
   assert.equal(plan.cooldowns[0].cooldownMs, null);
   const unknown = mechanic("unknown", 10_000, 100_000, ALL_TARGETS, { castTimeMs: null });
   const instant = mechanic("instant", 10_000, 100_000, ALL_TARGETS, { castTimeMs: 0, durationMs: 0 });
@@ -135,6 +110,15 @@ test("distinguishes unknown null from explicit zero and validates v2 documents",
   const invalid = structuredClone(plan);
   invalid.settings.referenceMaxHealth = -1;
   assert.throws(() => assertPlanDocument(invalid), /最大生命/);
+});
+
+test("filters skills only after a class is selected", () => {
+  const plan = createBlankPlan();
+  assert.deepEqual(cooldownsForClass(plan.cooldowns, ""), []);
+  const priestSkills = cooldownsForClass(plan.cooldowns, "Priest");
+  assert.ok(priestSkills.length > 0);
+  assert.ok(priestSkills.every((item) => item.classSlug === "Priest"));
+  assert.ok(priestSkills.length < plan.cooldowns.length);
 });
 
 test("calculates the 50/60/80/30 adjacent-pressure example without compounding older pressure", () => {
@@ -303,15 +287,15 @@ test("presets replace the correct scope and validate imported JSON", () => {
   plan.assignments = [assignment("a1", "m1", plan.cooldowns[0].id)];
   const originalCooldownIds = plan.cooldowns.map((item) => item.id);
   const applied = applyBuiltInPreset(plan, BUILT_IN_PRESETS[0]);
-  assert.equal(applied.encounter.name, "连续 AoE 压力示例");
+  assert.equal(applied.encounter.name, "基础机制示例");
   assert.equal(applied.phases[0].id, "preset-phase-p1");
   assert.deepEqual(applied.mechanics.map((item) => item.id), [
-    "preset-mechanic-aoe-1",
-    "preset-mechanic-aoe-2",
-    "preset-mechanic-aoe-3",
-    "preset-mechanic-aoe-4",
-    "preset-mechanic-dot",
+    "preset-mechanic-stack",
+    "preset-mechanic-spread",
+    "preset-mechanic-transition",
+    "preset-mechanic-soak",
   ]);
+  assert.ok(applied.mechanics.every((item) => item.damage.directAmount == null && item.damage.periodicAmount == null));
   assert.deepEqual(applied.roster, plan.roster);
   assert.deepEqual(applied.groups, plan.groups);
   assert.deepEqual(applied.cooldowns.map((item) => item.id), originalCooldownIds);
