@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 import {
   ALL_TARGETS,
@@ -303,6 +304,14 @@ test("presets replace the correct scope and validate imported JSON", () => {
   const originalCooldownIds = plan.cooldowns.map((item) => item.id);
   const applied = applyBuiltInPreset(plan, BUILT_IN_PRESETS[0]);
   assert.equal(applied.encounter.name, "连续 AoE 压力示例");
+  assert.equal(applied.phases[0].id, "preset-phase-p1");
+  assert.deepEqual(applied.mechanics.map((item) => item.id), [
+    "preset-mechanic-aoe-1",
+    "preset-mechanic-aoe-2",
+    "preset-mechanic-aoe-3",
+    "preset-mechanic-aoe-4",
+    "preset-mechanic-dot",
+  ]);
   assert.deepEqual(applied.roster, plan.roster);
   assert.deepEqual(applied.groups, plan.groups);
   assert.deepEqual(applied.cooldowns.map((item) => item.id), originalCooldownIds);
@@ -312,6 +321,18 @@ test("presets replace the correct scope and validate imported JSON", () => {
   assert.equal(roundTrip.document.encounter.name, "当前计划");
   assert.equal(roundTrip.kind, "personal");
   assert.throws(() => parsePresetJson('{"name":"坏预设"}'), /缺少计划内容/);
+});
+
+test("initializes built-in presets without global-scope randomness", () => {
+  const moduleUrl = new URL("../lib/presets.ts?worker-global-safety=1", import.meta.url).href;
+  const script = `
+    globalThis.crypto.randomUUID = () => { throw new Error("randomUUID called during module initialization"); };
+    Math.random = () => { throw new Error("Math.random called during module initialization"); };
+    const presets = await import(${JSON.stringify(moduleUrl)});
+    if (presets.BUILT_IN_PRESETS[0].document.phases[0].id !== "preset-phase-p1") process.exit(2);
+  `;
+  const result = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "--eval", script], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
 test("exports MRT text and converts view coordinates and pointer-anchored zoom", () => {
