@@ -43,7 +43,7 @@ export function makeId(prefix = "id") {
 
 export function createBlankPlan(title = "新建团本排轴", initialPhaseId = makeId("phase")): RaidPlanDocument {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     encounter: { name: title, difficulty: "史诗", durationMs: 3_600_000 },
     groups: [],
     roster: createDefaultRoster(),
@@ -152,7 +152,7 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
   if (!value || typeof value !== "object") throw new Error("计划内容不是有效对象");
   const source = structuredClone(value) as Record<string, unknown>;
   const legacy = source.schemaVersion === 1;
-  if (!legacy && source.schemaVersion !== 2) throw new Error("不支持的计划版本");
+  if (!legacy && source.schemaVersion !== 2 && source.schemaVersion !== 3) throw new Error("不支持的计划版本");
   const encounter = (source.encounter ?? {}) as Record<string, unknown>;
   const oldSettings = (source.settings ?? {}) as Record<string, unknown>;
   const rawMechanics = Array.isArray(source.mechanics) ? source.mechanics as Array<Record<string, unknown>> : [];
@@ -195,7 +195,7 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
     };
   });
   const document: RaidPlanDocument = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     encounter: {
       name: String(encounter.name ?? "未命名排轴"),
       difficulty: String(encounter.difficulty ?? "未设置"),
@@ -229,6 +229,13 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
       pressureResetMs: legacy ? 10_000 : Math.max(0, nullableNumber(oldSettings.pressureResetMs, 10_000) ?? 10_000),
       defensiveLeadMs: legacy ? 3000 : Math.max(0, nullableNumber(oldSettings.defensiveLeadMs, 3000) ?? 3000),
     },
+    ...(source.catalogSource && typeof source.catalogSource === "object" ? {
+      catalogSource: {
+        version: String((source.catalogSource as Record<string, unknown>).version ?? "unknown"),
+        ...((source.catalogSource as Record<string, unknown>).presetId ? { presetId: String((source.catalogSource as Record<string, unknown>).presetId) } : {}),
+        appliedAt: nullableNumber((source.catalogSource as Record<string, unknown>).appliedAt, 0) ?? 0,
+      },
+    } : {}),
   };
   assertPlanDocument(document);
   return document;
@@ -237,7 +244,7 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
 export function assertPlanDocument(value: unknown): asserts value is RaidPlanDocument {
   if (!value || typeof value !== "object") throw new Error("计划内容不是有效对象");
   const plan = value as Partial<RaidPlanDocument>;
-  if (plan.schemaVersion !== 2) throw new Error("不支持的计划版本");
+  if (plan.schemaVersion !== 3) throw new Error("不支持的计划版本");
   if (!plan.encounter || typeof plan.encounter.name !== "string" || !Number.isFinite(plan.encounter.durationMs)) throw new Error("战斗信息不完整");
   const arrays: Array<[keyof RaidPlanDocument, number]> = [
     ["groups", PLAN_LIMITS.groups], ["roster", PLAN_LIMITS.roster], ["phases", PLAN_LIMITS.phases],

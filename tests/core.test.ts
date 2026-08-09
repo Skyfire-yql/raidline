@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import test from "node:test";
 import {
   ALL_TARGETS,
@@ -17,8 +16,10 @@ import {
   resolveTargetMemberIds,
   syncLinkedAssignments,
 } from "../lib/core.ts";
-import { applyBuiltInPreset, BUILT_IN_PRESETS, createPersonalPreset, parsePresetJson, stringifyPreset } from "../lib/presets.ts";
+import { applyCatalogPreset, SEED_CATALOG, validateCatalogRelease } from "../lib/catalog.ts";
 import { cooldownsForClass, specializationFor, specializationLabel, specializationsForClass } from "../lib/cooldowns.ts";
+import { EDIT_ID_PATTERN, randomBase62, SHARE_ID_PATTERN } from "../lib/publication-ids.ts";
+import { isExpectedRevision, snapshotIdsToDelete } from "../lib/local-policy.ts";
 import type { CooldownDefinition, CooldownEffect, RaidMechanic, TargetSelection } from "../lib/types.ts";
 import { anchoredScroll, defaultOrientation, shouldInterceptTimelineWheel, timeAxisPosition, timelineTimeFromDrag, viewPreferenceKey, zoomFromWheel } from "../lib/view.ts";
 
@@ -69,7 +70,7 @@ function assignment(id: string, memberId: string, cooldownId: string, atMs = 0, 
   return { id, memberId, cooldownId, atMs, targets: structuredClone(targets), note: "", source: "manual" as const };
 }
 
-test("migrates v1 to v2 while preserving old numeric data as legacy", () => {
+test("migrates v1 to v3 while preserving old numeric data as legacy", () => {
   const v1 = {
     schemaVersion: 1,
     encounter: { name: "旧计划", difficulty: "英雄", durationMs: 120_000 },
@@ -81,7 +82,7 @@ test("migrates v1 to v2 while preserving old numeric data as legacy", () => {
     settings: { snapMs: 1000, zoom: 1.5, showMinorMechanics: true },
   };
   const plan = normalizePlanDocument(v1);
-  assert.equal(plan.schemaVersion, 2);
+  assert.equal(plan.schemaVersion, 3);
   assert.deepEqual(plan.groups, []);
   assert.equal(plan.mechanics[0].castTimeMs, 0);
   assert.equal(plan.mechanics[0].durationMs, 5000);
@@ -94,9 +95,9 @@ test("migrates v1 to v2 while preserving old numeric data as legacy", () => {
   assert.equal(plan.settings.pressureResetMs, 10_000);
 });
 
-test("distinguishes unknown null from explicit zero and validates v2 documents", () => {
+test("distinguishes unknown null from explicit zero and validates v3 documents", () => {
   const plan = createBlankPlan();
-  assert.equal(plan.schemaVersion, 2);
+  assert.equal(plan.schemaVersion, 3);
   assert.equal(plan.roster.length, 20);
   assert.equal(plan.encounter.durationMs, 3_600_000);
   assert.equal(plan.roster[0].name, "成员 01");
@@ -293,43 +294,61 @@ test("uses the three-second defensive lead, healing cast back-timing, and linked
   assert.equal(plan.assignments[0].atMs, 19_000);
 });
 
-test("presets replace the correct scope and validate imported JSON", () => {
+test("catalog presets snapshot referenced mechanics and preserve player-owned scope", () => {
   const plan = createBlankPlan("当前计划");
   plan.groups = [{ id: "g1", name: "左场", color: "#f00" }];
   plan.roster = [member("m1", "Priest", "g1")];
   plan.assignments = [assignment("a1", "m1", plan.cooldowns[0].id)];
-  const originalCooldownIds = plan.cooldowns.map((item) => item.id);
-  const applied = applyBuiltInPreset(plan, BUILT_IN_PRESETS[0]);
+  const release = validateCatalogRelease(SEED_CATALOG);
+  const preset = release.timelinePresets[0];
+  const applied = applyCatalogPreset(plan, release, preset);
   assert.equal(applied.encounter.name, "基础机制示例");
   assert.equal(applied.phases[0].id, "preset-phase-p1");
-  assert.deepEqual(applied.mechanics.map((item) => item.id), [
-    "preset-mechanic-stack",
-    "preset-mechanic-spread",
-    "preset-mechanic-transition",
-    "preset-mechanic-soak",
-  ]);
+  assert.deepEqual(applied.mechanics.map((item) => item.name), ["集合", "分散", "转阶段", "分组站位"]);
   assert.ok(applied.mechanics.every((item) => item.damage.directAmount == null && item.damage.periodicAmount == null));
   assert.deepEqual(applied.roster, plan.roster);
   assert.deepEqual(applied.groups, plan.groups);
-  assert.deepEqual(applied.cooldowns.map((item) => item.id), originalCooldownIds);
+  assert.deepEqual(applied.cooldowns.map((item) => item.id), release.playerSkills.map((item) => item.id));
   assert.deepEqual(applied.assignments, []);
-  const personal = createPersonalPreset("完整备份", plan);
-  const roundTrip = parsePresetJson(stringifyPreset(personal));
-  assert.equal(roundTrip.document.encounter.name, "当前计划");
-  assert.equal(roundTrip.kind, "personal");
-  assert.throws(() => parsePresetJson('{"name":"坏预设"}'), /缺少计划内容/);
+  assert.equal(applied.catalogSource?.version, release.manifest.version);
+  const broken = structuredClone(release);
+  broken.timelinePresets[0].mechanics[0].mechanicId = "missing";
+  assert.throws(() => validateCatalogRelease(broken), /不存在的机制/);
 });
 
-test("initializes built-in presets without global-scope randomness", () => {
-  const moduleUrl = new URL("../lib/presets.ts?worker-global-safety=1", import.meta.url).href;
-  const script = `
-    globalThis.crypto.randomUUID = () => { throw new Error("randomUUID called during module initialization"); };
-    Math.random = () => { throw new Error("Math.random called during module initialization"); };
-    const presets = await import(${JSON.stringify(moduleUrl)});
-    if (presets.BUILT_IN_PRESETS[0].document.phases[0].id !== "preset-phase-p1") process.exit(2);
-  `;
-  const result = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "--eval", script], { encoding: "utf8" });
-  assert.equal(result.status, 0, result.stderr || result.stdout);
+test("migrates an existing v2 plan to v3 locally", () => {
+  const source = structuredClone(createBlankPlan()) as unknown as Record<string, unknown>;
+  source.schemaVersion = 2;
+  const migrated = normalizePlanDocument(source);
+  assert.equal(migrated.schemaVersion, 3);
+  assert.equal(migrated.encounter.name, "新建团本排轴");
+});
+
+test("generates exact base62 publication identifiers without modulo bias", () => {
+  let seed = 0;
+  const random = (array: Uint8Array) => {
+    for (let index = 0; index < array.length; index += 1) array[index] = (seed++ * 31) % 256;
+    return array;
+  };
+  const shareId = randomBase62(16, random);
+  const editId = randomBase62(4, random);
+  assert.equal(shareId.length, 16);
+  assert.equal(editId.length, 4);
+  assert.match(shareId, SHARE_ID_PATTERN);
+  assert.match(editId, EDIT_ID_PATTERN);
+});
+
+test("keeps 30 checkpoints per plan, then enforces the global byte ceiling oldest-first", () => {
+  const snapshots = Array.from({ length: 33 }, (_, index) => ({ id: `a-${index}`, planId: "a", createdAt: index, bytes: 10 }));
+  snapshots.push({ id: "b-old", planId: "b", createdAt: 100, bytes: 80 });
+  snapshots.push({ id: "b-new", planId: "b", createdAt: 101, bytes: 80 });
+  const result = snapshotIdsToDelete(snapshots, 30, 350);
+  assert.ok(result.ids.has("a-0") && result.ids.has("a-1") && result.ids.has("a-2"));
+  assert.ok(result.ids.has("a-3"));
+  assert.ok(result.retainedBytes <= 350);
+  assert.equal(result.ids.has("b-new"), false);
+  assert.equal(isExpectedRevision(4, 4), true);
+  assert.equal(isExpectedRevision(5, 4), false);
 });
 
 test("exports MRT text and converts view coordinates and pointer-anchored zoom", () => {

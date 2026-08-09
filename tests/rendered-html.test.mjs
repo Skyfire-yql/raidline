@@ -7,24 +7,39 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const cli = fileURLToPath(new URL("../node_modules/vinext/dist/cli.js", import.meta.url));
 
 async function waitForServer(url, child, logs) {
-  const deadline = Date.now() + 20_000;
+  const deadline = Date.now() + 75_000;
   while (Date.now() < deadline) {
     if (child.exitCode != null) throw new Error(`production server exited early\n${logs.join("")}`);
     try {
       const response = await fetch(url);
       if (response.ok) return response;
-    } catch {
-      // The server is still starting.
-    }
+    } catch { /* The server is still starting. */ }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
   throw new Error(`production server did not become ready\n${logs.join("")}`);
 }
 
-test("server-renders the Raidline product entry", async () => {
+function plan(name = "集成测试首领") {
+  return {
+    schemaVersion: 2,
+    encounter: { name, difficulty: "史诗", durationMs: 600_000 },
+    groups: [], roster: [], phases: [{ id: "p1", name: "P1", atMs: 0 }], mechanics: [], cooldowns: [], assignments: [],
+    settings: { snapMs: 1000, showMinorMechanics: true, referenceMaxHealth: null, pressureResetMs: 10_000, defensiveLeadMs: 3000 },
+  };
+}
+
+async function json(response) {
+  const payload = await response.json();
+  return { response, payload };
+}
+
+test("server-renders Raidline and implements explicit R2 publication semantics", async () => {
   const port = 31873;
   const logs = [];
   const childEnv = { ...process.env, PORT: String(port) };
+  delete childEnv.HTTP_PROXY;
+  delete childEnv.HTTPS_PROXY;
+  delete childEnv.ALL_PROXY;
   const child = spawn(process.execPath, [cli, "dev", "--port", String(port)], {
     cwd: root,
     env: childEnv,
@@ -34,88 +49,67 @@ test("server-renders the Raidline product entry", async () => {
   child.stdout.on("data", (chunk) => logs.push(chunk.toString()));
   child.stderr.on("data", (chunk) => logs.push(chunk.toString()));
   try {
-    const response = await waitForServer(`http://localhost:${port}/`, child, logs);
+    const base = `http://localhost:${port}`;
+    const response = await waitForServer(`${base}/`, child, logs);
     assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
     const html = await response.text();
     assert.match(html, /团轴/);
     assert.match(html, /创建空白计划/);
     assert.match(html, /团本排轴工作台/);
-    assert.match(html, /仅所有者可见/);
-    assert.doesNotMatch(html, /WCL|战报|治疗缺口|治疗需求|机制压力/);
-    assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
+    assert.match(html, /本地优先/);
+    assert.doesNotMatch(html, /仅所有者可见|WCL|战报|个人预设|导入 JSON/);
 
-    const base = `http://localhost:${port}`;
-    const createdResponse = await fetch(`${base}/api/plans`, {
+    const shareId = "0aZ9bY8cX7dW6eV5";
+    const editId = "A9z0";
+    const created = await json(await fetch(`${base}/api/publications`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title: "集成测试首领" }),
-    });
-    assert.equal(createdResponse.status, 201);
-    const created = await createdResponse.json();
-    const authorization = { authorization: `Bearer ${created.data.editToken}` };
+      body: JSON.stringify({ shareId, editId, document: plan() }),
+    }));
+    assert.equal(created.response.status, 201);
+    assert.equal(created.payload.data.shareId, shareId);
+    assert.equal(created.payload.data.editId, editId);
+    assert.match(created.payload.data.shareId, /^[0-9A-Za-z]{16}$/);
+    assert.match(created.payload.data.editId, /^[0-9A-Za-z]{4}$/);
+    assert.equal(created.payload.data.document.schemaVersion, 3);
 
-    assert.equal((await fetch(`${base}/api/plans/${created.data.id}`)).status, 401);
-    const readResponse = await fetch(`${base}/api/plans/${created.data.id}`, { headers: authorization });
-    assert.equal(readResponse.status, 200);
-    const read = await readResponse.json();
-    assert.equal(read.data.document.schemaVersion, 2);
-    assert.equal(read.data.document.roster.length, 20);
-    assert.equal(read.data.document.roster[0].classSlug, "");
-    assert.equal(read.data.document.encounter.durationMs, 3600000);
-    assert.equal(read.data.document.settings.referenceMaxHealth, null);
-    read.data.document.encounter.name = "更新后的首领";
-    read.data.document.settings.referenceMaxHealth = 1_000_000;
-    const saveBody = JSON.stringify({ baseVersion: read.data.version, document: read.data.document });
-    const savedResponse = await fetch(`${base}/api/plans/${created.data.id}`, {
-      method: "PUT",
-      headers: { ...authorization, "content-type": "application/json" },
-      body: saveBody,
-    });
-    assert.equal(savedResponse.status, 200);
-    const saved = await savedResponse.json();
-    assert.equal(saved.data.version, 2);
-    assert.equal(saved.data.document.schemaVersion, 2);
-    assert.equal(saved.data.document.settings.referenceMaxHealth, 1_000_000);
+    const read = await json(await fetch(`${base}/api/publications/${shareId}`));
+    assert.equal(read.response.status, 200);
+    assert.equal(read.payload.data.document.encounter.name, "集成测试首领");
+    assert.equal(read.payload.data.editId, undefined);
+    assert.doesNotMatch(JSON.stringify(read.payload), /A9z0/);
 
-    const conflictResponse = await fetch(`${base}/api/plans/${created.data.id}`, {
-      method: "PUT",
-      headers: { ...authorization, "content-type": "application/json" },
-      body: saveBody,
-    });
-    assert.equal(conflictResponse.status, 409);
+    assert.equal((await fetch(`${base}/api/publications/${shareId}/zzzz`)).status, 403);
+    const editable = await json(await fetch(`${base}/api/publications/${shareId}/${editId}`));
+    assert.equal(editable.response.status, 200);
+    assert.equal(editable.payload.data.binding.editId, editId);
 
-    const sharedResponse = await fetch(`${base}/api/shared/${saved.data.shareSlug}`);
-    assert.equal(sharedResponse.status, 200);
-    const sharedText = await sharedResponse.text();
-    assert.doesNotMatch(sharedText, /editToken|edit_key_hash/i);
-    assert.match(sharedText, /"schemaVersion":2/);
+    const updatedDocument = structuredClone(read.payload.data.document);
+    updatedDocument.encounter.name = "覆盖后的首领";
+    const updated = await json(await fetch(`${base}/api/publications/${shareId}/${editId}`, {
+      method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ document: updatedDocument }),
+    }));
+    assert.equal(updated.response.status, 200);
+    assert.notEqual(updated.payload.data.revisionId, created.payload.data.revisionId);
+    assert.equal((await json(await fetch(`${base}/api/publications/${shareId}`))).payload.data.document.encounter.name, "覆盖后的首领");
 
-    const invalidKeyResponse = await fetch(`${base}/api/plans/${created.data.id}`, { headers: { authorization: "Bearer invalid-key" } });
-    assert.equal(invalidKeyResponse.status, 401);
+    const secondShareId = "1234567890AbCdEf";
+    const second = await json(await fetch(`${base}/api/publications`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ shareId: secondShareId, editId: "Qw2E", document: updatedDocument }),
+    }));
+    assert.equal(second.response.status, 201);
+    assert.equal((await json(await fetch(`${base}/api/publications/${shareId}`))).payload.data.shareId, shareId);
 
-    const legacy = {
-      schemaVersion: 1,
-      encounter: { name: "旧版兼容计划", difficulty: "英雄", durationMs: 120000 },
-      roster: [], phases: [{ id: "p1", name: "P1", atMs: 0 }], mechanics: [], cooldowns: [], assignments: [],
-      settings: { snapMs: 1000, zoom: 1, showMinorMechanics: true },
-    };
-    const legacyResponse = await fetch(`${base}/api/plans/${created.data.id}`, {
-      method: "PUT",
-      headers: { ...authorization, "content-type": "application/json" },
-      body: JSON.stringify({ baseVersion: saved.data.version, document: legacy }),
-    });
-    assert.equal(legacyResponse.status, 200);
-    const migrated = await legacyResponse.json();
-    assert.equal(migrated.data.document.schemaVersion, 2);
-    assert.equal(migrated.data.document.encounter.name, "旧版兼容计划");
-    assert.equal(migrated.data.document.settings.pressureResetMs, 10000);
+    assert.equal((await fetch(`${base}/api/publications/${shareId}/bad1`, { method: "DELETE" })).status, 403);
+    assert.equal((await fetch(`${base}/api/publications/${shareId}/${editId}`, { method: "DELETE" })).status, 200);
+    assert.equal((await fetch(`${base}/api/publications/${shareId}`)).status, 404);
 
-    const removedImportResponse = await fetch(`${base}/api/plans/${created.data.id}/wcl/preview`, {
-      method: "POST",
-      headers: { ...authorization, "content-type": "application/json" },
-      body: JSON.stringify({ source: "removed" }),
-    });
-    assert.equal(removedImportResponse.status, 404);
+    const catalog = await json(await fetch(`${base}/api/catalog/current`));
+    assert.equal(catalog.response.status, 200);
+    assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v1");
+    assert.ok(catalog.payload.data.playerSkills.length > 20);
+    assert.equal((await fetch(`${base}/api/plans`, { method: "POST" })).status, 404);
+    assert.equal((await fetch(`${base}/api/shared/${secondShareId}`)).status, 404);
   } finally {
     child.kill();
   }

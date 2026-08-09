@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Inspector JSX edits heterogeneous v2 unions in-place; runtime documents are normalized before use. */
 /* eslint-disable @next/next/no-html-link-for-pages -- Vinext's Next Link shim loads a second React instance in the client bundle. */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   cooldownsForClass,
   specializationFor,
@@ -17,18 +17,19 @@ import {
   normalizePlanDocument, parseTime, snapTime, syncLinkedAssignments,
 } from "@/lib/core";
 import type { ConflictWarning } from "@/lib/core";
-import { applyBuiltInPreset, BUILT_IN_PRESETS, createPersonalPreset, parsePresetJson, stringifyPreset, type RaidPlanPreset } from "@/lib/presets";
-import type { ApiError, CooldownDefinition, RaidAssignment, RaidGroup, RaidMechanic, RaidPlanDocument, RosterMember, StoredPlan, TargetSelection } from "@/lib/types";
+import { applyCatalogPreset, catalogDifference, SEED_CATALOG } from "@/lib/catalog";
+import { hashPlanDocument } from "@/lib/hashing";
+import { randomBase62 } from "@/lib/publication-ids";
+import type { ApiError, CatalogRelease, CooldownDefinition, LocalPlanRecord, PlanSnapshot, PublicPublication, PublicationBinding, RaidAssignment, RaidGroup, RaidMechanic, RaidPlanDocument, RosterMember, TargetSelection } from "@/lib/types";
 import { anchoredScroll, defaultOrientation, shouldInterceptTimelineWheel, viewPreferenceKey, zoomFromWheel, type TimelineOrientation } from "@/lib/view";
 import { ThemeControl } from "./ThemeControl";
 import { TimelineView } from "./TimelineView";
 import { ZoomControl } from "./ZoomControl";
-import { deletePersonalPreset, listPersonalPresets, savePersonalPreset } from "./preset-store";
+import { cacheCatalog, createLocalPlan, createPlanSnapshot, getCachedCatalog, getLocalPlan, listPlanSnapshots, LocalRevisionConflictError, saveLocalPlan, setPlanPublication } from "./local-store";
 
 type Selection = { type: "member" | "group" | "mechanic" | "cooldown" | "assignment"; id: string } | null;
 type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict";
 type LeftTab = "members" | "skills" | "groups" | "presets";
-const RECENT_KEY = "raidline:recent";
 const roleLabels = { tank: "坦克", healer: "治疗", damage: "输出" } as const;
 const TIMELINE_LIMITS = [600_000, 1_200_000, 1_800_000, 3_600_000, 7_200_000] as const;
 
@@ -63,15 +64,16 @@ function TargetEditor({ target, plan, allowInherit, onChange }: { target: Target
 }
 
 export function EditorClient({ planId }: { planId: string }) {
-  const [token, setToken] = useState("");
-  const [stored, setStored] = useState<StoredPlan | null>(null);
+  const [record, setRecord] = useState<LocalPlanRecord | null>(null);
   const [plan, setPlan] = useState<RaidPlanDocument | null>(null);
-  const [version, setVersion] = useState(0);
+  const [localRevision, setLocalRevision] = useState(0);
   const [selection, setSelection] = useState<Selection>(null);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [fatal, setFatal] = useState("");
   const [toast, setToast] = useState("");
-  const [conflict, setConflict] = useState<StoredPlan | null>(null);
+  const [conflict, setConflict] = useState<LocalPlanRecord | null>(null);
+  const [publishing, setPublishing] = useState("");
+  const [currentHash, setCurrentHash] = useState("");
   const [leftTab, setLeftTab] = useState<LeftTab>("members");
   const [skillClassSlug, setSkillClassSlug] = useState("");
   const [skillMemberId, setSkillMemberId] = useState("");
@@ -82,50 +84,42 @@ export function EditorClient({ planId }: { planId: string }) {
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [viewWidth, setViewWidth] = useState(1024);
   const [viewReady, setViewReady] = useState(false);
-  const [personalPresets, setPersonalPresets] = useState<RaidPlanPreset[]>([]);
+  const [catalog, setCatalog] = useState<CatalogRelease>(SEED_CATALOG);
+  const [snapshots, setSnapshots] = useState<PlanSnapshot[]>([]);
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const undoStack = useRef<RaidPlanDocument[]>([]);
   const redoStack = useRef<RaidPlanDocument[]>([]);
   const editRevision = useRef(0);
+  const planRef = useRef<RaidPlanDocument | null>(null);
+  const localRevisionRef = useRef(0);
   const timelineRef = useRef<HTMLDivElement>(null);
-  const importPresetRef = useRef<HTMLInputElement>(null);
-
-  const rememberPlan = useCallback((value: StoredPlan, editToken: string) => {
-    try {
-      localStorage.setItem(`raidline:key:${value.id}`, editToken);
-      const current = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") as Array<{ id: string; title: string; updatedAt: number }>;
-      localStorage.setItem(RECENT_KEY, JSON.stringify([{ id: value.id, title: value.document.encounter.name, updatedAt: value.updatedAt }, ...current.filter((item) => item.id !== value.id)].slice(0, 8)));
-    } catch { /* device convenience only */ }
-  }, []);
-
-  const loadPlan = useCallback(async (editToken: string) => {
-    const response = await fetch(`/api/plans/${planId}`, { headers: { authorization: `Bearer ${editToken}` } });
-    const payload = await response.json() as { data?: StoredPlan; error?: ApiError };
-    if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "读取计划失败");
-    const document = normalizePlanDocument(payload.data.document);
-    setStored({ ...payload.data, document }); setPlan(document); setVersion(payload.data.version); setSaveState("saved");
-    undoStack.current = []; redoStack.current = []; editRevision.current = 0; setHistoryState({ canUndo: false, canRedo: false }); rememberPlan(payload.data, editToken);
-  }, [planId, rememberPlan]);
 
   useEffect(() => {
     let cancelled = false;
-    queueMicrotask(() => {
+    queueMicrotask(async () => {
       if (cancelled) return;
-      const fromHash = new URLSearchParams(location.hash.replace(/^#/, "")).get("key") ?? "";
-      const editToken = fromHash || localStorage.getItem(`raidline:key:${planId}`) || "";
-      if (fromHash) { localStorage.setItem(`raidline:key:${planId}`, fromHash); history.replaceState(null, "", `${location.pathname}${location.search}`); }
-      if (!editToken) { setFatal("这条编辑链接缺少恢复密钥。请打开完整恢复链接。"); return; }
-      setToken(editToken); loadPlan(editToken).catch((error) => { if (!cancelled) setFatal(error instanceof Error ? error.message : "读取计划失败"); });
       try {
+        const [local, localSnapshots, cached] = await Promise.all([getLocalPlan(planId), listPlanSnapshots(planId), getCachedCatalog()]);
+        if (!local) throw new Error("这条本地轴不存在，可能已被删除或属于另一台设备。");
+        const document = normalizePlanDocument(local.document);
+        setRecord({ ...local, document }); setPlan(document); planRef.current = document;
+        setLocalRevision(local.localRevision); localRevisionRef.current = local.localRevision;
+        setSnapshots(localSnapshots); setSaveState("saved");
+        if (cached) setCatalog(cached);
         const view = JSON.parse(localStorage.getItem(viewPreferenceKey("plan", planId, innerWidth)) ?? "null") as { orientation?: TimelineOrientation; zoom?: number; leftCollapsed?: boolean; rightCollapsed?: boolean } | null;
         const mobile = innerWidth < 720;
         setViewWidth(innerWidth); setOrientation(view?.orientation ?? defaultOrientation(innerWidth)); setZoom(view?.zoom ?? 1); setLeftCollapsed(view?.leftCollapsed ?? mobile); setRightCollapsed(view?.rightCollapsed ?? mobile);
-      } catch { setViewWidth(innerWidth); setOrientation(defaultOrientation(innerWidth)); setLeftCollapsed(innerWidth < 720); setRightCollapsed(innerWidth < 720); }
-      setViewReady(true);
-      listPersonalPresets().then((items) => { if (!cancelled) setPersonalPresets(items); }).catch(() => { if (!cancelled) setPersonalPresets([]); });
+        setViewReady(true);
+        fetch("/api/catalog/current").then(async (response) => {
+          const payload = await response.json() as { data?: CatalogRelease };
+          if (response.ok && payload.data) { await cacheCatalog(payload.data); if (!cancelled) setCatalog(payload.data); }
+        }).catch(() => undefined);
+      } catch (error) {
+        if (!cancelled) setFatal(error instanceof Error ? error.message : "读取本地计划失败");
+      }
     });
     return () => { cancelled = true; };
-  }, [loadPlan, planId]);
+  }, [planId]);
 
   useEffect(() => { if (viewReady) localStorage.setItem(viewPreferenceKey("plan", planId, viewWidth), JSON.stringify({ orientation, zoom, leftCollapsed, rightCollapsed })); }, [leftCollapsed, orientation, planId, rightCollapsed, viewReady, viewWidth, zoom]);
 
@@ -133,19 +127,23 @@ export function EditorClient({ planId }: { planId: string }) {
     setPlan((current) => {
       if (!current) return current;
       undoStack.current = [...undoStack.current.slice(-49), clonePlan(current)]; redoStack.current = [];
-      const next = clonePlan(current); mutator(next); return normalizePlanDocument(next);
+      const counts = [current.roster.length, current.groups.length, current.mechanics.length, current.cooldowns.length, current.assignments.length, current.phases.length];
+      const next = clonePlan(current); mutator(next);
+      const destructive = [next.roster.length, next.groups.length, next.mechanics.length, next.cooldowns.length, next.assignments.length, next.phases.length].some((value, index) => value < counts[index]);
+      if (destructive) createPlanSnapshot(planId, "destructive", current, localRevisionRef.current).then(() => listPlanSnapshots(planId).then(setSnapshots)).catch((error) => setToast(error instanceof Error ? error.message : "建立检查点失败"));
+      const normalized = normalizePlanDocument(next); planRef.current = normalized; return normalized;
     });
     editRevision.current += 1; setHistoryState({ canUndo: true, canRedo: false });
-    setSaveState("dirty"); setConflict(null); if (nextSelection !== undefined) setSelection(nextSelection);
+    setSaveState("dirty"); if (nextSelection !== undefined) setSelection(nextSelection);
   }
 
   function replacePlan(next: RaidPlanDocument) {
     if (plan) undoStack.current = [...undoStack.current.slice(-49), clonePlan(plan)];
-    redoStack.current = []; editRevision.current += 1; setHistoryState({ canUndo: Boolean(plan), canRedo: false }); setPlan(normalizePlanDocument(next)); setSelection(null); setSaveState("dirty"); setConflict(null);
+    redoStack.current = []; editRevision.current += 1; setHistoryState({ canUndo: Boolean(plan), canRedo: false }); const normalized = normalizePlanDocument(next); planRef.current = normalized; setPlan(normalized); setSelection(null); setSaveState("dirty");
   }
 
-  function undo() { const previous = undoStack.current.pop(); if (!previous || !plan) return; redoStack.current.push(clonePlan(plan)); editRevision.current += 1; setHistoryState({ canUndo: undoStack.current.length > 0, canRedo: true }); setPlan(previous); setSaveState("dirty"); }
-  function redo() { const next = redoStack.current.pop(); if (!next || !plan) return; undoStack.current.push(clonePlan(plan)); editRevision.current += 1; setHistoryState({ canUndo: true, canRedo: redoStack.current.length > 0 }); setPlan(next); setSaveState("dirty"); }
+  function undo() { const previous = undoStack.current.pop(); if (!previous || !plan) return; redoStack.current.push(clonePlan(plan)); editRevision.current += 1; setHistoryState({ canUndo: undoStack.current.length > 0, canRedo: true }); planRef.current = previous; setPlan(previous); setSaveState("dirty"); }
+  function redo() { const next = redoStack.current.pop(); if (!next || !plan) return; undoStack.current.push(clonePlan(plan)); editRevision.current += 1; setHistoryState({ canUndo: true, canRedo: redoStack.current.length > 0 }); planRef.current = next; setPlan(next); setSaveState("dirty"); }
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -156,22 +154,38 @@ export function EditorClient({ planId }: { planId: string }) {
   });
 
   useEffect(() => {
-    if (!plan || !token || saveState !== "dirty" || conflict) return;
+    if (!plan || saveState !== "dirty" || conflict) return;
     const captured = plan;
     const capturedRevision = editRevision.current;
     const timer = setTimeout(async () => {
       setSaveState("saving");
       try {
-        const response = await fetch(`/api/plans/${planId}`, { method: "PUT", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ baseVersion: version, document: captured }) });
-        const payload = await response.json() as { data?: StoredPlan; error?: ApiError };
-        if (response.status === 409) { setConflict(payload.error?.details as StoredPlan | null); setSaveState("conflict"); return; }
-        if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "保存失败");
-        setVersion(payload.data.version); setStored(payload.data); rememberPlan(payload.data, token);
+        const saved = await saveLocalPlan(planId, captured, localRevisionRef.current);
+        localRevisionRef.current = saved.localRevision; setLocalRevision(saved.localRevision); setRecord(saved);
         setSaveState(editRevision.current === capturedRevision ? "saved" : "dirty");
-      } catch (error) { setSaveState("error"); setToast(error instanceof Error ? error.message : "保存失败"); }
-    }, 800);
+      } catch (error) {
+        if (error instanceof LocalRevisionConflictError) { setConflict(error.latest); setSaveState("conflict"); }
+        else { setSaveState("error"); setToast(error instanceof Error ? error.message : "本地保存失败"); }
+      }
+    }, 300);
     return () => clearTimeout(timer);
-  }, [conflict, plan, planId, rememberPlan, saveState, token, version]);
+  }, [conflict, plan, planId, saveState]);
+
+  useEffect(() => {
+    if (!plan) return;
+    let cancelled = false;
+    hashPlanDocument(plan).then((hash) => { if (!cancelled) setCurrentHash(hash); });
+    return () => { cancelled = true; };
+  }, [plan]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const current = planRef.current;
+      if (!current) return;
+      createPlanSnapshot(planId, "minute", current, localRevisionRef.current).then(() => listPlanSnapshots(planId).then(setSnapshots)).catch((error) => setToast(error instanceof Error ? error.message : "分钟检查点保存失败"));
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [planId]);
 
   useEffect(() => {
     const element = timelineRef.current; if (!element) return;
@@ -194,8 +208,9 @@ export function EditorClient({ planId }: { planId: string }) {
   const classCooldowns = useMemo(() => cooldownsForClass(plan?.cooldowns ?? [], skillClassSlug), [plan?.cooldowns, skillClassSlug]);
 
   if (fatal) return <main className="state-page"><div className="state-card"><h1>无法打开编辑器</h1><p>{fatal}</p><a className="primary-action" href="/">回到首页</a></div></main>;
-  if (!plan || !stored) return <main className="state-page"><p>正在读取计划…</p></main>;
+  if (!plan || !record) return <main className="state-page"><p>正在读取本地计划…</p></main>;
   const activePlan = plan;
+  const activeRecord = record;
 
   const selectedMember = selection?.type === "member" ? plan.roster.find((item) => item.id === selection.id) : null;
   const selectedGroup = selection?.type === "group" ? plan.groups.find((item) => item.id === selection.id) : null;
@@ -254,41 +269,102 @@ export function EditorClient({ planId }: { planId: string }) {
   }
 
   async function copyText(value: string, message: string) { await navigator.clipboard.writeText(value); setToast(message); }
-  function download(value: string, filename: string, type = "application/json") { const url = URL.createObjectURL(new Blob([value], { type })); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; anchor.click(); URL.revokeObjectURL(url); }
-  async function saveConflictAsNew() {
-    setSaveState("saving");
+
+  async function refreshSnapshots() { setSnapshots(await listPlanSnapshots(planId)); }
+
+  async function applyPreset(presetId: string) {
+    const preset = catalog.timelinePresets.find((item) => item.id === presetId);
+    if (!preset || !confirm(`应用“${preset.name}”？当前机制和分配会被替换，并先建立检查点。`)) return;
     try {
-      const createdResponse = await fetch("/api/plans", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: `${activePlan.encounter.name}（副本）` }) });
-      const created = await createdResponse.json() as { data?: { id: string; editToken: string; version: number }; error?: ApiError };
-      if (!createdResponse.ok || !created.data) throw new Error(created.error?.message ?? "创建新计划失败");
-      const savedResponse = await fetch(`/api/plans/${created.data.id}`, { method: "PUT", headers: { authorization: `Bearer ${created.data.editToken}`, "content-type": "application/json" }, body: JSON.stringify({ baseVersion: created.data.version, document: activePlan }) });
-      const saved = await savedResponse.json() as { data?: StoredPlan; error?: ApiError };
-      if (!savedResponse.ok || !saved.data) throw new Error(saved.error?.message ?? "另存计划失败");
-      rememberPlan(saved.data, created.data.editToken);
-      location.assign(`/plans/${created.data.id}#key=${encodeURIComponent(created.data.editToken)}`);
-    } catch (error) {
-      setSaveState("conflict");
-      setToast(error instanceof Error ? error.message : "另存计划失败");
-    }
+      await createPlanSnapshot(planId, "preset", activePlan, localRevisionRef.current);
+      replacePlan(applyCatalogPreset(activePlan, catalog, preset));
+      await refreshSnapshots(); setToast("预设已应用，旧内容已保存为检查点");
+    } catch (error) { setToast(error instanceof Error ? error.message : "应用预设失败"); }
   }
 
-  async function saveAsPreset() {
-    const name = prompt("个人预设名称", activePlan.encounter.name); if (!name) return;
-    const preset = createPersonalPreset(name, activePlan); await savePersonalPreset(preset); setPersonalPresets(await listPersonalPresets()); setToast("完整计划已保存为当前设备预设");
+  async function upgradeCatalog(event: React.MouseEvent<HTMLButtonElement>) {
+    const appliedAt = Math.round(performance.timeOrigin + event.timeStamp);
+    const difference = catalogDifference(activePlan, catalog);
+    if (difference.currentVersion === difference.availableVersion) { setToast("当前计划已使用最新目录"); return; }
+    if (!confirm(`升级到目录 ${difference.availableVersion}？将更新目录技能，机制快照不会自动改变。`)) return;
+    await createPlanSnapshot(planId, "catalog-upgrade", activePlan, localRevisionRef.current);
+    const next = clonePlan(activePlan);
+    const custom = next.cooldowns.filter((item) => item.dataStatus === "custom" || item.id.startsWith("custom-"));
+    next.cooldowns = [...catalog.playerSkills.filter((item) => item.enabled).map((item) => { const { enabled: _enabled, gameVersion: _gameVersion, ...skill } = item; void _enabled; void _gameVersion; return structuredClone(skill); }), ...custom];
+    next.catalogSource = { version: catalog.manifest.version, appliedAt };
+    replacePlan(next); await refreshSnapshots(); setToast("技能目录已升级；旧机制和时间轴保持不变");
   }
-  function applyPreset(preset: RaidPlanPreset) {
-    if (!confirm(`应用“${preset.name}”？当前计划内容会被替换，可使用撤销恢复。`)) return;
-    replacePlan(preset.kind === "built-in" ? applyBuiltInPreset(activePlan, preset) : preset.document); setToast("预设已应用");
+
+  async function confirmPublication(shareId: string, editId: string, expectedHash: string) {
+    const response = await fetch(`/api/publications/${shareId}`);
+    const payload = await response.json() as { data?: PublicPublication };
+    if (!response.ok || payload.data?.contentHash !== expectedHash) return null;
+    const data = payload.data;
+    return { shareId, editId, revisionId: data.revisionId, publishedAt: data.publishedAt, contentHash: data.contentHash } satisfies PublicationBinding;
   }
-  async function importPreset(file: File) {
-    try { const preset = parsePresetJson(await file.text()); await savePersonalPreset(preset); setPersonalPresets(await listPersonalPresets()); setToast("个人预设已导入"); } catch (error) { setToast(error instanceof Error ? error.message : "导入预设失败"); }
+
+  async function publish(mode: "new" | "overwrite") {
+    const captured = clonePlan(activePlan);
+    const capturedHash = await hashPlanDocument(captured);
+    let shareId = mode === "overwrite" ? activeRecord.activePublication?.shareId ?? "" : randomBase62(16);
+    let editId = mode === "overwrite" ? activeRecord.activePublication?.editId ?? "" : randomBase62(4);
+    if (!shareId || !editId) { setToast("当前计划还没有可覆盖的发布链接"); return; }
+    setPublishing(mode); setToast("");
+    try {
+      await createPlanSnapshot(planId, "publish", captured, localRevisionRef.current);
+      let binding: PublicationBinding | null = null;
+      for (let attempt = 0; attempt < 3 && !binding; attempt += 1) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 12_000);
+        try {
+          const response = await fetch(mode === "overwrite" ? `/api/publications/${shareId}/${editId}` : "/api/publications", {
+            method: mode === "overwrite" ? "PUT" : "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ document: captured, ...(mode === "new" ? { shareId, editId } : {}) }),
+            signal: controller.signal,
+          });
+          const payload = await response.json() as { data?: PublicPublication & { editId: string; binding: PublicationBinding }; error?: ApiError };
+          if (response.status === 409 && mode === "new") { shareId = randomBase62(16); editId = randomBase62(4); continue; }
+          if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "发布失败");
+          binding = payload.data.binding;
+        } catch (error) {
+          binding = await confirmPublication(shareId, editId, capturedHash);
+          if (!binding) throw error;
+        } finally { clearTimeout(timeout); }
+      }
+      if (!binding) throw new Error("发布失败，请重试");
+      const linked = await setPlanPublication(planId, binding);
+      localRevisionRef.current = linked.localRevision; setLocalRevision(linked.localRevision);
+      setRecord({ ...linked, document: planRef.current ?? linked.document });
+      await refreshSnapshots();
+      const latestHash = planRef.current ? await hashPlanDocument(planRef.current) : capturedHash;
+      setCurrentHash(latestHash);
+      setToast(latestHash === binding.contentHash ? "服务器版本已发布" : "快照已发布；发布期间的新修改仍只在本地");
+    } catch (error) { setToast(error instanceof Error ? error.message : "发布失败"); }
+    finally { setPublishing(""); }
+  }
+
+  async function removePublication() {
+    const binding = activeRecord.activePublication;
+    if (!binding || !confirm("删除当前服务器发布？本地工作副本会保留，但原链接将立即失效。")) return;
+    setPublishing("delete");
+    try {
+      const response = await fetch(`/api/publications/${binding.shareId}/${binding.editId}`, { method: "DELETE" });
+      const payload = await response.json() as { error?: ApiError };
+      if (!response.ok) throw new Error(payload.error?.message ?? "删除失败");
+      const unlinked = await setPlanPublication(planId);
+      localRevisionRef.current = unlinked.localRevision; setLocalRevision(unlinked.localRevision); setRecord({ ...unlinked, document: planRef.current ?? unlinked.document });
+      setToast("服务器发布已删除，本地轴仍然保留");
+    } catch (error) { setToast(error instanceof Error ? error.message : "删除失败"); }
+    finally { setPublishing(""); }
   }
 
   const timelineSelection = selection?.type === "mechanic" ? `mechanic:${selection.id}` as const : selection?.type === "assignment" ? `assignment:${selection.id}` as const : null;
   const gridClass = `${leftCollapsed ? "left-collapsed" : ""} ${rightCollapsed ? "right-collapsed" : ""}`;
-  return <main className="editor-workspace">
-    <header className="editor-utility-header"><a className="utility-brand" href="/"><span>轴</span><strong>团轴</strong></a><div className="plan-name"><input aria-label="计划名称" value={plan.encounter.name} onChange={(event) => mutate((draft) => { draft.encounter.name = event.target.value; })} /><span className={`save-state ${saveState}`}>{{ saved: "已保存", dirty: "待保存", saving: "保存中", error: "保存失败", conflict: "版本冲突" }[saveState]}</span></div><div className="header-actions"><button onClick={undo} disabled={!historyState.canUndo}>撤销</button><button onClick={redo} disabled={!historyState.canRedo}>重做</button><button onClick={() => copyText(exportMrtNote(plan), "MRT 已复制")}>MRT</button><button onClick={() => download(JSON.stringify(plan, null, 2), "raidline-plan.json")}>JSON</button><button onClick={() => copyText(`${location.origin}/s/${stored.shareSlug}`, "只读链接已复制")}>分享</button><button onClick={() => copyText(`${location.origin}/plans/${planId}#key=${encodeURIComponent(token)}`, "恢复链接已复制")}>恢复链接</button><ThemeControl compact /></div></header>
-    {saveState === "conflict" && <div className="conflict-banner"><span>服务器已有更新，本地修改尚未覆盖。</span><button onClick={() => { if (conflict) { setPlan(normalizePlanDocument(conflict.document)); setVersion(conflict.version); setConflict(null); setSaveState("saved"); } }}>加载服务器版本</button><button onClick={saveConflictAsNew}>另存为新计划</button></div>}
+  const publicationDirty = Boolean(record.activePublication && currentHash && record.activePublication.contentHash !== currentHash);
+  return <main className="editor-workspace" data-local-revision={localRevision}>
+    <header className="editor-utility-header"><a className="utility-brand" href="/"><span>轴</span><strong>团轴</strong></a><div className="plan-name"><input aria-label="计划名称" value={plan.encounter.name} onChange={(event) => mutate((draft) => { draft.encounter.name = event.target.value; })} /><span className={`save-state ${saveState}`}>{{ saved: "本地已保存", dirty: "本地待保存", saving: "本地保存中", error: "本地保存失败", conflict: "标签页冲突" }[saveState]}</span><span className={`publication-state ${publicationDirty ? "dirty" : record.activePublication ? "published" : "unpublished"}`}>{record.activePublication ? publicationDirty ? "存在未发布修改" : "服务器已发布" : "尚未发布"}</span></div><div className="header-actions"><button onClick={undo} disabled={!historyState.canUndo}>撤销</button><button onClick={redo} disabled={!historyState.canRedo}>重做</button><button onClick={() => copyText(exportMrtNote(plan), "MRT 已复制")}>MRT</button>{record.activePublication && <><button onClick={() => copyText(`${location.origin}/s/${record.activePublication!.shareId}`, "只读链接已复制")}>复制分享链接</button><button onClick={() => copyText(`${location.origin}/s/${record.activePublication!.shareId}/${record.activePublication!.editId}`, "编辑链接已复制")}>复制编辑链接</button><button disabled={Boolean(publishing)} onClick={() => publish("overwrite")}>覆盖当前链接</button></>}<button disabled={Boolean(publishing)} onClick={() => publish("new")}>{record.activePublication ? "发布为新链接" : "发布并创建链接"}</button>{record.activePublication && <button className="danger-link" disabled={Boolean(publishing)} onClick={removePublication}>删除发布</button>}<ThemeControl compact /></div></header>
+    {saveState === "conflict" && <div className="conflict-banner"><span>另一个标签页已保存了更新；当前标签页没有覆盖它。</span><button onClick={() => { if (conflict) { const next = normalizePlanDocument(conflict.document); setPlan(next); planRef.current = next; setRecord(conflict); setLocalRevision(conflict.localRevision); localRevisionRef.current = conflict.localRevision; setConflict(null); setSaveState("saved"); } }}>加载较新本地版本</button><button onClick={async () => { const copy = await createLocalPlan(activePlan); location.assign(`/plans/${copy.id}`); }}>将当前内容另存为副本</button></div>}
     <div className={`editor-table-grid ${gridClass}`}>
       <aside className={`left-table-panel ${leftCollapsed ? "collapsed" : ""}`}><button className="panel-collapse" onClick={() => setLeftCollapsed((value) => !value)}>{leftCollapsed ? "›" : "‹"}</button>{!leftCollapsed && <><nav className="panel-tabs">{([['members','成员'],['skills','技能'],['groups','分组'],['presets','预设']] as const).map(([id,label]) => <button className={leftTab === id ? "active" : ""} key={id} onClick={() => setLeftTab(id)}>{label}</button>)}</nav>
         {leftTab === "members" && <div className="panel-body"><div className="table-tools"><span>{plan.roster.length}/40 人</span><button onClick={addMember}>＋ 添加</button></div><div className="dense-list">{plan.roster.map((member) => <button className={selection?.type === "member" && selection.id === member.id ? "selected" : ""} key={member.id} onClick={() => setSelection({ type: "member", id: member.id })}><i style={{ background: member.color }} /><span><strong>{member.name}</strong><small>{WOW_CLASS_LABELS[member.classSlug] ?? "待选择职业"} · {specializationLabel(member.classSlug, member.specSlug)} · {roleLabels[member.role]}</small></span></button>)}</div></div>}
@@ -303,7 +379,7 @@ export function EditorClient({ planId }: { planId: string }) {
           </div>)}{!classCooldowns.length && <p className="table-empty">该职业暂无技能，可添加自定义技能。</p>}</div>}
         </div>}
         {leftTab === "groups" && <div className="panel-body"><div className="table-tools"><span>每人最多一个自定义组</span><button onClick={addGroup}>＋ 添加</button></div><div className="dense-list">{plan.groups.map((group) => <button className={selection?.type === "group" && selection.id === group.id ? "selected" : ""} key={group.id} onClick={() => setSelection({ type: "group", id: group.id })}><i style={{ background: group.color }} /><span><strong>{group.name}</strong><small>{plan.roster.filter((member) => member.groupId === group.id).length} 人</small></span></button>)}{!plan.groups.length && <p className="table-empty">可建立左场、右场等站位组。</p>}</div></div>}
-        {leftTab === "presets" && <div className="panel-body"><div className="preset-actions"><button onClick={saveAsPreset}>保存当前完整计划</button><button onClick={() => importPresetRef.current?.click()}>导入 JSON</button><input ref={importPresetRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) importPreset(file); event.currentTarget.value = ""; }} /></div><div className="preset-list">{[...BUILT_IN_PRESETS, ...personalPresets].map((preset) => <div key={preset.id}><span><strong>{preset.name}</strong><small>{preset.kind === "built-in" ? "内置" : "当前设备"} · {preset.description}</small></span><button onClick={() => applyPreset(preset)}>应用</button>{preset.kind === "personal" && <><button onClick={() => download(stringifyPreset(preset), `${preset.name}.raidline-preset.json`)}>导出</button><button onClick={async () => { if (confirm(`删除预设“${preset.name}”？`)) { await deletePersonalPreset(preset.id); setPersonalPresets(await listPersonalPresets()); } }}>删除</button></>}</div>)}</div></div>}
+        {leftTab === "presets" && <div className="panel-body"><div className="catalog-summary"><b>目录 {catalog.manifest.version}</b><small>计划来源 {plan.catalogSource?.version ?? "未记录"}</small><button onClick={upgradeCatalog}>查看差异并手动升级技能</button></div><div className="preset-list">{catalog.timelinePresets.filter((preset) => preset.enabled).map((preset) => <div key={preset.id}><span><strong>{preset.name}</strong><small>{preset.gameVersion} / {preset.raidId} / {preset.bossId} · {preset.description}</small></span><button onClick={() => applyPreset(preset.id)}>应用</button></div>)}</div><div className="snapshot-list"><header><b>本地检查点</b><span>最近 {snapshots.length}/30</span></header>{snapshots.slice(0, 8).map((snapshot) => <button key={snapshot.id} onClick={async () => { if (!confirm(`恢复 ${new Date(snapshot.createdAt).toLocaleString("zh-CN")} 的检查点？`)) return; await createPlanSnapshot(planId, "destructive", activePlan, localRevisionRef.current); replacePlan(snapshot.document); await refreshSnapshots(); }}><span>{new Date(snapshot.createdAt).toLocaleString("zh-CN")}</span><small>{snapshot.reason} · 本地版本 {snapshot.localRevision}</small></button>)}{!snapshots.length && <p className="table-empty">每分钟、发布和破坏性操作前会自动建立检查点。</p>}</div></div>}
       </>}</aside>
       <section className="timeline-work-panel">
         <div className="axis-toolbar"><div><button onClick={() => setLeftCollapsed((value) => !value)}>成员/技能</button><b>{plan.encounter.difficulty}</b><label className="timeline-limit">上限<select aria-label="时间轴上限" value={TIMELINE_LIMITS.some((value) => value === plan.encounter.durationMs) ? String(plan.encounter.durationMs) : "custom"} onChange={(event) => { if (event.target.value !== "custom") mutate((draft) => { draft.encounter.durationMs = Number(event.target.value); }); }}><option value="600000">10 分钟</option><option value="1200000">20 分钟</option><option value="1800000">30 分钟</option><option value="3600000">60 分钟</option><option value="7200000">120 分钟</option>{!TIMELINE_LIMITS.some((value) => value === plan.encounter.durationMs) && <option value="custom">自定义 {formatTime(plan.encounter.durationMs)}</option>}</select></label><span>{plan.mechanics.length} 机制</span><span>{plan.assignments.length} 分配</span></div><div><button onClick={() => addMechanic()}>＋ 机制</button><button onClick={() => setOrientation((value) => value === "horizontal" ? "vertical" : "horizontal")}>{orientation === "horizontal" ? "时间横向" : "时间纵向"}</button><ZoomControl zoom={zoom} onChange={setZoom} /><button onClick={() => { setSelection(null); setRightCollapsed(false); }}>计划设置</button><button onClick={() => setRightCollapsed((value) => !value)}>属性/检查</button></div></div>

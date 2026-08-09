@@ -1,73 +1,69 @@
 # 团轴 Raidline
 
-面向《魔兽世界》团本的简洁个人排轴工具。用成员轴与机制时间轴安排职业技能，支持自动保存、只读分享、MRT 文本和 JSON 备份。
+面向《魔兽世界》团本的本地优先排轴工具。工作副本保存在浏览器 IndexedDB；只有玩家明确点击发布时，才会把当时冻结的 JSON 快照写入 Sites R2。
 
 ![团轴 Raidline 预览](public/og.png)
 
-## 当前功能
+## 数据模型
 
-- 新计划默认提供 20 个成员席位；专精使用职业对应的下拉框，并自动匹配坦克、治疗或输出职责
-- 机制只记录时间点、名称、说明和阶段；轴上只显示名称，悬浮或点击可查看说明
-- 选择职业后直接列出该职业的可用技能，每项可查看或分配，不展示其他职业技能
-- 内置正式服核心技能名称、职业归属与简介；支持自定义技能
-- 时间轴成员标签可直接编辑成员或为指定成员安排技能，滚动时冻结成员列/表头
-- 时间横向/人员纵向与时间纵向/人员横向两种视图，并按设备记忆；新计划默认 60 分钟且可调整到 10 秒至 120 分钟
-- 时间轴内 `Ctrl + 滚轮`指针锚定缩放，区域外保留浏览器默认缩放
-- 跟随系统、亮色和深色三档主题
-- 施法区间、GCD、冷却、越界和职业不匹配提醒
-- 内置“基础机制示例”，个人预设保存在当前设备并支持 JSON 导入、导出和删除
-- 800ms 自动保存、撤销/重做、恢复链接、只读分享、MRT 与计划 JSON 导出
+- `plans` 保存当前工作副本，编辑停止 300ms 后写入；`localRevision` 阻止旧标签页静默覆盖新标签页。
+- `snapshots` 每分钟以及发布、应用预设、目录升级和破坏性操作前建立检查点；每条轴保留 30 个，历史总量限制为 100MB。
+- `catalogCache` 缓存技能、Boss 机制和时间轴预设；`settings` 保留设备级设置。
+- 工作副本没有自动云端保存、账户同步或 JSON 文件导入导出。
+- 单条计划在本地保存和发布前都执行 v3 结构校验，并限制为 1MB；v1/v2 内容会在浏览器中迁移到 v3。
 
-WCL 导入、机制伤害、治疗缺口和压力计算当前不在产品界面中。旧计划的相关字段仍可读取和保存，避免破坏已有数据。
+## 发布链接
 
-## 项目状态
+- 只读：`/s/{shareId}`，其中 `shareId` 是严格的 16 位 `[0-9A-Za-z]`。
+- 编辑入口：`/s/{shareId}/{editId}`，其中 `editId` 是额外 4 位 `[0-9A-Za-z]`。
+- 首次发布和“发布为新链接”创建全新对象；“覆盖当前链接”只在玩家明确选择时替换原对象。
+- 编辑链接只是把服务器版本复制到当前浏览器继续本地编辑；分享页“复制到我的轴”不会继承原发布关联。
+- R2 只保留每条链接的最新版，并采用最后发布者生效；编辑 ID 不是安全凭证，没有 PIN、恢复密钥、锁定或穷举保护。
 
-当前版本专注手动团本排轴。站点默认仅所有者可见，因此外部访客暂时无法打开匿名只读分享链接。大秘境、账号体系、公开社区与实时多人协作尚未加入。
+## 内容目录
+
+仓库内置种子目录位于 `data/catalog-seed.json`。已发布版本按以下对象键保存，并在全部文件写入后更新 `catalog/current.json`：
+
+```text
+catalog/releases/{version}/manifest.json
+catalog/releases/{version}/player-skills.json
+catalog/releases/{version}/boss-mechanics.json
+catalog/releases/{version}/timeline-presets.json
+```
+
+`/admin` 提供条目表单、复制、启停、校验、时间轴预览和显式发布。运行时需要：
+
+```dotenv
+ADMIN_PASSWORD_HASH=<一次性管理员初始口令的 SHA-256>
+ADMIN_SESSION_SECRET=<随机会话签名密钥>
+```
+
+明文初始口令不写入仓库或运行时配置。
 
 ## 本地运行
 
-需要 Node.js 22.13 或更高版本。
+需要 Node.js 22.13 或更高版本，以及 pnpm。
 
 ```bash
-npm ci
-npm run dev
+pnpm install
+pnpm dev
 ```
 
-随后访问终端中显示的本地地址。首次调用计划接口时，本地 D1 会自动创建开发用数据表；正式环境使用 `drizzle/` 中的数据库迁移。
+Vinext/Miniflare 会按 `.openai/hosting.json` 提供本地 `OBJECTS` R2 绑定。生产环境同样只需要 R2，不需要数据库或迁移。
 
-## 测试与构建
+## 验证
 
 ```bash
-npm run test:unit
-npm run lint
-npm test
-npm run build
+pnpm test:unit
+pnpm lint
+pnpm build
+pnpm test
 ```
 
-- 核心单元测试覆盖 v1→v2 迁移、默认 20 人/60 分钟、专精职责映射、职业技能过滤、冲突、预设、MRT 和时间轴换算
-- 接口集成测试覆盖创建、鉴权、保存、版本冲突、只读脱敏、v1 兼容、v2 往返及已移除路由
-- 生产构建生成 Cloudflare Worker 兼容输出
-
-## 数据与安全
-
-- 计划正文保存在 Cloudflare D1；浏览器只保存查看偏好、个人预设、最近入口和编辑密钥
-- 编辑密钥位于恢复链接的 URL fragment 中，服务端仅保存 SHA-256 哈希
-- 乐观锁通过计划版本避免静默覆盖；冲突时可加载服务器版本或另存为新计划
-- 旧计划中的 WCL 来源、伤害和减伤字段仅用于兼容，不在当前界面展示
-
-## 需求记录
-
-后续需求统一记录在 [`docs/requirements/`](docs/requirements/)：
-
-1. 在 [`INDEX.md`](docs/requirements/INDEX.md) 中登记优先级和状态。
-2. 复制 [`TEMPLATE.md`](docs/requirements/TEMPLATE.md)，按 `YYYY-MM-功能名称.md` 命名需求文档。
-3. 截图、草图与其他附件放入 `docs/requirements/assets/`。
-4. 每次实现后由 Codex 更新验收结果和变更记录。
+测试覆盖 v1/v2→v3、计划校验、目录引用快照、基础排轴计算、精确 16+4 Base62 ID，以及 R2 创建、读取、错误编辑 ID、覆盖、新链接和删除行为。
 
 ## 部署
 
-项目使用 React、Vinext、Drizzle、Cloudflare Worker 与 D1，可通过 OpenAI Sites 私有发布，也可以迁移到兼容的 Cloudflare Workers 环境。正式部署前需要应用 `drizzle/` 中的数据库迁移。
-
-## 免责声明
+项目使用 React、Vinext、Cloudflare Worker 与 Sites R2。`.openai/hosting.json` 将 `d1` 设为 `null`，将 R2 绑定命名为 `OBJECTS`。R2 访问集中在 `lib/object-store.ts`，可用同接口替换。
 
 Raidline 是社区工具，与 Blizzard Entertainment 没有官方关联。

@@ -1,0 +1,1386 @@
+{
+  "manifest": {
+    "schemaVersion": 1,
+    "version": "builtin-seed-v1",
+    "gameVersion": "retail",
+    "title": "Raidline 内置种子目录",
+    "publishedAt": 0,
+    "counts": {
+      "playerSkills": 42,
+      "bossMechanics": 4,
+      "timelinePresets": 1
+    }
+  },
+  "playerSkills": [
+    {
+      "id": "spell-62618",
+      "spellId": 62618,
+      "name": "真言术：障",
+      "description": "为范围内队友提供团队防护。",
+      "classSlug": "Priest",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "团队减伤",
+      "color": "#e7e7e7",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-64843",
+      "spellId": 64843,
+      "name": "神圣赞美诗",
+      "description": "持续引导的团队治疗技能。",
+      "classSlug": "Priest",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [],
+      "category": "治疗",
+      "color": "#e7e7e7",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-33206",
+      "spellId": 33206,
+      "name": "痛苦压制",
+      "description": "为一名队友提供外部减伤。",
+      "classSlug": "Priest",
+      "specSlugs": [],
+      "scope": "external",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "外部减伤",
+      "color": "#e7e7e7",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-19236",
+      "spellId": 19236,
+      "name": "绝望祷言",
+      "description": "牧师的个人生存技能。",
+      "classSlug": "Priest",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "maxHealth",
+          "percent": null
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#e7e7e7",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-47585",
+      "spellId": 47585,
+      "name": "消散",
+      "description": "暗影牧师的强力个人防护。",
+      "classSlug": "Priest",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#e7e7e7",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-98008",
+      "spellId": 98008,
+      "name": "灵魂链接图腾",
+      "description": "为图腾范围内队友提供团队防护。",
+      "classSlug": "Shaman",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "团队减伤",
+      "color": "#0070dd",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-108271",
+      "spellId": 108271,
+      "name": "星界转移",
+      "description": "萨满祭司的个人减伤。",
+      "classSlug": "Shaman",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#0070dd",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-740",
+      "spellId": 740,
+      "name": "宁静",
+      "description": "持续引导的团队治疗技能。",
+      "classSlug": "Druid",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [],
+      "category": "治疗",
+      "color": "#ff7c0a",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-22812",
+      "spellId": 22812,
+      "name": "树皮术",
+      "description": "德鲁伊的个人减伤。",
+      "classSlug": "Druid",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#ff7c0a",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-61336",
+      "spellId": 61336,
+      "name": "生存本能",
+      "description": "守护德鲁伊的强力个人减伤。",
+      "classSlug": "Druid",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#ff7c0a",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-102342",
+      "spellId": 102342,
+      "name": "铁木树皮",
+      "description": "为一名队友提供外部减伤。",
+      "classSlug": "Druid",
+      "specSlugs": [],
+      "scope": "external",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "外部减伤",
+      "color": "#ff7c0a",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-31821",
+      "spellId": 31821,
+      "name": "光环掌握",
+      "description": "强化当前光环的团队效果。",
+      "classSlug": "Paladin",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "团队减伤",
+      "color": "#f48cba",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-642",
+      "spellId": 642,
+      "name": "圣盾术",
+      "description": "圣骑士的个人免疫技能。",
+      "classSlug": "Paladin",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "immunity",
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "免疫",
+      "color": "#f48cba",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-6940",
+      "spellId": 6940,
+      "name": "牺牲祝福",
+      "description": "为一名队友承担部分伤害。",
+      "classSlug": "Paladin",
+      "specSlugs": [],
+      "scope": "external",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "外部减伤",
+      "color": "#f48cba",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-31850",
+      "spellId": 31850,
+      "name": "炽热防御者",
+      "description": "防护圣骑士的个人减伤。",
+      "classSlug": "Paladin",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#f48cba",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-115310",
+      "spellId": 115310,
+      "name": "还魂术",
+      "description": "瞬发团队治疗与驱散技能。",
+      "classSlug": "Monk",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [],
+      "category": "治疗",
+      "color": "#00ff98",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-115203",
+      "spellId": 115203,
+      "name": "壮胆酒",
+      "description": "武僧的个人防护技能。",
+      "classSlug": "Monk",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#00ff98",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-122278",
+      "spellId": 122278,
+      "name": "躯不坏",
+      "description": "根据伤害强度提供个人减伤。",
+      "classSlug": "Monk",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#00ff98",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-116849",
+      "spellId": 116849,
+      "name": "作茧缚命",
+      "description": "为一名队友提供吸收护盾。",
+      "classSlug": "Monk",
+      "specSlugs": [],
+      "scope": "external",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "absorb",
+          "amount": null,
+          "allocation": "perTarget",
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "外部减伤",
+      "color": "#00ff98",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-97462",
+      "spellId": 97462,
+      "name": "集结呐喊",
+      "description": "临时提高附近队友的最大生命。",
+      "classSlug": "Warrior",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "maxHealth",
+          "percent": null
+        }
+      ],
+      "category": "团队减伤",
+      "color": "#c69b6d",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-871",
+      "spellId": 871,
+      "name": "盾墙",
+      "description": "战士的强力个人减伤。",
+      "classSlug": "Warrior",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#c69b6d",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-23920",
+      "spellId": 23920,
+      "name": "法术反射",
+      "description": "对部分法术提供个人防护。",
+      "classSlug": "Warrior",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#c69b6d",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-196718",
+      "spellId": 196718,
+      "name": "黑暗",
+      "description": "为范围内队友提供团队防护。",
+      "classSlug": "DemonHunter",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "团队减伤",
+      "color": "#a330c9",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-198589",
+      "spellId": 198589,
+      "name": "疾影",
+      "description": "恶魔猎手的个人减伤。",
+      "classSlug": "DemonHunter",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#a330c9",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-196555",
+      "spellId": 196555,
+      "name": "虚空行走",
+      "description": "恶魔猎手的个人免疫技能。",
+      "classSlug": "DemonHunter",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "immunity",
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "免疫",
+      "color": "#a330c9",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-51052",
+      "spellId": 51052,
+      "name": "反魔法领域",
+      "description": "为范围内队友抵御魔法伤害。",
+      "classSlug": "DeathKnight",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "magic"
+          ]
+        }
+      ],
+      "category": "团队减伤",
+      "color": "#c41e3a",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-48792",
+      "spellId": 48792,
+      "name": "冰封之韧",
+      "description": "死亡骑士的个人减伤。",
+      "classSlug": "DeathKnight",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#c41e3a",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-48707",
+      "spellId": 48707,
+      "name": "反魔法护罩",
+      "description": "吸收魔法伤害的个人护罩。",
+      "classSlug": "DeathKnight",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "absorb",
+          "amount": null,
+          "allocation": "perTarget",
+          "schools": [
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#c41e3a",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-363534",
+      "spellId": 363534,
+      "name": "回溯",
+      "description": "恢复队友近期损失的生命。",
+      "classSlug": "Evoker",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [],
+      "category": "治疗",
+      "color": "#33937f",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-363916",
+      "spellId": 363916,
+      "name": "黑曜鳞片",
+      "description": "唤魔师的个人减伤。",
+      "classSlug": "Evoker",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#33937f",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-374227",
+      "spellId": 374227,
+      "name": "微风",
+      "description": "为队友提供团队防护和移动辅助。",
+      "classSlug": "Evoker",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "团队减伤",
+      "color": "#33937f",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-357170",
+      "spellId": 357170,
+      "name": "时间膨胀",
+      "description": "延缓一名队友所受的部分伤害。",
+      "classSlug": "Evoker",
+      "specSlugs": [],
+      "scope": "external",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "外部减伤",
+      "color": "#33937f",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-186265",
+      "spellId": 186265,
+      "name": "灵龟守护",
+      "description": "猎人的个人防护技能。",
+      "classSlug": "Hunter",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "immunity",
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "免疫",
+      "color": "#aad372",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-264735",
+      "spellId": 264735,
+      "name": "适者生存",
+      "description": "猎人的个人减伤。",
+      "classSlug": "Hunter",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#aad372",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-45438",
+      "spellId": 45438,
+      "name": "寒冰屏障",
+      "description": "法师的个人免疫技能。",
+      "classSlug": "Mage",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "immunity",
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "免疫",
+      "color": "#3fc7eb",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-110959",
+      "spellId": 110959,
+      "name": "强效隐形术",
+      "description": "隐形并提供短暂个人防护。",
+      "classSlug": "Mage",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#3fc7eb",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-414660",
+      "spellId": 414660,
+      "name": "群体屏障",
+      "description": "为附近队友提供吸收护盾。",
+      "classSlug": "Mage",
+      "specSlugs": [],
+      "scope": "team",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": null,
+      "effects": [
+        {
+          "type": "absorb",
+          "amount": null,
+          "allocation": "perTarget",
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "团队减伤",
+      "color": "#3fc7eb",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-31224",
+      "spellId": 31224,
+      "name": "暗影斗篷",
+      "description": "潜行者对魔法效果的个人防护。",
+      "classSlug": "Rogue",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "immunity",
+          "schools": [
+            "magic"
+          ]
+        }
+      ],
+      "category": "免疫",
+      "color": "#fff468",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-5277",
+      "spellId": 5277,
+      "name": "闪避",
+      "description": "潜行者对近战攻击的个人防护。",
+      "classSlug": "Rogue",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#fff468",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-1966",
+      "spellId": 1966,
+      "name": "佯攻",
+      "description": "潜行者的短时个人减伤。",
+      "classSlug": "Rogue",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#fff468",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-104773",
+      "spellId": 104773,
+      "name": "不灭决心",
+      "description": "术士的个人减伤。",
+      "classSlug": "Warlock",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "damageReduction",
+          "percent": null,
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#8788ee",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    },
+    {
+      "id": "spell-108416",
+      "spellId": 108416,
+      "name": "黑暗契约",
+      "description": "术士的个人吸收护盾。",
+      "classSlug": "Warlock",
+      "specSlugs": [],
+      "scope": "personal",
+      "cooldownMs": null,
+      "castTimeMs": null,
+      "durationMs": null,
+      "triggersGcd": null,
+      "maxTargets": 1,
+      "effects": [
+        {
+          "type": "absorb",
+          "amount": null,
+          "allocation": "perTarget",
+          "schools": [
+            "physical",
+            "magic"
+          ]
+        }
+      ],
+      "category": "个人减伤",
+      "color": "#8788ee",
+      "catalogVersion": "retail-structure-2026-08",
+      "dataStatus": "unconfigured",
+      "enabled": true,
+      "gameVersion": "retail"
+    }
+  ],
+  "bossMechanics": [
+    {
+      "id": "seed-stack",
+      "name": "集合",
+      "description": "全团在标记位置集合。",
+      "gameVersion": "retail",
+      "raidId": "example-raid",
+      "bossId": "example-boss",
+      "difficulties": [
+        "练习"
+      ],
+      "enabled": true,
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "damage": {
+        "school": "magic",
+        "directAmount": null,
+        "periodicAmount": null,
+        "periodicIntervalMs": null,
+        "tickOnStart": false
+      },
+      "targets": {
+        "mode": "all"
+      },
+      "severity": "warning",
+      "note": ""
+    },
+    {
+      "id": "seed-spread",
+      "name": "分散",
+      "description": "队员彼此拉开距离，避免范围重叠。",
+      "gameVersion": "retail",
+      "raidId": "example-raid",
+      "bossId": "example-boss",
+      "difficulties": [
+        "练习"
+      ],
+      "enabled": true,
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "damage": {
+        "school": "magic",
+        "directAmount": null,
+        "periodicAmount": null,
+        "periodicIntervalMs": null,
+        "tickOnStart": false
+      },
+      "targets": {
+        "mode": "all"
+      },
+      "severity": "warning",
+      "note": ""
+    },
+    {
+      "id": "seed-transition",
+      "name": "转阶段",
+      "description": "停止输出并处理场地或转火目标。",
+      "gameVersion": "retail",
+      "raidId": "example-raid",
+      "bossId": "example-boss",
+      "difficulties": [
+        "练习"
+      ],
+      "enabled": true,
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "damage": {
+        "school": "magic",
+        "directAmount": null,
+        "periodicAmount": null,
+        "periodicIntervalMs": null,
+        "tickOnStart": false
+      },
+      "targets": {
+        "mode": "all"
+      },
+      "severity": "warning",
+      "note": ""
+    },
+    {
+      "id": "seed-soak",
+      "name": "分组站位",
+      "description": "按预先安排的队伍进入各自区域。",
+      "gameVersion": "retail",
+      "raidId": "example-raid",
+      "bossId": "example-boss",
+      "difficulties": [
+        "练习"
+      ],
+      "enabled": true,
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "damage": {
+        "school": "magic",
+        "directAmount": null,
+        "periodicAmount": null,
+        "periodicIntervalMs": null,
+        "tickOnStart": false
+      },
+      "targets": {
+        "mode": "all"
+      },
+      "severity": "warning",
+      "note": ""
+    }
+  ],
+  "timelinePresets": [
+    {
+      "id": "builtin-basic-mechanics-v1",
+      "name": "基础机制示例",
+      "description": "集合、分散、转阶段与分组站位的简洁时间轴。",
+      "gameVersion": "retail",
+      "raidId": "example-raid",
+      "bossId": "example-boss",
+      "difficulties": [
+        "练习"
+      ],
+      "enabled": true,
+      "encounter": {
+        "name": "基础机制示例",
+        "difficulty": "练习",
+        "durationMs": 120000
+      },
+      "phases": [
+        {
+          "id": "preset-phase-p1",
+          "name": "P1",
+          "atMs": 0
+        },
+        {
+          "id": "preset-phase-p2",
+          "name": "P2",
+          "atMs": 60000
+        }
+      ],
+      "mechanics": [
+        {
+          "mechanicId": "seed-stack",
+          "atMs": 15000,
+          "phaseId": "preset-phase-p1"
+        },
+        {
+          "mechanicId": "seed-spread",
+          "atMs": 35000,
+          "phaseId": "preset-phase-p1"
+        },
+        {
+          "mechanicId": "seed-transition",
+          "atMs": 60000,
+          "phaseId": "preset-phase-p2"
+        },
+        {
+          "mechanicId": "seed-soak",
+          "atMs": 85000,
+          "phaseId": "preset-phase-p2"
+        }
+      ]
+    }
+  ]
+}

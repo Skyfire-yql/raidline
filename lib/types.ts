@@ -119,7 +119,7 @@ export interface RaidPlanSettings {
 }
 
 export interface RaidPlanDocument {
-  schemaVersion: 2;
+  schemaVersion: 3;
   encounter: EncounterInfo;
   groups: RaidGroup[];
   roster: RosterMember[];
@@ -128,16 +128,105 @@ export interface RaidPlanDocument {
   cooldowns: CooldownDefinition[];
   assignments: RaidAssignment[];
   settings: RaidPlanSettings;
+  catalogSource?: {
+    version: string;
+    presetId?: string;
+    appliedAt: number;
+  };
 }
 
-export interface StoredPlan {
+export interface PublicationBinding {
+  shareId: string;
+  editId: string;
+  revisionId: string;
+  publishedAt: number;
+  contentHash: string;
+}
+
+export interface LocalPlanRecord {
   id: string;
-  shareSlug: string;
   title: string;
-  version: number;
   document: RaidPlanDocument;
+  localRevision: number;
   createdAt: number;
   updatedAt: number;
+  activePublication?: PublicationBinding;
+}
+
+export type SnapshotReason = "minute" | "publish" | "preset" | "catalog-upgrade" | "destructive" | "manual";
+
+export interface PlanSnapshot {
+  id: string;
+  planId: string;
+  localRevision: number;
+  reason: SnapshotReason;
+  createdAt: number;
+  bytes: number;
+  document: RaidPlanDocument;
+}
+
+export interface PublishedPlan {
+  shareId: string;
+  editId: string;
+  revisionId: string;
+  publishedAt: number;
+  contentHash: string;
+  document: RaidPlanDocument;
+}
+
+export type PublicPublication = Omit<PublishedPlan, "editId">;
+
+export interface PlayerSkill extends CooldownDefinition {
+  enabled: boolean;
+  gameVersion: string;
+}
+
+export interface BossMechanic {
+  id: string;
+  name: string;
+  description: string;
+  gameVersion: string;
+  raidId: string;
+  bossId: string;
+  difficulties: string[];
+  enabled: boolean;
+  spellId?: number;
+  castTimeMs: number | null;
+  durationMs: number | null;
+  damage: MechanicDamageProfile;
+  targets: TargetSelection;
+  severity: MechanicSeverity;
+  note: string;
+}
+
+export interface TimelinePreset {
+  id: string;
+  name: string;
+  description: string;
+  gameVersion: string;
+  raidId: string;
+  bossId: string;
+  difficulties: string[];
+  enabled: boolean;
+  encounter: EncounterInfo;
+  phases: RaidPhase[];
+  mechanics: Array<{ mechanicId: string; atMs: number; phaseId?: string }>;
+}
+
+export interface CatalogManifest {
+  schemaVersion: 1;
+  version: string;
+  gameVersion: string;
+  title: string;
+  publishedAt: number;
+  counts: { playerSkills: number; bossMechanics: number; timelinePresets: number };
+}
+
+export interface CatalogRelease {
+  manifest: CatalogManifest;
+  playerSkills: PlayerSkill[];
+  bossMechanics: BossMechanic[];
+  timelinePresets: TimelinePreset[];
 }
 
 export interface ApiError {

@@ -276,6 +276,62 @@ small { color: var(--text-2); }
 .state-card h1 { margin: 0 0 8px; }
 .state-card p { color: var(--text-2); line-height: 1.6; }
 
+/* 本地计划、发布状态与目录 */
+.header-link { padding: 5px 8px; border-radius: 4px; color: var(--text-2); }
+.header-link:hover { background: var(--surface-2); color: var(--text); }
+.compact-plan-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; border-bottom: 1px solid var(--line); }
+.compact-plan-row:last-child { border-bottom: 0; }
+.compact-plan-row > button { min-height: 53px; border: 0; border-radius: 0; background: transparent; }
+.compact-plan-row > button:first-child { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 10px; text-align: left; }
+.compact-plan-row > button:first-child span { min-width: 0; }
+.danger-link { color: var(--danger); }
+.publication-state { flex: 0 0 auto; padding: 3px 6px; border-radius: 3px; color: var(--text-2); background: var(--surface-3); font-size: 10px; }
+.publication-state.published { color: var(--success); background: var(--success-soft); }
+.publication-state.dirty { color: var(--warning); background: var(--warning-soft); }
+.catalog-summary { display: grid; gap: 5px; padding: 10px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.catalog-summary small { display: block; }
+.snapshot-list { margin: 10px; overflow: hidden; border: 1px solid var(--line); border-radius: 4px; }
+.snapshot-list > header { display: flex; align-items: center; justify-content: space-between; padding: 7px; background: var(--surface-2); }
+.snapshot-list > header span { color: var(--text-3); font-size: 10px; }
+.snapshot-list > button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; text-align: left; }
+.snapshot-list > button small { font-size: 9px; }
+
+/* 内容目录管理 */
+.admin-login { display: grid; gap: 12px; }
+.admin-login .form-error { margin: 0; color: var(--danger); }
+.admin-workspace { min-height: 100vh; }
+.admin-release-bar { display: grid; grid-template-columns: 180px 150px minmax(220px, 1fr) auto; align-items: end; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.admin-release-bar label { color: var(--text-2); font-size: 10px; }
+.admin-release-bar span { align-self: center; color: var(--text-2); white-space: nowrap; }
+.admin-message { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; color: var(--accent-text); border-bottom: 1px solid var(--accent); background: var(--accent-soft); }
+.admin-message button { min-width: 26px; min-height: 26px; padding: 0; }
+.admin-grid { display: grid; min-height: calc(100vh - 110px); grid-template-columns: 310px minmax(0, 1fr); }
+.admin-grid > aside { border-right: 1px solid var(--line); background: var(--surface); }
+.admin-grid > aside > nav { display: grid; grid-template-columns: repeat(3, 1fr); padding: 8px; border-bottom: 1px solid var(--line); }
+.admin-grid > aside > nav button { border-radius: 0; }
+.admin-grid > aside > nav button.active { color: var(--accent-text); border-color: var(--accent); background: var(--accent-soft); }
+.admin-grid > aside > .secondary-action { margin: 8px; }
+.admin-item-list { max-height: calc(100vh - 180px); overflow-y: auto; border-top: 1px solid var(--line); }
+.admin-item-list > button { display: flex; width: 100%; min-height: 50px; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 9px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; text-align: left; }
+.admin-item-list > button.selected { background: var(--accent-soft); }
+.admin-item-list span { min-width: 0; }
+.admin-item-list b, .admin-item-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-item-list i { padding: 2px 5px; border-radius: 3px; font-size: 9px; font-style: normal; }
+.admin-item-list i.enabled { color: var(--success); background: var(--success-soft); }
+.admin-item-list i.disabled { color: var(--text-3); background: var(--surface-3); }
+.admin-editor { padding: 18px; }
+.admin-editor > header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+.admin-editor > header h1 { margin: 0 0 4px; font-size: 20px; }
+.admin-editor > header code { color: var(--text-3); }
+.admin-editor > header > div:last-child { display: flex; gap: 6px; }
+.admin-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.admin-form label { color: var(--text-2); font-size: 10px; }
+.admin-form .wide { grid-column: 1 / -1; }
+.admin-timeline-preview { overflow: hidden; border: 1px solid var(--line); border-radius: 4px; }
+.admin-timeline-preview > header { display: flex; align-items: center; justify-content: space-between; padding: 7px 9px; background: var(--surface-2); }
+.admin-timeline-preview > div { display: grid; grid-template-columns: 90px minmax(160px, 1fr) 30px; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--line); }
+.admin-timeline-preview > div button { min-width: 30px; padding: 0; color: var(--danger); }
+
 /* 提示 */
 .toast { position: fixed; z-index: 120; right: 18px; bottom: 18px; display: flex; max-width: min(420px, calc(100vw - 36px)); align-items: center; gap: 12px; padding: 9px 10px 9px 13px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface); box-shadow: var(--shadow); }
 .toast button { min-width: 26px; min-height: 26px; padding: 0; }
@@ -324,6 +380,15 @@ small { color: var(--text-2); }
   .shared-axis-card .axis-toolbar { flex-direction: column; }
   .mechanic-list-card { overflow-x: auto; }
   .field-grid { grid-template-columns: 1fr; gap: 0; }
+  .publication-state { display: none; }
+  .compact-plan-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .compact-plan-row > .danger-link { grid-column: 2; }
+  .admin-release-bar { grid-template-columns: 1fr; }
+  .admin-grid { display: block; }
+  .admin-grid > aside { border-right: 0; border-bottom: 1px solid var(--line); }
+  .admin-item-list { max-height: 260px; }
+  .admin-form { grid-template-columns: 1fr; }
+  .admin-form .wide { grid-column: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

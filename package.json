@@ -2,6 +2,7 @@
   "name": "raidline",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.16.0",
   "engines": {
     "node": ">=22.13.0"
   },
@@ -9,13 +10,11 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
-    "test": "npm run test:unit && npm run build && node --test tests/rendered-html.test.mjs",
+    "test": "pnpm run test:unit && pnpm run build && node --test tests/rendered-html.test.mjs",
     "test:unit": "node --experimental-strip-types --test tests/core.test.ts",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {
-    "drizzle-orm": "0.45.2",
     "next": "16.2.6",
     "react": "19.2.6",
     "react-dom": "19.2.6"
@@ -29,7 +28,6 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
-    "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "react-server-dom-webpack": "19.2.6",
