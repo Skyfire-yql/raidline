@@ -71,6 +71,37 @@ pnpm test
 
 测试覆盖严格读取、锚点解析与循环、自动范围、多策略组与小队、阶段任务与说明、技能充能/施法/引导、目录快照隔离、WCL 边界、16+4 发布规则和发布 API。
 
+## 项目结构与开发入口
+
+Raidline 将“计划数据”“时间轴解析”和“页面展示”分开，便于在不改动编辑器交互的情况下替换存储或增加导入器：
+
+```text
+lib/domain/schema.ts       严格 v1 Zod schema 与推导类型
+lib/domain/timeline.ts     锚点解析、目标解析、语义诊断
+lib/domain/view-model.ts   RaidPlanDocument → TimelineScene
+lib/core.ts                计划业务规则、冲突检查、统一导出
+lib/catalog.ts             目录校验、预设应用、快照升级
+lib/publications.ts        发布对象和 16+4 分享规则
+lib/wcl-contract.ts        WCL 边界契约（当前不发起真实网络请求）
+app/components/            首页、双栏编辑器、只读页和目录管理
+app/api/                   发布、目录和管理员边界
+data/catalog-seed.json     内置 v1 目录
+data/fixtures/             WCL/导入/对比契约 fixture
+tests/                     单元和渲染/API 集成测试
+```
+
+详细的依赖边界、数据流和后续里程碑见 [架构说明](docs/architecture.md)；贡献者先阅读 [贡献指南](CONTRIBUTING.md)，AI 或自动化开发先阅读根目录 [AGENTS.md](AGENTS.md)。需求决策以 [需求索引](docs/requirements/INDEX.md) 和当前 vNext 文档为准。
+
+### 修改前的最小流程
+
+1. 运行 `git status -sb`，确认没有覆盖其他人的未提交改动。
+2. 阅读相关 schema、业务函数和测试；不要从旧 v5/v3 代码推断兼容行为。
+3. 先补充失败测试，再实现改动；领域模型变化必须同时更新 fixture 或往返测试。
+4. 运行 `pnpm test:unit`、`pnpm lint`、`pnpm build`，涉及页面或 API 时再运行 `pnpm test`。
+5. 在 PR 中说明数据模型影响、迁移/不兼容决策、测试结果和未完成边界。
+
+主分支只接受可审阅的功能提交；日常开发请从 `main` 创建 `codex/<topic>` 或 `<topic>` 分支。不要提交 `.env`、WCL 凭据、管理员口令、生产数据、构建产物或临时分享内容。
+
 ## 托管边界
 
 当前 Sites 项目仍只用于私有交互验证，`.openai/hosting.json` 继续提供 `OBJECTS` R2 绑定；本阶段不部署 Sites，也不接入真实 WCL 或大陆服务器数据库。
