@@ -4,13 +4,27 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { validateCatalogRelease } from "@/lib/catalog";
-import { formatTime } from "@/lib/core";
+import { formatTime, parseTime, snapTime } from "@/lib/core";
 import type { ApiError, BossMechanic, CatalogRelease, PlayerSkill, TimelinePreset } from "@/lib/types";
 import { ThemeControl } from "./ThemeControl";
 
 type Tab = "skills" | "mechanics" | "presets";
 
 function copyId(id: string) { return `${id}-copy-${Date.now().toString(36)}`.slice(0, 80); }
+
+function AdminTimeField({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  const [draft, setDraft] = useState(formatTime(value));
+  useEffect(() => {
+    const timer = setTimeout(() => setDraft(formatTime(value)), 0);
+    return () => clearTimeout(timer);
+  }, [value]);
+  function commit() {
+    const parsed = parseTime(draft);
+    if (parsed == null) setDraft(formatTime(value));
+    else onChange(snapTime(parsed));
+  }
+  return <input aria-label="时间" value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} />;
+}
 
 export function AdminClient() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -66,8 +80,8 @@ export function AdminClient() {
     if (!draft) return;
     const id = `${tab.slice(0, -1)}-${Date.now().toString(36)}`;
     if (tab === "skills") draft.playerSkills.push({ id, name: "新技能", description: "", classSlug: "Priest", specSlugs: [], scope: "team", cooldownMs: null, castTimeMs: null, durationMs: null, triggersGcd: null, maxTargets: null, effects: [], category: "自定义", color: "#e7e7e7", catalogVersion: draft.manifest.version, dataStatus: "unconfigured", enabled: false, gameVersion: draft.manifest.gameVersion });
-    if (tab === "mechanics") draft.bossMechanics.push({ id, name: "新机制", description: "", gameVersion: draft.manifest.gameVersion, raidId: "", bossId: "", difficulties: [], enabled: false, castTimeMs: 0, durationMs: 0, damage: { school: "magic", directAmount: null, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false }, targets: { mode: "all" }, severity: "warning", note: "" });
-    if (tab === "presets") draft.timelinePresets.push({ id, name: "新预设", description: "", gameVersion: draft.manifest.gameVersion, raidId: "", bossId: "", difficulties: [], enabled: false, encounter: { name: "新首领", difficulty: "史诗", durationMs: 600_000 }, phases: [{ id: "p1", name: "P1", atMs: 0 }], mechanics: [] });
+    if (tab === "mechanics") draft.bossMechanics.push({ id, name: "新机制", description: "", gameVersion: draft.manifest.gameVersion, raidId: "", bossId: "", enabled: false, castTimeMs: 0, durationMs: 0, damage: { school: "magic", directAmount: null, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false }, targets: { mode: "all" }, severity: "warning", note: "" });
+    if (tab === "presets") draft.timelinePresets.push({ id, name: "新预设", description: "", gameVersion: draft.manifest.gameVersion, raidId: "", bossId: "", enabled: false, encounter: { name: "新首领" }, phases: [{ id: "p1", name: "P1", atMs: 0 }], timelineNotes: [], mechanics: [] });
     update(draft); setSelectedId(id);
   }
 
@@ -129,9 +143,14 @@ function SkillFields({ item, onChange }: { item: PlayerSkill; onChange: () => vo
 }
 
 function MechanicFields({ item, onChange }: { item: BossMechanic; onChange: () => void }) {
-  return <div className="admin-form"><label>副本 ID<input value={item.raidId} onChange={(event) => { item.raidId = event.target.value; onChange(); }} /></label><label>Boss ID<input value={item.bossId} onChange={(event) => { item.bossId = event.target.value; onChange(); }} /></label><label>难度（逗号分隔）<input value={item.difficulties.join("、")} onChange={(event) => { item.difficulties = event.target.value.split(/[、,，]/).map((value) => value.trim()).filter(Boolean); onChange(); }} /></label><label>施法毫秒<input type="number" value={item.castTimeMs ?? ""} onChange={(event) => { item.castTimeMs = event.target.value ? Number(event.target.value) : null; onChange(); }} /></label><label>持续毫秒<input type="number" value={item.durationMs ?? ""} onChange={(event) => { item.durationMs = event.target.value ? Number(event.target.value) : null; onChange(); }} /></label><label>危险度<select value={item.severity} onChange={(event) => { item.severity = event.target.value as BossMechanic["severity"]; onChange(); }}><option value="info">提示</option><option value="warning">警告</option><option value="danger">危险</option></select></label></div>;
+  return <div className="admin-form"><label>副本 ID<input value={item.raidId} onChange={(event) => { item.raidId = event.target.value; onChange(); }} /></label><label>Boss ID<input value={item.bossId} onChange={(event) => { item.bossId = event.target.value; onChange(); }} /></label><label>施法毫秒<input type="number" value={item.castTimeMs ?? ""} onChange={(event) => { item.castTimeMs = event.target.value ? Number(event.target.value) : null; onChange(); }} /></label><label>持续毫秒<input type="number" value={item.durationMs ?? ""} onChange={(event) => { item.durationMs = event.target.value ? Number(event.target.value) : null; onChange(); }} /></label><label>危险度<select value={item.severity} onChange={(event) => { item.severity = event.target.value as BossMechanic["severity"]; onChange(); }}><option value="info">提示</option><option value="warning">警告</option><option value="danger">危险</option></select></label></div>;
 }
 
 function PresetFields({ item, mechanics, onChange }: { item: TimelinePreset; mechanics: BossMechanic[]; onChange: () => void }) {
-  return <><div className="admin-form"><label>副本 ID<input value={item.raidId} onChange={(event) => { item.raidId = event.target.value; onChange(); }} /></label><label>Boss ID<input value={item.bossId} onChange={(event) => { item.bossId = event.target.value; onChange(); }} /></label><label>战斗时长（毫秒）<input type="number" value={item.encounter.durationMs} onChange={(event) => { item.encounter.durationMs = Number(event.target.value); onChange(); }} /></label><label>难度（逗号分隔）<input value={item.difficulties.join("、")} onChange={(event) => { item.difficulties = event.target.value.split(/[、,，]/).map((value) => value.trim()).filter(Boolean); onChange(); }} /></label></div><section className="admin-timeline-preview"><header><b>时间轴预览</b><button onClick={() => { const mechanic = mechanics.find((entry) => entry.enabled) ?? mechanics[0]; if (mechanic) { item.mechanics.push({ mechanicId: mechanic.id, atMs: 30_000 }); onChange(); } }}>＋ 引用机制</button></header>{item.mechanics.slice().sort((a,b) => a.atMs-b.atMs).map((reference, index) => <div key={`${reference.mechanicId}-${index}`}><input value={formatTime(reference.atMs)} onChange={(event) => { const [minutes,seconds] = event.target.value.split(":").map(Number); if (Number.isFinite(minutes) && Number.isFinite(seconds)) reference.atMs = (minutes * 60 + seconds) * 1000; onChange(); }} /><select value={reference.mechanicId} onChange={(event) => { reference.mechanicId = event.target.value; onChange(); }}>{mechanics.map((mechanic) => <option value={mechanic.id} key={mechanic.id}>{mechanic.name}</option>)}</select><button onClick={() => { item.mechanics.splice(index, 1); onChange(); }}>×</button></div>)}</section></>;
+  const phaseOptions = item.phases.slice().sort((a, b) => a.atMs - b.atMs);
+  return <><div className="admin-form"><label>副本 ID<input value={item.raidId} onChange={(event) => { item.raidId = event.target.value; onChange(); }} /></label><label>Boss ID<input value={item.bossId} onChange={(event) => { item.bossId = event.target.value; onChange(); }} /></label><label>计划名称<input value={item.encounter.name} onChange={(event) => { item.encounter.name = event.target.value; onChange(); }} /></label></div><section className="admin-timeline-preview"><header><b>时间轴预览</b><div><button onClick={() => { item.phases.push({ id: `phase-${Date.now().toString(36)}`, name: `P${item.phases.length + 1}`, atMs: 30_000 }); onChange(); }}>＋ 阶段</button><button onClick={() => { item.timelineNotes.push({ id: `note-${Date.now().toString(36)}`, text: "新注释", atMs: 30_000 }); onChange(); }}>＋ 注释</button><button onClick={() => { const mechanic = mechanics.find((entry) => entry.enabled) ?? mechanics[0]; if (mechanic) { item.mechanics.push({ mechanicId: mechanic.id, atMs: 30_000 }); onChange(); } }}>＋ 引用机制</button></div></header>
+    {item.phases.slice().sort((a,b) => a.atMs-b.atMs).map((phase) => <div className="admin-timeline-row" key={phase.id}><span>阶段</span><AdminTimeField value={phase.atMs} onChange={(value) => { phase.atMs = value; onChange(); }} /><input value={phase.name} onChange={(event) => { phase.name = event.target.value; onChange(); }} /><code>{phase.id}</code><button onClick={() => { item.phases = item.phases.filter((entry) => entry.id !== phase.id); item.mechanics.forEach((reference) => { if (reference.phaseId === phase.id) reference.phaseId = undefined; }); onChange(); }}>×</button></div>)}
+    {item.timelineNotes.slice().sort((a,b) => a.atMs-b.atMs).map((note) => <div className="admin-timeline-row" key={note.id}><span>注释</span><AdminTimeField value={note.atMs} onChange={(value) => { note.atMs = value; onChange(); }} /><input value={note.text} onChange={(event) => { note.text = event.target.value; onChange(); }} /><code>{note.id}</code><button onClick={() => { item.timelineNotes = item.timelineNotes.filter((entry) => entry.id !== note.id); onChange(); }}>×</button></div>)}
+    {item.mechanics.slice().sort((a,b) => a.atMs-b.atMs).map((reference, index) => <div className="admin-timeline-row" key={`${reference.mechanicId}-${reference.atMs}-${index}`}><span>机制</span><AdminTimeField value={reference.atMs} onChange={(value) => { reference.atMs = value; onChange(); }} /><select value={reference.mechanicId} onChange={(event) => { reference.mechanicId = event.target.value; onChange(); }}>{mechanics.map((mechanic) => <option value={mechanic.id} key={mechanic.id}>{mechanic.name}</option>)}</select><select value={reference.phaseId ?? ""} onChange={(event) => { reference.phaseId = event.target.value || undefined; onChange(); }}><option value="">未指定阶段</option>{phaseOptions.map((phase) => <option value={phase.id} key={phase.id}>{phase.name}</option>)}</select><button onClick={() => { const sourceIndex = item.mechanics.indexOf(reference); if (sourceIndex >= 0) item.mechanics.splice(sourceIndex, 1); onChange(); }}>×</button></div>)}
+  </section></>;
 }

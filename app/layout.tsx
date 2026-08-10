@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: "把每一次减伤放在正确的秒数。",
       type: "website",
       locale: "zh_CN",
-      images: [{ url: new URL("/og.png", base).toString(), width: 1731, height: 909, alt: "团轴 Raidline 本地优先团本排轴工具" }],
+      images: [{ url: new URL("/og.png", base).toString(), width: 1731, height: 909, alt: "团轴 Raidline 双栏团本排轴工具" }],
     },
     twitter: {
       card: "summary_large_image",

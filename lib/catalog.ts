@@ -1,5 +1,5 @@
 import seedJson from "../data/catalog-seed.json" with { type: "json" };
-import { normalizePlanDocument } from "./core.ts";
+import { normalizePlanDocument, snapTime } from "./core.ts";
 import type { BossMechanic, CatalogRelease, RaidMechanic, RaidPlanDocument, TimelinePreset } from "./types.ts";
 
 export const SEED_CATALOG = structuredClone(seedJson) as unknown as CatalogRelease;
@@ -11,8 +11,34 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 export function validateCatalogRelease(value: unknown): CatalogRelease {
   if (!isObject(value) || !isObject(value.manifest)) throw new Error("目录缺少 manifest");
-  const release = structuredClone(value) as unknown as CatalogRelease;
-  if (release.manifest.schemaVersion !== 1) throw new Error("不支持的目录版本");
+  const raw = structuredClone(value) as Record<string, unknown> & { manifest: Record<string, unknown> };
+  if (raw.manifest.schemaVersion !== 1 && raw.manifest.schemaVersion !== 2) throw new Error("不支持的目录版本");
+  raw.manifest.schemaVersion = 2;
+  raw.bossMechanics = (Array.isArray(raw.bossMechanics) ? raw.bossMechanics : []).map((entry) => {
+    const item = { ...(entry as Record<string, unknown>) };
+    delete item.difficulties;
+    return item;
+  });
+  raw.timelinePresets = (Array.isArray(raw.timelinePresets) ? raw.timelinePresets : []).map((entry) => {
+    const item = { ...(entry as Record<string, unknown>) };
+    const encounter = isObject(item.encounter) ? item.encounter : {};
+    item.encounter = { name: String(encounter.name ?? item.name ?? "未命名预设") };
+    item.phases = (Array.isArray(item.phases) ? item.phases : []).map((phase) => {
+      const source = phase as Record<string, unknown>;
+      return { id: String(source.id ?? crypto.randomUUID()), name: String(source.name ?? "阶段"), atMs: snapTime(Number(source.atMs) || 0) };
+    });
+    item.timelineNotes = (Array.isArray(item.timelineNotes) ? item.timelineNotes : []).map((note) => {
+      const source = note as Record<string, unknown>;
+      return { id: String(source.id ?? crypto.randomUUID()), text: String(source.text ?? ""), atMs: snapTime(Number(source.atMs) || 0) };
+    });
+    item.mechanics = (Array.isArray(item.mechanics) ? item.mechanics : []).map((reference) => {
+      const source = reference as Record<string, unknown>;
+      return { mechanicId: String(source.mechanicId ?? ""), atMs: snapTime(Number(source.atMs) || 0), ...(source.phaseId ? { phaseId: String(source.phaseId) } : {}) };
+    });
+    delete item.difficulties;
+    return item;
+  });
+  const release = raw as unknown as CatalogRelease;
   if (!VERSION_PATTERN.test(release.manifest.version)) throw new Error("目录版本标识无效");
   if (!Array.isArray(release.playerSkills) || !Array.isArray(release.bossMechanics) || !Array.isArray(release.timelinePresets)) throw new Error("目录数据不完整");
   const ids = new Set<string>();
@@ -71,6 +97,7 @@ export function applyCatalogPreset(current: RaidPlanDocument, release: CatalogRe
   const next = structuredClone(current);
   next.encounter = structuredClone(preset.encounter);
   next.phases = structuredClone(preset.phases);
+  next.timelineNotes = structuredClone(preset.timelineNotes);
   next.mechanics = preset.mechanics.map((reference) => {
     const definition = mechanics.get(reference.mechanicId);
     if (!definition) throw new Error(`预设引用的机制不存在：${reference.mechanicId}`);
@@ -87,11 +114,20 @@ export function applyCatalogPreset(current: RaidPlanDocument, release: CatalogRe
 }
 
 export function catalogDifference(current: RaidPlanDocument, release: CatalogRelease) {
-  const currentSkillIds = new Set(current.cooldowns.map((item) => item.id));
-  const releaseSkillIds = new Set(release.playerSkills.filter((item) => item.enabled).map((item) => item.id));
+  const currentSkills = new Map(current.cooldowns.map((item) => [item.id, item]));
+  const releaseSkills = release.playerSkills.filter((item) => item.enabled).map((item) => {
+    const { enabled: _enabled, gameVersion: _gameVersion, ...definition } = item;
+    void _enabled; void _gameVersion;
+    return definition;
+  });
+  const releaseSkillIds = new Set(releaseSkills.map((item) => item.id));
   return {
-    addedSkills: [...releaseSkillIds].filter((id) => !currentSkillIds.has(id)).length,
-    removedSkills: [...currentSkillIds].filter((id) => !releaseSkillIds.has(id) && !id.startsWith("custom-")).length,
+    addedSkills: releaseSkills.filter((item) => !currentSkills.has(item.id)).length,
+    changedSkills: releaseSkills.filter((item) => {
+      const existing = currentSkills.get(item.id);
+      return existing && existing.dataStatus !== "custom" && JSON.stringify(existing) !== JSON.stringify(item);
+    }).length,
+    removedSkills: current.cooldowns.filter((item) => !releaseSkillIds.has(item.id) && item.dataStatus !== "custom" && !item.id.startsWith("custom-")).length,
     currentVersion: current.catalogSource?.version ?? "未记录",
     availableVersion: release.manifest.version,
   };

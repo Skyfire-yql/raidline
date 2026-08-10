@@ -47,7 +47,8 @@ export async function readPublication(shareId: string, store: ObjectStore = obje
   assertShareId(shareId);
   const value = await store.getJson<PublishedPlan>(publicationKey(shareId));
   if (!value) return null;
-  return { ...value, document: normalizePlanDocument(value.document) };
+  const document = normalizePlanDocument(value.document);
+  return { ...value, document, contentHash: await hashPlanDocument(document) };
 }
 
 export async function replacePublication(shareId: string, editId: string, input: unknown, store: ObjectStore = objectStore) {

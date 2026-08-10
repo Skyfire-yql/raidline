@@ -1,7 +1,7 @@
 {
   "manifest": {
-    "schemaVersion": 1,
-    "version": "builtin-seed-v1",
+    "schemaVersion": 2,
+    "version": "builtin-seed-v2",
     "gameVersion": "retail",
     "title": "Raidline 内置种子目录",
     "publishedAt": 0,
@@ -1232,9 +1232,6 @@
       "gameVersion": "retail",
       "raidId": "example-raid",
       "bossId": "example-boss",
-      "difficulties": [
-        "练习"
-      ],
       "enabled": true,
       "castTimeMs": 0,
       "durationMs": 0,
@@ -1258,9 +1255,6 @@
       "gameVersion": "retail",
       "raidId": "example-raid",
       "bossId": "example-boss",
-      "difficulties": [
-        "练习"
-      ],
       "enabled": true,
       "castTimeMs": 0,
       "durationMs": 0,
@@ -1284,9 +1278,6 @@
       "gameVersion": "retail",
       "raidId": "example-raid",
       "bossId": "example-boss",
-      "difficulties": [
-        "练习"
-      ],
       "enabled": true,
       "castTimeMs": 0,
       "durationMs": 0,
@@ -1310,9 +1301,6 @@
       "gameVersion": "retail",
       "raidId": "example-raid",
       "bossId": "example-boss",
-      "difficulties": [
-        "练习"
-      ],
       "enabled": true,
       "castTimeMs": 0,
       "durationMs": 0,
@@ -1338,14 +1326,9 @@
       "gameVersion": "retail",
       "raidId": "example-raid",
       "bossId": "example-boss",
-      "difficulties": [
-        "练习"
-      ],
       "enabled": true,
       "encounter": {
-        "name": "基础机制示例",
-        "difficulty": "练习",
-        "durationMs": 120000
+        "name": "基础机制示例"
       },
       "phases": [
         {
@@ -1359,6 +1342,7 @@
           "atMs": 60000
         }
       ],
+      "timelineNotes": [],
       "mechanics": [
         {
           "mechanicId": "seed-stack",

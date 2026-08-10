@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
@@ -54,12 +55,12 @@ test("server-renders Raidline and implements explicit R2 publication semantics",
     assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
     const html = await response.text();
     assert.match(html, /团轴/);
-    assert.match(html, /创建空白计划/);
-    assert.match(html, /团本排轴工作台/);
-    assert.match(html, /本地优先/);
-    assert.doesNotMatch(html, /仅所有者可见|WCL|战报|个人预设|导入 JSON/);
+    assert.match(html, /空白计划/);
+    assert.match(html, /我的轴/);
+    assert.match(html, /目录预设/);
+    assert.doesNotMatch(html, /团本排轴工作台|本地优先|目录管理|IndexedDB|本地版本|仅所有者可见|WCL|战报|个人预设|导入 JSON/);
 
-    const shareId = "0aZ9bY8cX7dW6eV5";
+    const shareId = randomBytes(8).toString("hex");
     const editId = "A9z0";
     const created = await json(await fetch(`${base}/api/publications`, {
       method: "POST",
@@ -71,7 +72,10 @@ test("server-renders Raidline and implements explicit R2 publication semantics",
     assert.equal(created.payload.data.editId, editId);
     assert.match(created.payload.data.shareId, /^[0-9A-Za-z]{16}$/);
     assert.match(created.payload.data.editId, /^[0-9A-Za-z]{4}$/);
-    assert.equal(created.payload.data.document.schemaVersion, 3);
+    assert.equal(created.payload.data.document.schemaVersion, 4);
+    assert.deepEqual(created.payload.data.document.timelineNotes, []);
+    assert.equal("difficulty" in created.payload.data.document.encounter, false);
+    assert.equal("durationMs" in created.payload.data.document.encounter, false);
 
     const read = await json(await fetch(`${base}/api/publications/${shareId}`));
     assert.equal(read.response.status, 200);
@@ -93,7 +97,7 @@ test("server-renders Raidline and implements explicit R2 publication semantics",
     assert.notEqual(updated.payload.data.revisionId, created.payload.data.revisionId);
     assert.equal((await json(await fetch(`${base}/api/publications/${shareId}`))).payload.data.document.encounter.name, "覆盖后的首领");
 
-    const secondShareId = "1234567890AbCdEf";
+    const secondShareId = randomBytes(8).toString("hex");
     const second = await json(await fetch(`${base}/api/publications`, {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ shareId: secondShareId, editId: "Qw2E", document: updatedDocument }),
     }));
@@ -106,10 +110,12 @@ test("server-renders Raidline and implements explicit R2 publication semantics",
 
     const catalog = await json(await fetch(`${base}/api/catalog/current`));
     assert.equal(catalog.response.status, 200);
-    assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v1");
+    assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v2");
+    assert.equal(catalog.payload.data.manifest.schemaVersion, 2);
     assert.ok(catalog.payload.data.playerSkills.length > 20);
     assert.equal((await fetch(`${base}/api/plans`, { method: "POST" })).status, 404);
     assert.equal((await fetch(`${base}/api/shared/${secondShareId}`)).status, 404);
+    assert.equal((await fetch(`${base}/api/publications/${secondShareId}/Qw2E`, { method: "DELETE" })).status, 200);
   } finally {
     child.kill();
   }

@@ -1,6 +1,8 @@
 "use client";
 
 import { createBlankPlan, makeId, normalizePlanDocument } from "../../lib/core.ts";
+import { validateCatalogRelease } from "../../lib/catalog.ts";
+import { hashPlanDocument, sha256 } from "../../lib/hashing.ts";
 import { isExpectedRevision, snapshotIdsToDelete } from "../../lib/local-policy.ts";
 import type { CatalogRelease, LocalPlanRecord, PlanSnapshot, PublicationBinding, RaidPlanDocument, SnapshotReason } from "../../lib/types.ts";
 
@@ -32,6 +34,27 @@ function transactionDone(transaction: IDBTransaction) {
 }
 
 let databasePromise: Promise<IDBDatabase> | null = null;
+
+async function normalizeLocalRecord(record: LocalPlanRecord, persist = false) {
+  const schemaVersion = (record.document as unknown as { schemaVersion?: number }).schemaVersion;
+  const document = normalizePlanDocument(record.document);
+  if (schemaVersion === 4) return { ...record, document };
+  let activePublication = record.activePublication;
+  if (activePublication) {
+    const legacyHash = await sha256(JSON.stringify(record.document));
+    if (legacyHash === activePublication.contentHash) {
+      activePublication = { ...activePublication, contentHash: await hashPlanDocument(document) };
+    }
+  }
+  const migrated: LocalPlanRecord = { ...record, document, ...(activePublication ? { activePublication } : {}) };
+  if (persist) {
+    const db = await database();
+    const transaction = db.transaction("plans", "readwrite");
+    transaction.objectStore("plans").put(migrated);
+    await transactionDone(transaction);
+  }
+  return migrated;
+}
 
 function database() {
   if (typeof indexedDB === "undefined") return Promise.reject(new Error("当前浏览器不支持 IndexedDB"));
@@ -91,7 +114,7 @@ export async function getLocalPlan(id: string) {
   const record = await requestValue(transaction.objectStore("plans").get(id) as IDBRequest<LocalPlanRecord | undefined>);
   await transactionDone(transaction);
   if (!record) return null;
-  return { ...record, document: normalizePlanDocument(record.document) };
+  return normalizeLocalRecord(record, true);
 }
 
 export async function listLocalPlans() {
@@ -99,7 +122,8 @@ export async function listLocalPlans() {
   const transaction = db.transaction("plans", "readonly");
   const records = await requestValue(transaction.objectStore("plans").getAll() as IDBRequest<LocalPlanRecord[]>);
   await transactionDone(transaction);
-  return records.map((record) => ({ ...record, document: normalizePlanDocument(record.document) })).sort((a, b) => b.updatedAt - a.updatedAt);
+  const normalized = await Promise.all(records.map((record) => normalizeLocalRecord(record)));
+  return normalized.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export async function saveLocalPlan(id: string, document: RaidPlanDocument, expectedRevision: number) {
@@ -128,7 +152,7 @@ export async function saveLocalPlan(id: string, document: RaidPlanDocument, expe
   return next;
 }
 
-export async function setPlanPublication(id: string, publication?: PublicationBinding) {
+export async function setPlanPublication(id: string, publication: PublicationBinding | undefined, expectedRevision: number) {
   const db = await database();
   const transaction = db.transaction("plans", "readwrite");
   const store = transaction.objectStore("plans");
@@ -137,6 +161,7 @@ export async function setPlanPublication(id: string, publication?: PublicationBi
     transaction.abort();
     throw new Error("本地计划不存在");
   }
+  const revisionConflict = !isExpectedRevision(current.localRevision, expectedRevision);
   const next: LocalPlanRecord = {
     ...current,
     localRevision: current.localRevision + 1,
@@ -146,6 +171,7 @@ export async function setPlanPublication(id: string, publication?: PublicationBi
   if (!publication) delete next.activePublication;
   store.put(next);
   await transactionDone(transaction);
+  if (revisionConflict) throw new LocalRevisionConflictError({ ...next, document: normalizePlanDocument(next.document) });
   return next;
 }
 
@@ -191,7 +217,15 @@ export async function listPlanSnapshots(planId: string) {
   const transaction = db.transaction("snapshots", "readonly");
   const records = await requestValue(transaction.objectStore("snapshots").index("planId").getAll(planId) as IDBRequest<PlanSnapshot[]>);
   await transactionDone(transaction);
-  return records.sort((a, b) => b.createdAt - a.createdAt);
+  const migrated = records.map((snapshot) => ({ ...snapshot, document: normalizePlanDocument(snapshot.document) }));
+  const changed = migrated.filter((snapshot, index) => (records[index].document as unknown as { schemaVersion?: number }).schemaVersion !== 4);
+  if (changed.length) {
+    const write = db.transaction("snapshots", "readwrite");
+    const store = write.objectStore("snapshots");
+    for (const snapshot of changed) store.put(snapshot);
+    await transactionDone(write);
+  }
+  return migrated.sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export async function pruneSnapshots() {
@@ -206,9 +240,10 @@ export async function pruneSnapshots() {
 }
 
 export async function cacheCatalog(release: CatalogRelease) {
+  const normalized = validateCatalogRelease(release);
   const db = await database();
   const transaction = db.transaction("catalogCache", "readwrite");
-  transaction.objectStore("catalogCache").put({ key: "current", release, cachedAt: Date.now() });
+  transaction.objectStore("catalogCache").put({ key: "current", release: normalized, cachedAt: Date.now() });
   await transactionDone(transaction);
 }
 
@@ -217,7 +252,10 @@ export async function getCachedCatalog() {
   const transaction = db.transaction("catalogCache", "readonly");
   const record = await requestValue(transaction.objectStore("catalogCache").get("current") as IDBRequest<{ key: string; release: CatalogRelease } | undefined>);
   await transactionDone(transaction);
-  return record?.release ?? null;
+  if (!record) return null;
+  const normalized = validateCatalogRelease(record.release);
+  if ((record.release.manifest as unknown as { schemaVersion?: number }).schemaVersion !== 2) await cacheCatalog(normalized);
+  return normalized;
 }
 
 export async function setLocalSetting<T>(key: string, value: T) {

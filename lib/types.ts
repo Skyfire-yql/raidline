@@ -14,8 +14,6 @@ export interface WclSource {
 
 export interface EncounterInfo {
   name: string;
-  difficulty: string;
-  durationMs: number;
   source?: WclSource;
 }
 
@@ -45,6 +43,12 @@ export interface TargetSelection {
 export interface RaidPhase {
   id: string;
   name: string;
+  atMs: number;
+}
+
+export interface RaidTimelineNote {
+  id: string;
+  text: string;
   atMs: number;
 }
 
@@ -111,7 +115,6 @@ export interface RaidAssignment {
 }
 
 export interface RaidPlanSettings {
-  snapMs: number;
   showMinorMechanics: boolean;
   referenceMaxHealth: number | null;
   pressureResetMs: number;
@@ -119,11 +122,12 @@ export interface RaidPlanSettings {
 }
 
 export interface RaidPlanDocument {
-  schemaVersion: 3;
+  schemaVersion: 4;
   encounter: EncounterInfo;
   groups: RaidGroup[];
   roster: RosterMember[];
   phases: RaidPhase[];
+  timelineNotes: RaidTimelineNote[];
   mechanics: RaidMechanic[];
   cooldowns: CooldownDefinition[];
   assignments: RaidAssignment[];
@@ -188,7 +192,6 @@ export interface BossMechanic {
   gameVersion: string;
   raidId: string;
   bossId: string;
-  difficulties: string[];
   enabled: boolean;
   spellId?: number;
   castTimeMs: number | null;
@@ -206,15 +209,15 @@ export interface TimelinePreset {
   gameVersion: string;
   raidId: string;
   bossId: string;
-  difficulties: string[];
   enabled: boolean;
   encounter: EncounterInfo;
   phases: RaidPhase[];
+  timelineNotes: RaidTimelineNote[];
   mechanics: Array<{ mechanicId: string; atMs: number; phaseId?: string }>;
 }
 
 export interface CatalogManifest {
-  schemaVersion: 1;
+  schemaVersion: 2;
   version: string;
   gameVersion: string;
   title: string;

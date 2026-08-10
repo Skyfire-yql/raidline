@@ -16,12 +16,12 @@ import {
   resolveTargetMemberIds,
   syncLinkedAssignments,
 } from "../lib/core.ts";
-import { applyCatalogPreset, SEED_CATALOG, validateCatalogRelease } from "../lib/catalog.ts";
+import { applyCatalogPreset, catalogDifference, SEED_CATALOG, validateCatalogRelease } from "../lib/catalog.ts";
 import { cooldownsForClass, specializationFor, specializationLabel, specializationsForClass } from "../lib/cooldowns.ts";
 import { EDIT_ID_PATTERN, randomBase62, SHARE_ID_PATTERN } from "../lib/publication-ids.ts";
 import { isExpectedRevision, snapshotIdsToDelete } from "../lib/local-policy.ts";
 import type { CooldownDefinition, CooldownEffect, RaidMechanic, TargetSelection } from "../lib/types.ts";
-import { anchoredScroll, defaultOrientation, shouldInterceptTimelineWheel, timeAxisPosition, timelineTimeFromDrag, viewPreferenceKey, zoomFromWheel } from "../lib/view.ts";
+import { adaptiveTickMs, anchoredScroll, defaultOrientation, MAX_ZOOM, MIN_TIMELINE_MS, shouldInterceptTimelineWheel, timeAxisPosition, timelineRangeMs, timelineTimeFromDrag, viewPreferenceKey, zoomFromWheel } from "../lib/view.ts";
 
 function member(id: string, classSlug = "Priest", groupId?: string) {
   return { id, name: id.toUpperCase(), classSlug, specSlug: "测试专精", role: "damage" as const, color: "#fff", ...(groupId ? { groupId } : {}) };
@@ -70,7 +70,7 @@ function assignment(id: string, memberId: string, cooldownId: string, atMs = 0, 
   return { id, memberId, cooldownId, atMs, targets: structuredClone(targets), note: "", source: "manual" as const };
 }
 
-test("migrates v1 to v3 while preserving old numeric data as legacy", () => {
+test("migrates v1 to v4 while preserving old numeric data as legacy", () => {
   const v1 = {
     schemaVersion: 1,
     encounter: { name: "旧计划", difficulty: "英雄", durationMs: 120_000 },
@@ -82,7 +82,10 @@ test("migrates v1 to v3 while preserving old numeric data as legacy", () => {
     settings: { snapMs: 1000, zoom: 1.5, showMinorMechanics: true },
   };
   const plan = normalizePlanDocument(v1);
-  assert.equal(plan.schemaVersion, 3);
+  assert.equal(plan.schemaVersion, 4);
+  assert.equal("difficulty" in plan.encounter, false);
+  assert.equal("durationMs" in plan.encounter, false);
+  assert.deepEqual(plan.timelineNotes, []);
   assert.deepEqual(plan.groups, []);
   assert.equal(plan.mechanics[0].castTimeMs, 0);
   assert.equal(plan.mechanics[0].durationMs, 5000);
@@ -95,11 +98,13 @@ test("migrates v1 to v3 while preserving old numeric data as legacy", () => {
   assert.equal(plan.settings.pressureResetMs, 10_000);
 });
 
-test("distinguishes unknown null from explicit zero and validates v3 documents", () => {
+test("distinguishes unknown null from explicit zero and validates v4 documents", () => {
   const plan = createBlankPlan();
-  assert.equal(plan.schemaVersion, 3);
+  assert.equal(plan.schemaVersion, 4);
   assert.equal(plan.roster.length, 20);
-  assert.equal(plan.encounter.durationMs, 3_600_000);
+  assert.equal("durationMs" in plan.encounter, false);
+  assert.equal("snapMs" in plan.settings, false);
+  assert.deepEqual(plan.timelineNotes, []);
   assert.equal(plan.roster[0].name, "成员 01");
   assert.equal(plan.roster[19].name, "成员 20");
   assert.ok(plan.roster.every((item) => item.classSlug === ""));
@@ -300,6 +305,7 @@ test("catalog presets snapshot referenced mechanics and preserve player-owned sc
   plan.roster = [member("m1", "Priest", "g1")];
   plan.assignments = [assignment("a1", "m1", plan.cooldowns[0].id)];
   const release = validateCatalogRelease(SEED_CATALOG);
+  assert.equal(release.manifest.schemaVersion, 2);
   const preset = release.timelinePresets[0];
   const applied = applyCatalogPreset(plan, release, preset);
   assert.equal(applied.encounter.name, "基础机制示例");
@@ -310,18 +316,63 @@ test("catalog presets snapshot referenced mechanics and preserve player-owned sc
   assert.deepEqual(applied.groups, plan.groups);
   assert.deepEqual(applied.cooldowns.map((item) => item.id), release.playerSkills.map((item) => item.id));
   assert.deepEqual(applied.assignments, []);
+  assert.deepEqual(applied.timelineNotes, preset.timelineNotes);
   assert.equal(applied.catalogSource?.version, release.manifest.version);
   const broken = structuredClone(release);
   broken.timelinePresets[0].mechanics[0].mechanicId = "missing";
   assert.throws(() => validateCatalogRelease(broken), /不存在的机制/);
 });
 
-test("migrates an existing v2 plan to v3 locally", () => {
+test("only offers a catalog upgrade for real built-in skill differences", () => {
+  const plan = createBlankPlan();
+  const release = validateCatalogRelease(SEED_CATALOG);
+  assert.deepEqual(catalogDifference(plan, release), {
+    addedSkills: 0,
+    changedSkills: 0,
+    removedSkills: 0,
+    currentVersion: "未记录",
+    availableVersion: release.manifest.version,
+  });
+  const changed = structuredClone(release);
+  changed.playerSkills[0].description += " 更新";
+  assert.equal(catalogDifference(plan, changed).changedSkills, 1);
+  plan.cooldowns[0].dataStatus = "custom";
+  assert.equal(catalogDifference(plan, changed).changedSkills, 0);
+});
+
+test("migrates existing v2 and v3 plans to v4 locally", () => {
   const source = structuredClone(createBlankPlan()) as unknown as Record<string, unknown>;
   source.schemaVersion = 2;
+  source.encounter = { name: "旧计划", difficulty: "史诗", durationMs: 600_000 };
+  source.settings = { snapMs: 5000, showMinorMechanics: true, referenceMaxHealth: null, pressureResetMs: 10_000, defensiveLeadMs: 3000 };
   const migrated = normalizePlanDocument(source);
-  assert.equal(migrated.schemaVersion, 3);
-  assert.equal(migrated.encounter.name, "新建团本排轴");
+  assert.equal(migrated.schemaVersion, 4);
+  assert.equal(migrated.encounter.name, "旧计划");
+  assert.equal("difficulty" in migrated.encounter, false);
+  assert.equal("durationMs" in migrated.encounter, false);
+  assert.equal("snapMs" in migrated.settings, false);
+  source.schemaVersion = 3;
+  assert.equal(normalizePlanDocument(source).schemaVersion, 4);
+});
+
+test("migrates v1 catalogs to v2 without difficulty or fixed preset duration", () => {
+  const legacy = structuredClone(SEED_CATALOG) as unknown as {
+    manifest: { schemaVersion: number; version: string };
+    bossMechanics: Array<Record<string, unknown>>;
+    timelinePresets: Array<Record<string, unknown>>;
+  };
+  legacy.manifest.schemaVersion = 1;
+  legacy.manifest.version = "legacy-v1";
+  legacy.bossMechanics[0].difficulties = ["史诗"];
+  legacy.timelinePresets[0].difficulties = ["史诗"];
+  legacy.timelinePresets[0].encounter = { name: "旧预设", difficulty: "史诗", durationMs: 600_000 };
+  delete legacy.timelinePresets[0].timelineNotes;
+  const migrated = validateCatalogRelease(legacy);
+  assert.equal(migrated.manifest.schemaVersion, 2);
+  assert.equal("difficulties" in migrated.bossMechanics[0], false);
+  assert.equal("difficulties" in migrated.timelinePresets[0], false);
+  assert.deepEqual(migrated.timelinePresets[0].encounter, { name: "旧预设" });
+  assert.deepEqual(migrated.timelinePresets[0].timelineNotes, []);
 });
 
 test("generates exact base62 publication identifiers without modulo bias", () => {
@@ -366,13 +417,34 @@ test("exports MRT text and converts view coordinates and pointer-anchored zoom",
   assert.equal(viewPreferenceKey("plan", "abc", 390), "raidline:view:plan:mobile:abc");
   assert.equal(viewPreferenceKey("plan", "abc", 1280), "raidline:view:plan:desktop:abc");
   assert.equal(zoomFromWheel(1, -1), 1.1);
-  assert.equal(zoomFromWheel(3, -1), 3);
+  assert.equal(zoomFromWheel(MAX_ZOOM, -1), MAX_ZOOM);
   assert.equal(shouldInterceptTimelineWheel(true, true), true);
   assert.equal(shouldInterceptTimelineWheel(false, true), false);
   assert.equal(shouldInterceptTimelineWheel(true, false), false);
   assert.equal(anchoredScroll(100, 50, 1, 2), 250);
   assert.equal(timeAxisPosition(2000, 5), 10);
-  assert.equal(timelineTimeFromDrag(30_000, 13, 5, 3_600_000, 1000), 33_000);
-  assert.equal(timelineTimeFromDrag(1000, -100, 5, 3_600_000, 1000), 0);
-  assert.equal(timelineTimeFromDrag(3_599_000, 100, 5, 3_600_000, 1000), 3_600_000);
+  assert.equal(timelineTimeFromDrag(30_000, 13, 5, 3_600_000), 33_000);
+  assert.equal(timelineTimeFromDrag(1000, -100, 5, 3_600_000), 0);
+  assert.equal(timelineTimeFromDrag(3_599_000, 100, 5, 3_600_000), 3_600_000);
+});
+
+test("derives and shortens the timeline range from every timed object", () => {
+  const plan = createBlankPlan();
+  plan.phases = [{ id: "p1", name: "P1", atMs: 0 }];
+  plan.timelineNotes = [];
+  plan.mechanics = [];
+  plan.assignments = [];
+  assert.equal(timelineRangeMs(plan), MIN_TIMELINE_MS);
+  plan.timelineNotes = [{ id: "n1", text: "转火", atMs: 121_000 }];
+  assert.equal(timelineRangeMs(plan), 180_000);
+  plan.timelineNotes = [];
+  assert.equal(timelineRangeMs(plan), MIN_TIMELINE_MS);
+  plan.mechanics = [mechanic("long", 115_000, null, ALL_TARGETS, { castTimeMs: 5000, durationMs: 31_000 })];
+  assert.equal(timelineRangeMs(plan), 210_000);
+  plan.cooldowns = [cooldown("lasting", [], { castTimeMs: 2000, durationMs: 40_000 })];
+  plan.assignments = [assignment("a", "m1", "lasting", 160_000)];
+  assert.equal(timelineRangeMs(plan), 240_000);
+  plan.timelineNotes = [{ id: "limit", text: "上限", atMs: 7_200_000 }];
+  assert.equal(timelineRangeMs(plan), 7_200_000);
+  assert.ok(adaptiveTickMs(8) < adaptiveTickMs(0.2));
 });

@@ -14,11 +14,15 @@ export const PLAN_LIMITS = {
   groups: 20,
   roster: 40,
   phases: 40,
+  timelineNotes: 1500,
   mechanics: 1500,
   cooldowns: 250,
   assignments: 3000,
   bytes: 1_000_000,
 } as const;
+
+export const TIMELINE_SNAP_MS = 1000;
+export const MAX_TIMELINE_MS = 7_200_000;
 
 export const ALL_TARGETS: TargetSelection = { mode: "all" };
 export const INHERIT_TARGETS: TargetSelection = { mode: "inherit" };
@@ -43,16 +47,16 @@ export function makeId(prefix = "id") {
 
 export function createBlankPlan(title = "新建团本排轴", initialPhaseId = makeId("phase")): RaidPlanDocument {
   return {
-    schemaVersion: 3,
-    encounter: { name: title, difficulty: "史诗", durationMs: 3_600_000 },
+    schemaVersion: 4,
+    encounter: { name: title },
     groups: [],
     roster: createDefaultRoster(),
     phases: [{ id: initialPhaseId, name: "P1", atMs: 0 }],
+    timelineNotes: [],
     mechanics: [],
     cooldowns: DEFAULT_COOLDOWNS.map((item) => structuredClone(item)),
     assignments: [],
     settings: {
-      snapMs: 1000,
       showMinorMechanics: true,
       referenceMaxHealth: null,
       pressureResetMs: 10_000,
@@ -76,9 +80,8 @@ export function parseTime(value: string) {
   return Math.round((Number(match[1]) * 60 + Number(match[2])) * 1000);
 }
 
-export function snapTime(ms: number, snapMs: number) {
-  const snap = Math.max(100, snapMs || 1000);
-  return Math.max(0, Math.round(ms / snap) * snap);
+export function snapTime(ms: number) {
+  return Math.min(MAX_TIMELINE_MS, Math.max(0, Math.round(ms / TIMELINE_SNAP_MS) * TIMELINE_SNAP_MS));
 }
 
 export function formatCompactNumber(value: number | null | undefined) {
@@ -152,7 +155,7 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
   if (!value || typeof value !== "object") throw new Error("计划内容不是有效对象");
   const source = structuredClone(value) as Record<string, unknown>;
   const legacy = source.schemaVersion === 1;
-  if (!legacy && source.schemaVersion !== 2 && source.schemaVersion !== 3) throw new Error("不支持的计划版本");
+  if (!legacy && source.schemaVersion !== 2 && source.schemaVersion !== 3 && source.schemaVersion !== 4) throw new Error("不支持的计划版本");
   const encounter = (source.encounter ?? {}) as Record<string, unknown>;
   const oldSettings = (source.settings ?? {}) as Record<string, unknown>;
   const rawMechanics = Array.isArray(source.mechanics) ? source.mechanics as Array<Record<string, unknown>> : [];
@@ -160,7 +163,7 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
     id: String(item.id ?? makeId("mechanic")),
     name: String(item.name ?? "未命名机制"),
     description: String(item.description ?? ""),
-    atMs: Math.max(0, nullableNumber(item.atMs, 0) ?? 0),
+    atMs: snapTime(nullableNumber(item.atMs, 0) ?? 0),
     castTimeMs: legacy ? 0 : nullableNumber(item.castTimeMs),
     durationMs: nullableNumber(item.durationMs),
     damage: {
@@ -181,25 +184,23 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
   const cooldowns = (Array.isArray(source.cooldowns) ? source.cooldowns as Array<Record<string, unknown>> : []).map((item) => normalizeCooldown(item, legacy));
   const assignments: RaidAssignment[] = (Array.isArray(source.assignments) ? source.assignments as Array<Record<string, unknown>> : []).map((item) => {
     const mechanic = item.mechanicId ? mechanicMap.get(String(item.mechanicId)) : undefined;
-    const atMs = Math.max(0, nullableNumber(item.atMs, 0) ?? 0);
+    const atMs = snapTime(nullableNumber(item.atMs, 0) ?? 0);
     return {
       id: String(item.id ?? makeId("assignment")),
       memberId: String(item.memberId ?? ""),
       cooldownId: String(item.cooldownId ?? ""),
       ...(item.mechanicId ? { mechanicId: String(item.mechanicId) } : {}),
       atMs,
-      ...(item.offsetMs != null ? { offsetMs: Number(item.offsetMs) } : mechanic ? { offsetMs: atMs - mechanicImpactMs(mechanic) } : {}),
+      ...(item.offsetMs != null ? { offsetMs: Math.round((nullableNumber(item.offsetMs, 0) ?? 0) / TIMELINE_SNAP_MS) * TIMELINE_SNAP_MS } : mechanic ? { offsetMs: atMs - mechanicImpactMs(mechanic) } : {}),
       targets: normalizedTarget(item.targets, item.mechanicId ? INHERIT_TARGETS : ALL_TARGETS),
       note: String(item.note ?? ""),
       source: item.source === "wcl" ? "wcl" : "manual",
     };
   });
   const document: RaidPlanDocument = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     encounter: {
       name: String(encounter.name ?? "未命名排轴"),
-      difficulty: String(encounter.difficulty ?? "未设置"),
-      durationMs: nullableNumber(encounter.durationMs, 3_600_000) ?? 3_600_000,
       ...(encounter.source ? { source: encounter.source as RaidPlanDocument["encounter"]["source"] } : {}),
     },
     groups: (Array.isArray(source.groups) ? source.groups as Array<Record<string, unknown>> : []).map((group) => ({
@@ -217,13 +218,15 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
       };
     }),
     phases: (Array.isArray(source.phases) ? source.phases as Array<Record<string, unknown>> : []).map((phase) => ({
-      id: String(phase.id ?? makeId("phase")), name: String(phase.name ?? "阶段"), atMs: Math.max(0, nullableNumber(phase.atMs, 0) ?? 0),
+      id: String(phase.id ?? makeId("phase")), name: String(phase.name ?? "阶段"), atMs: snapTime(nullableNumber(phase.atMs, 0) ?? 0),
+    })),
+    timelineNotes: (Array.isArray(source.timelineNotes) ? source.timelineNotes as Array<Record<string, unknown>> : []).map((note) => ({
+      id: String(note.id ?? makeId("note")), text: String(note.text ?? ""), atMs: snapTime(nullableNumber(note.atMs, 0) ?? 0),
     })),
     mechanics,
     cooldowns,
     assignments,
     settings: {
-      snapMs: Math.max(100, nullableNumber(oldSettings.snapMs, 1000) ?? 1000),
       showMinorMechanics: oldSettings.showMinorMechanics !== false,
       referenceMaxHealth: legacy ? null : nullableNumber(oldSettings.referenceMaxHealth),
       pressureResetMs: legacy ? 10_000 : Math.max(0, nullableNumber(oldSettings.pressureResetMs, 10_000) ?? 10_000),
@@ -244,18 +247,21 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
 export function assertPlanDocument(value: unknown): asserts value is RaidPlanDocument {
   if (!value || typeof value !== "object") throw new Error("计划内容不是有效对象");
   const plan = value as Partial<RaidPlanDocument>;
-  if (plan.schemaVersion !== 3) throw new Error("不支持的计划版本");
-  if (!plan.encounter || typeof plan.encounter.name !== "string" || !Number.isFinite(plan.encounter.durationMs)) throw new Error("战斗信息不完整");
+  if (plan.schemaVersion !== 4) throw new Error("不支持的计划版本");
+  if (!plan.encounter || typeof plan.encounter.name !== "string") throw new Error("战斗信息不完整");
   const arrays: Array<[keyof RaidPlanDocument, number]> = [
     ["groups", PLAN_LIMITS.groups], ["roster", PLAN_LIMITS.roster], ["phases", PLAN_LIMITS.phases],
+    ["timelineNotes", PLAN_LIMITS.timelineNotes],
     ["mechanics", PLAN_LIMITS.mechanics], ["cooldowns", PLAN_LIMITS.cooldowns], ["assignments", PLAN_LIMITS.assignments],
   ];
   for (const [key, limit] of arrays) {
     if (!Array.isArray(plan[key])) throw new Error(`计划缺少 ${key}`);
     if ((plan[key] as unknown[]).length > limit) throw new Error(`${key} 超出数量限制`);
   }
-  if (plan.encounter.durationMs < 10_000 || plan.encounter.durationMs > 7_200_000) throw new Error("战斗时长需在 10 秒到 120 分钟之间");
   if (!plan.settings || plan.settings.referenceMaxHealth != null && plan.settings.referenceMaxHealth <= 0) throw new Error("参考最大生命必须大于 0 或留空");
+  for (const timed of [...(plan.phases ?? []), ...(plan.timelineNotes ?? []), ...(plan.mechanics ?? []), ...(plan.assignments ?? [])]) {
+    if (!Number.isFinite(timed.atMs) || timed.atMs < 0 || timed.atMs > MAX_TIMELINE_MS) throw new Error("时间轴对象需位于 00:00–120:00");
+  }
   for (const mechanic of plan.mechanics ?? []) {
     for (const value of [mechanic.atMs, mechanic.castTimeMs, mechanic.durationMs, mechanic.damage.directAmount, mechanic.damage.periodicAmount, mechanic.damage.periodicIntervalMs]) {
       if (value != null && (!Number.isFinite(value) || value < 0)) throw new Error("机制时间和伤害不能为负数");
@@ -511,8 +517,6 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
     }
     if (cooldown.castTimeMs == null) warnings.push({ assignmentId: assignment.id, type: "configuration", message: `${cooldown.name} 的施法长度未知；0 才表示明确瞬发` });
     if (cooldown.durationMs == null) warnings.push({ assignmentId: assignment.id, type: "configuration", message: `${cooldown.name} 的持续时间未知；0 才表示明确无持续` });
-    const endMs = assignment.atMs + (cooldown.castTimeMs ?? 0) + (cooldown.durationMs ?? 0);
-    if (assignment.atMs < 0 || endMs > plan.encounter.durationMs) warnings.push({ assignmentId: assignment.id, type: "bounds", message: `${member.name} 的 ${cooldown.name} 超出战斗时间` });
     if (cooldown.classSlug && cooldown.classSlug !== member.classSlug) warnings.push({ assignmentId: assignment.id, type: "ownership", message: `${member.name} 的职业与 ${cooldown.name} 不匹配` });
     const mechanic = assignment.mechanicId ? mechanics.get(assignment.mechanicId) : undefined;
     const targetIds = cooldown.scope === "personal" ? [member.id] : resolveTargetMemberIds(plan, assignment.targets, assignment, mechanic);
@@ -557,7 +561,7 @@ export function exportMrtNote(plan: RaidPlanDocument) {
   const members = new Map(plan.roster.map((item) => [item.id, item]));
   const cooldowns = new Map(plan.cooldowns.map((item) => [item.id, item]));
   const mechanics = new Map(plan.mechanics.map((item) => [item.id, item]));
-  const lines = [`{time:00:00} ${plan.encounter.name} · ${plan.encounter.difficulty}`, ""];
+  const lines = [`{time:00:00} ${plan.encounter.name}`, ""];
   for (const assignment of [...plan.assignments].sort((left, right) => left.atMs - right.atMs)) {
     const member = members.get(assignment.memberId); const cooldown = cooldowns.get(assignment.cooldownId);
     if (!member || !cooldown) continue;
