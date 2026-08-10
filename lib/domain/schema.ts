@@ -1,0 +1,571 @@
+import { z } from "zod";
+
+export const PLAN_SCHEMA_VERSION = 1 as const;
+export const CATALOG_SCHEMA_VERSION = 1 as const;
+export const COMBAT_LOG_SCHEMA_VERSION = 1 as const;
+export const CONVERSION_PROFILE_SCHEMA_VERSION = 1 as const;
+export const MAX_PLAN_BYTES = 1024 * 1024;
+export const MAX_TIMELINE_MS = 7_200_000;
+export const TIMELINE_SNAP_MS = 1000;
+
+const Id = z.uuid();
+const ShortText = z.string().max(120);
+const LongText = z.string().max(10_000);
+const Timestamp = z.number().int().nonnegative();
+const Duration = z.number().int().nonnegative().max(MAX_TIMELINE_MS).nullable();
+const WholeSecond = z.number().int().min(0).max(MAX_TIMELINE_MS).multipleOf(TIMELINE_SNAP_MS);
+const RelativeWholeSecond = z.number().int().min(-MAX_TIMELINE_MS).max(MAX_TIMELINE_MS).multipleOf(TIMELINE_SNAP_MS);
+const UniqueStrings = z.array(z.string().min(1).max(200)).max(500);
+
+export const RaidRoleSchema = z.enum(["tank", "healer", "damage"]);
+export const MechanicSeveritySchema = z.enum(["info", "warning", "danger"]);
+export const DamageSchoolSchema = z.enum(["physical", "magic"]);
+export const CooldownScopeSchema = z.enum(["team", "external", "personal"]);
+export const SkillCastTypeSchema = z.enum(["unknown", "instant", "cast", "channel"]);
+export const DataStatusSchema = z.enum(["unconfigured", "needs-live-check", "verified", "custom"]);
+export const CooldownCategorySchema = z.enum(["团队减伤", "外部减伤", "个人减伤", "治疗", "免疫", "位移", "自定义"]);
+
+export const EncounterExternalIdsSchema = z.strictObject({
+  wclEncounterId: z.number().int().positive().optional(),
+  wclZoneId: z.number().int().positive().optional(),
+  blizzardJournalId: z.number().int().positive().optional(),
+});
+
+export const EncounterSnapshotSchema = z.strictObject({
+  id: Id,
+  name: ShortText,
+  gameVersion: z.string().min(1).max(80),
+  instance: z.strictObject({ id: Id, name: ShortText }).optional(),
+  externalIds: EncounterExternalIdsSchema.optional(),
+});
+
+const CatalogPlanSourceSchema = z.strictObject({
+  id: Id,
+  kind: z.literal("catalog"),
+  catalogVersion: z.string().min(1).max(80),
+  presetId: Id.optional(),
+  importedAt: Timestamp,
+  contentHash: z.string().min(1).max(128).optional(),
+});
+
+const CombatLogPlanSourceSchema = z.strictObject({
+  id: Id,
+  kind: z.literal("combat-log"),
+  provider: z.literal("wcl"),
+  snapshotId: Id,
+  reportCode: z.string().min(1).max(32),
+  fightId: z.number().int().positive(),
+  importedAt: Timestamp,
+  normalizedDataHash: z.string().min(1).max(128),
+});
+
+export const PlanSourceRecordSchema = z.discriminatedUnion("kind", [CatalogPlanSourceSchema, CombatLogPlanSourceSchema]);
+
+export const ObjectOriginSchema = z.strictObject({
+  sourceId: Id,
+  sourceActorKeys: UniqueStrings.optional(),
+  sourceEventKeys: UniqueStrings.optional(),
+  conversionRuleIds: z.array(Id).max(100).optional(),
+});
+
+export const MemberSelectorSchema = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("all") }),
+  z.strictObject({ kind: z.literal("groups"), groupIds: z.array(Id).max(100) }),
+  z.strictObject({ kind: z.literal("roles"), roles: z.array(RaidRoleSchema).max(3) }),
+  z.strictObject({ kind: z.literal("subgroups"), subgroups: z.array(z.number().int().min(1).max(8)).max(8) }),
+  z.strictObject({ kind: z.literal("members"), memberIds: z.array(Id).max(100) }),
+]);
+
+export const SkillTargetSelectorSchema = z.union([
+  MemberSelectorSchema,
+  z.strictObject({ kind: z.literal("mechanic-targets") }),
+]);
+
+export const TimelineAnchorSchema = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("pull"), offsetMs: WholeSecond }),
+  z.strictObject({ kind: z.literal("phase"), phaseId: Id, offsetMs: RelativeWholeSecond }),
+  z.strictObject({
+    kind: z.literal("mechanic"),
+    mechanicOccurrenceId: Id,
+    point: z.enum(["cast-start", "impact", "end"]),
+    offsetMs: RelativeWholeSecond,
+  }),
+]);
+
+export const RuntimeTriggerSchema = z.strictObject({
+  event: z.enum(["cast-start", "cast-success", "aura-applied", "aura-removed"]),
+  abilityGameId: z.number().int().positive(),
+  occurrence: z.number().int().positive(),
+});
+
+export const StrategyGroupSchema = z.strictObject({
+  id: Id,
+  name: ShortText,
+  color: z.string().min(1).max(32),
+});
+
+export const RosterSlotSchema = z.strictObject({
+  id: Id,
+  name: ShortText,
+  classSlug: z.string().min(1).max(40).nullable(),
+  specSlug: z.string().min(1).max(80).nullable(),
+  role: RaidRoleSchema.nullable(),
+  color: z.string().min(1).max(32),
+  groupIds: z.array(Id).max(100),
+  subgroup: z.number().int().min(1).max(8).nullable(),
+  origin: ObjectOriginSchema.optional(),
+});
+
+export const RaidPhaseSchema = z.strictObject({
+  id: Id,
+  name: ShortText,
+  ordinal: z.number().int().positive().max(100),
+  estimatedStartMs: WholeSecond,
+  runtimeTrigger: RuntimeTriggerSchema.optional(),
+  origin: ObjectOriginSchema.optional(),
+});
+
+export const MechanicDamageProfileSchema = z.strictObject({
+  school: DamageSchoolSchema,
+  directAmount: z.number().nonnegative().nullable(),
+  periodicAmount: z.number().nonnegative().nullable(),
+  periodicIntervalMs: z.number().int().positive().max(MAX_TIMELINE_MS).nullable(),
+  tickOnStart: z.boolean(),
+});
+
+export const DefinitionSourceSchema = z.strictObject({
+  kind: z.enum(["blizzard", "in-game", "community"]),
+  label: z.string().min(1).max(200),
+  url: z.url().optional(),
+  note: LongText.optional(),
+});
+
+export const DefinitionVerificationSchema = z.strictObject({
+  gameVersion: z.string().min(1).max(80),
+  checkedAt: Timestamp.nullable(),
+  clientBuild: z.string().min(1).max(80).optional(),
+  sources: z.array(DefinitionSourceSchema).max(30),
+});
+
+export const MechanicDefinitionSnapshotSchema = z.strictObject({
+  id: Id,
+  name: ShortText,
+  description: LongText,
+  gameVersion: z.string().min(1).max(80),
+  abilityGameIds: z.array(z.number().int().positive()).max(20),
+  castTimeMs: Duration,
+  durationMs: Duration,
+  damage: MechanicDamageProfileSchema,
+  defaultTargets: MemberSelectorSchema,
+  severity: MechanicSeveritySchema,
+  color: z.string().min(1).max(32),
+  dataStatus: DataStatusSchema,
+  limitations: z.array(z.string().min(1).max(500)).max(30),
+  verification: DefinitionVerificationSchema.optional(),
+  origin: ObjectOriginSchema.optional(),
+});
+
+export const MechanicOccurrenceSchema = z.strictObject({
+  id: Id,
+  definitionId: Id,
+  anchor: TimelineAnchorSchema,
+  targets: MemberSelectorSchema.optional(),
+  runtimeTrigger: RuntimeTriggerSchema.optional(),
+  origin: ObjectOriginSchema.optional(),
+});
+
+export const CooldownEffectSchema = z.discriminatedUnion("type", [
+  z.strictObject({ type: z.literal("damageReduction"), percent: z.number().min(0).max(100).nullable(), schools: z.array(DamageSchoolSchema).max(2) }),
+  z.strictObject({ type: z.literal("absorb"), amount: z.number().nonnegative().nullable(), allocation: z.enum(["perTarget", "shared"]), schools: z.array(DamageSchoolSchema).max(2) }),
+  z.strictObject({ type: z.literal("maxHealth"), percent: z.number().min(0).max(100).nullable() }),
+  z.strictObject({ type: z.literal("immunity"), schools: z.array(DamageSchoolSchema).max(2) }),
+]);
+
+export const SkillVariantOverridesSchema = z.strictObject({
+  cooldownMs: Duration.optional(),
+  castType: SkillCastTypeSchema.optional(),
+  castTimeMs: Duration.optional(),
+  durationMs: Duration.optional(),
+  triggersGcd: z.boolean().nullable().optional(),
+  maxCharges: z.number().int().min(1).max(10).optional(),
+  maxTargets: z.number().int().positive().max(100).nullable().optional(),
+  effects: z.array(CooldownEffectSchema).max(20).optional(),
+});
+
+export const SkillVariantSchema = z.strictObject({
+  id: Id,
+  name: ShortText,
+  talentSpellId: z.number().int().positive().optional(),
+  description: LongText,
+  overrides: SkillVariantOverridesSchema,
+  limitations: z.array(z.string().min(1).max(500)).max(30),
+});
+
+export const PlayerSkillDefinitionSnapshotSchema = z.strictObject({
+  id: Id,
+  spellId: z.number().int().positive().optional(),
+  name: ShortText,
+  description: LongText,
+  gameVersion: z.string().min(1).max(80),
+  classSlug: z.string().min(1).max(40),
+  specSlugs: z.array(z.string().min(1).max(80)).max(10),
+  scope: CooldownScopeSchema,
+  cooldownMs: Duration,
+  castType: SkillCastTypeSchema,
+  castTimeMs: Duration,
+  durationMs: Duration,
+  triggersGcd: z.boolean().nullable(),
+  maxCharges: z.number().int().min(1).max(10),
+  maxTargets: z.number().int().positive().max(100).nullable(),
+  effects: z.array(CooldownEffectSchema).max(20),
+  variants: z.array(SkillVariantSchema).max(30),
+  limitations: z.array(z.string().min(1).max(500)).max(30),
+  verification: DefinitionVerificationSchema.optional(),
+  category: CooldownCategorySchema,
+  color: z.string().min(1).max(32),
+  dataStatus: DataStatusSchema,
+  origin: ObjectOriginSchema.optional(),
+});
+
+export const MemberSkillSelectionSchema = z.strictObject({
+  memberId: Id,
+  skillDefinitionId: Id,
+  variantId: Id.nullable(),
+});
+
+const TimedDirectiveScopeSchema = z.strictObject({ kind: z.literal("timed"), anchor: TimelineAnchorSchema });
+const PhaseDirectiveScopeSchema = z.strictObject({ kind: z.literal("phase"), phaseId: Id });
+const PlanDirectiveScopeSchema = z.strictObject({ kind: z.literal("plan") });
+
+export const TacticalTaskSchema = z.strictObject({
+  id: Id,
+  kind: z.literal("task"),
+  text: LongText,
+  scope: z.union([TimedDirectiveScopeSchema, PhaseDirectiveScopeSchema]),
+  assignees: MemberSelectorSchema,
+  durationMs: Duration,
+  reminder: z.strictObject({ leadMs: WholeSecond }).optional(),
+  origin: ObjectOriginSchema.optional(),
+});
+
+export const TacticalNoteSchema = z.strictObject({
+  id: Id,
+  kind: z.literal("note"),
+  text: LongText,
+  scope: z.union([TimedDirectiveScopeSchema, PhaseDirectiveScopeSchema, PlanDirectiveScopeSchema]),
+  durationMs: Duration,
+  origin: ObjectOriginSchema.optional(),
+});
+
+export const TacticalDirectiveSchema = z.discriminatedUnion("kind", [TacticalTaskSchema, TacticalNoteSchema]);
+
+export const SkillAssignmentSchema = z.strictObject({
+  id: Id,
+  memberId: Id,
+  skillDefinitionId: Id,
+  anchor: TimelineAnchorSchema,
+  targets: SkillTargetSelectorSchema,
+  note: LongText,
+  origin: ObjectOriginSchema.optional(),
+});
+
+export const RaidPlanDocumentSchema = z.strictObject({
+  schemaVersion: z.literal(PLAN_SCHEMA_VERSION),
+  metadata: z.strictObject({ title: ShortText }),
+  encounter: EncounterSnapshotSchema,
+  sources: z.array(PlanSourceRecordSchema).max(100),
+  definitions: z.strictObject({
+    mechanics: z.array(MechanicDefinitionSnapshotSchema).max(500),
+    skills: z.array(PlayerSkillDefinitionSnapshotSchema).max(500),
+  }),
+  roster: z.strictObject({
+    groups: z.array(StrategyGroupSchema).max(100),
+    members: z.array(RosterSlotSchema).max(100),
+    memberSkills: z.array(MemberSkillSelectionSchema).max(1000),
+  }),
+  timeline: z.strictObject({
+    phases: z.array(RaidPhaseSchema).min(1).max(100),
+    mechanics: z.array(MechanicOccurrenceSchema).max(1000),
+    directives: z.array(TacticalDirectiveSchema).max(2000),
+    skillAssignments: z.array(SkillAssignmentSchema).max(2000),
+  }),
+  templateSourceId: Id.optional(),
+});
+
+export const CatalogSkillDefinitionSchema = PlayerSkillDefinitionSnapshotSchema.extend({ enabled: z.boolean() }).strict();
+export const CatalogMechanicDefinitionSchema = MechanicDefinitionSnapshotSchema.extend({ encounterId: Id, enabled: z.boolean() }).strict();
+
+export const TimelinePresetSchema = z.strictObject({
+  id: Id,
+  name: ShortText,
+  description: LongText,
+  enabled: z.boolean(),
+  encounter: EncounterSnapshotSchema,
+  phases: z.array(RaidPhaseSchema).min(1).max(100),
+  mechanics: z.array(MechanicOccurrenceSchema).max(1000),
+  notes: z.array(TacticalNoteSchema).max(1000),
+});
+
+export const CatalogManifestSchema = z.strictObject({
+  schemaVersion: z.literal(CATALOG_SCHEMA_VERSION),
+  version: z.string().regex(/^[0-9A-Za-z][0-9A-Za-z._-]{0,79}$/),
+  gameVersion: z.string().min(1).max(80),
+  title: ShortText,
+  publishedAt: Timestamp,
+  counts: z.strictObject({ playerSkills: z.number().int().nonnegative(), bossMechanics: z.number().int().nonnegative(), timelinePresets: z.number().int().nonnegative() }),
+});
+
+export const CatalogReleaseSchema = z.strictObject({
+  manifest: CatalogManifestSchema,
+  playerSkills: z.array(CatalogSkillDefinitionSchema).max(5000),
+  bossMechanics: z.array(CatalogMechanicDefinitionSchema).max(5000),
+  timelinePresets: z.array(TimelinePresetSchema).max(1000),
+});
+
+export const ObservedActorSchema = z.strictObject({
+  actorKey: z.string().min(1).max(100),
+  reportActorId: z.number().int().positive(),
+  gameId: z.number().int().positive().optional(),
+  type: z.enum(["player", "pet", "npc", "other"]),
+  name: ShortText,
+  server: ShortText.optional(),
+  classSlug: z.string().min(1).max(40).optional(),
+  specSlug: z.string().min(1).max(80).optional(),
+  ownerActorKey: z.string().min(1).max(100).optional(),
+});
+
+export const ObservedPhaseSchema = z.strictObject({
+  id: Id,
+  semanticPhaseId: z.number().int().nonnegative(),
+  occurrenceIndex: z.number().int().positive(),
+  atMs: Timestamp,
+});
+
+export const ObservedEventSchema = z.strictObject({
+  eventKey: z.string().min(1).max(200),
+  atMs: Timestamp,
+  type: z.enum(["cast-start", "cast-success", "aura-applied", "aura-removed", "damage", "healing", "interrupt", "dispel", "death"]),
+  abilityGameId: z.number().int().positive().optional(),
+  sourceActorKey: z.string().min(1).max(100).optional(),
+  targetActorKey: z.string().min(1).max(100).optional(),
+  amount: z.number().nonnegative().optional(),
+  durationMs: Timestamp.optional(),
+  stack: z.number().int().nonnegative().optional(),
+});
+
+export const CombatLogSnapshotSchema = z.strictObject({
+  schemaVersion: z.literal(COMBAT_LOG_SCHEMA_VERSION),
+  id: Id,
+  provider: z.literal("wcl"),
+  normalizerVersion: z.string().min(1).max(80),
+  importedAt: Timestamp,
+  source: z.strictObject({
+    reportCode: z.string().min(1).max(32),
+    fightId: z.number().int().positive(),
+    reportRevision: z.number().int().nonnegative(),
+    reportStartEpochMs: Timestamp,
+    fightStartReportMs: Timestamp,
+    fightEndReportMs: Timestamp,
+    logVersion: z.number().int().nonnegative().optional(),
+    gameVersion: z.number().int().nonnegative().optional(),
+    language: z.string().min(1).max(20).optional(),
+  }),
+  encounter: z.strictObject({
+    encounterId: z.number().int().positive(),
+    zoneId: z.number().int().positive().optional(),
+    journalId: z.number().int().positive().optional(),
+    name: ShortText,
+    kill: z.boolean(),
+    durationMs: Timestamp,
+  }),
+  actors: z.array(ObservedActorSchema).max(500),
+  phases: z.array(ObservedPhaseSchema).max(100),
+  events: z.array(ObservedEventSchema).max(200_000),
+  contentHash: z.string().min(1).max(128),
+});
+
+export const EventCollectionRuleSchema = z.strictObject({
+  id: Id,
+  enabled: z.boolean(),
+  dataType: z.enum(["casts", "buffs", "debuffs", "deaths", "damage", "healing", "interrupts", "dispels"]),
+  hostility: z.enum(["friendly", "enemy", "any"]),
+  abilityGameIds: z.array(z.number().int().positive()).max(500).optional(),
+  purpose: z.string().min(1).max(500),
+});
+
+export const EventConversionRuleSchema = z.strictObject({
+  id: Id,
+  enabled: z.boolean(),
+  match: z.strictObject({
+    eventTypes: z.array(ObservedEventSchema.shape.type).min(1).max(20),
+    abilityGameIds: z.array(z.number().int().positive()).min(1).max(500),
+    sourceNpcGameIds: z.array(z.number().int().positive()).max(500).optional(),
+    sourceActorType: z.enum(["player", "pet", "npc"]).optional(),
+  }),
+  convertTo: z.discriminatedUnion("kind", [
+    z.strictObject({ kind: z.literal("phase"), definitionId: Id }),
+    z.strictObject({ kind: z.literal("mechanic"), definitionId: Id, timingPoint: z.enum(["cast-start", "impact", "end"]) }),
+    z.strictObject({ kind: z.literal("player-skill"), definitionId: Id, timingPoint: z.enum(["cast-start", "impact", "end"]) }),
+  ]),
+  deduplication: z.strictObject({ windowMs: Timestamp, groupBy: z.array(z.enum(["source", "target", "ability"])).min(1).max(3) }).optional(),
+  notes: LongText,
+  verification: z.strictObject({ reviewedAt: Timestamp, sourceReportCodes: z.array(z.string().min(1).max(32)).min(1).max(100) }),
+});
+
+export const EncounterConversionProfileSchema = z.strictObject({
+  schemaVersion: z.literal(CONVERSION_PROFILE_SCHEMA_VERSION),
+  id: Id,
+  encounterId: z.number().int().positive(),
+  gameVersion: z.string().min(1).max(80),
+  revision: z.number().int().positive(),
+  status: z.enum(["draft", "published", "retired"]),
+  collectionRules: z.array(EventCollectionRuleSchema).max(1000),
+  conversionRules: z.array(EventConversionRuleSchema).max(1000),
+  notes: LongText,
+});
+
+const ImportCandidateBaseSchema = z.strictObject({
+  id: Id,
+  sourceEventKeys: UniqueStrings,
+  conversionRuleIds: z.array(Id).max(100),
+});
+
+export const PlanImportDraftSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  id: Id,
+  snapshotId: Id,
+  conversionProfileId: Id,
+  conversionProfileRevision: z.number().int().positive(),
+  rosterCandidates: z.array(ImportCandidateBaseSchema.extend({ actorKey: z.string().min(1).max(100), slot: RosterSlotSchema }).strict()).max(100),
+  phaseCandidates: z.array(ImportCandidateBaseSchema.extend({ phase: RaidPhaseSchema }).strict()).max(100),
+  mechanicCandidates: z.array(ImportCandidateBaseSchema.extend({ definition: MechanicDefinitionSnapshotSchema, occurrence: MechanicOccurrenceSchema }).strict()).max(1000),
+  skillAssignmentCandidates: z.array(ImportCandidateBaseSchema.extend({ definition: PlayerSkillDefinitionSnapshotSchema, assignment: SkillAssignmentSchema }).strict()).max(5000),
+  unresolvedEvents: z.array(z.strictObject({ eventKey: z.string().min(1).max(200), reason: LongText })).max(10_000),
+  warnings: z.array(z.strictObject({ code: z.string().min(1).max(80), message: LongText, objectId: Id.optional() })).max(10_000),
+});
+
+export const ComparisonRunSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  id: Id,
+  planId: Id,
+  planRevisionHash: z.string().min(1).max(128),
+  snapshotId: Id,
+  conversionProfileId: Id,
+  conversionProfileRevision: z.number().int().positive(),
+  createdAt: Timestamp,
+  results: z.array(z.strictObject({
+    id: Id,
+    plannedObjectId: Id.optional(),
+    observedEventKeys: UniqueStrings,
+    status: z.enum(["matched", "early", "late", "missed", "extra", "wrong-member", "wrong-target", "ambiguous", "unverifiable"]),
+    offsetMs: z.number().int().optional(),
+    message: LongText,
+  })).max(20_000),
+});
+
+export type RaidRole = z.infer<typeof RaidRoleSchema>;
+export type MechanicSeverity = z.infer<typeof MechanicSeveritySchema>;
+export type DamageSchool = z.infer<typeof DamageSchoolSchema>;
+export type CooldownScope = z.infer<typeof CooldownScopeSchema>;
+export type SkillCastType = z.infer<typeof SkillCastTypeSchema>;
+export type SkillDataStatus = z.infer<typeof DataStatusSchema>;
+export type CooldownCategory = z.infer<typeof CooldownCategorySchema>;
+export type EncounterSnapshot = z.infer<typeof EncounterSnapshotSchema>;
+export type PlanSourceRecord = z.infer<typeof PlanSourceRecordSchema>;
+export type ObjectOrigin = z.infer<typeof ObjectOriginSchema>;
+export type MemberSelector = z.infer<typeof MemberSelectorSchema>;
+export type SkillTargetSelector = z.infer<typeof SkillTargetSelectorSchema>;
+export type TimelineAnchor = z.infer<typeof TimelineAnchorSchema>;
+export type RuntimeTrigger = z.infer<typeof RuntimeTriggerSchema>;
+export type StrategyGroup = z.infer<typeof StrategyGroupSchema>;
+export type RosterSlot = z.infer<typeof RosterSlotSchema>;
+export type RaidPhase = z.infer<typeof RaidPhaseSchema>;
+export type MechanicDamageProfile = z.infer<typeof MechanicDamageProfileSchema>;
+export type DefinitionSource = z.infer<typeof DefinitionSourceSchema>;
+export type DefinitionVerification = z.infer<typeof DefinitionVerificationSchema>;
+export type MechanicDefinitionSnapshot = z.infer<typeof MechanicDefinitionSnapshotSchema>;
+export type MechanicOccurrence = z.infer<typeof MechanicOccurrenceSchema>;
+export type CooldownEffect = z.infer<typeof CooldownEffectSchema>;
+export type SkillVariantOverrides = z.infer<typeof SkillVariantOverridesSchema>;
+export type SkillVariant = z.infer<typeof SkillVariantSchema>;
+export type PlayerSkillDefinitionSnapshot = z.infer<typeof PlayerSkillDefinitionSnapshotSchema>;
+export type MemberSkillSelection = z.infer<typeof MemberSkillSelectionSchema>;
+export type TacticalTask = z.infer<typeof TacticalTaskSchema>;
+export type TacticalNote = z.infer<typeof TacticalNoteSchema>;
+export type TacticalDirective = z.infer<typeof TacticalDirectiveSchema>;
+export type SkillAssignment = z.infer<typeof SkillAssignmentSchema>;
+export type RaidPlanDocument = z.infer<typeof RaidPlanDocumentSchema>;
+export type CatalogSkillDefinition = z.infer<typeof CatalogSkillDefinitionSchema>;
+export type CatalogMechanicDefinition = z.infer<typeof CatalogMechanicDefinitionSchema>;
+export type TimelinePreset = z.infer<typeof TimelinePresetSchema>;
+export type CatalogManifest = z.infer<typeof CatalogManifestSchema>;
+export type CatalogRelease = z.infer<typeof CatalogReleaseSchema>;
+export type ObservedActor = z.infer<typeof ObservedActorSchema>;
+export type ObservedPhase = z.infer<typeof ObservedPhaseSchema>;
+export type ObservedEvent = z.infer<typeof ObservedEventSchema>;
+export type CombatLogSnapshot = z.infer<typeof CombatLogSnapshotSchema>;
+export type EventCollectionRule = z.infer<typeof EventCollectionRuleSchema>;
+export type EventConversionRule = z.infer<typeof EventConversionRuleSchema>;
+export type EncounterConversionProfile = z.infer<typeof EncounterConversionProfileSchema>;
+export type PlanImportDraft = z.infer<typeof PlanImportDraftSchema>;
+export type ComparisonRun = z.infer<typeof ComparisonRunSchema>;
+
+export class UnsupportedDocumentVersionError extends Error {
+  constructor(public readonly receivedVersion: unknown) {
+    super(`不支持的计划版本：${String(receivedVersion)}`);
+    this.name = "UnsupportedDocumentVersionError";
+  }
+}
+
+export function parsePlanDocument(value: unknown): RaidPlanDocument {
+  const version = value && typeof value === "object" ? (value as { schemaVersion?: unknown }).schemaVersion : undefined;
+  if (version !== PLAN_SCHEMA_VERSION) throw new UnsupportedDocumentVersionError(version);
+  const bytes = new TextEncoder().encode(JSON.stringify(value)).byteLength;
+  if (bytes > MAX_PLAN_BYTES) throw new Error("计划内容超过 1 MB 限制");
+  const document = RaidPlanDocumentSchema.parse(value);
+  const ids = [
+    ...document.sources.map((item) => item.id),
+    ...document.definitions.mechanics.map((item) => item.id),
+    ...document.definitions.skills.flatMap((item) => [item.id, ...item.variants.map((variant) => variant.id)]),
+    ...document.roster.groups.map((item) => item.id),
+    ...document.roster.members.map((item) => item.id),
+    ...document.timeline.phases.map((item) => item.id),
+    ...document.timeline.mechanics.map((item) => item.id),
+    ...document.timeline.directives.map((item) => item.id),
+    ...document.timeline.skillAssignments.map((item) => item.id),
+  ];
+  if (new Set(ids).size !== ids.length) throw new Error("计划内存在重复的实体 ID");
+  return document;
+}
+
+export function assertPlanDocument(value: unknown): asserts value is RaidPlanDocument {
+  parsePlanDocument(value);
+}
+
+export function parseCatalogRelease(value: unknown): CatalogRelease {
+  return CatalogReleaseSchema.parse(value);
+}
+
+export function parseCombatLogSnapshot(value: unknown): CombatLogSnapshot {
+  const snapshot = CombatLogSnapshotSchema.parse(value);
+  const actorKeys = snapshot.actors.map((item) => item.actorKey);
+  const eventKeys = snapshot.events.map((item) => item.eventKey);
+  const phaseIds = snapshot.phases.map((item) => item.id);
+  if (new Set(actorKeys).size !== actorKeys.length || new Set(eventKeys).size !== eventKeys.length || new Set(phaseIds).size !== phaseIds.length) throw new Error("战斗快照包含重复的稳定标识");
+  return snapshot;
+}
+
+export function parseConversionProfile(value: unknown): EncounterConversionProfile {
+  const profile = EncounterConversionProfileSchema.parse(value);
+  const ids = [...profile.collectionRules.map((item) => item.id), ...profile.conversionRules.map((item) => item.id)];
+  if (new Set(ids).size !== ids.length) throw new Error("转换规则包含重复的实体 ID");
+  return profile;
+}
+
+export function parsePlanImportDraft(value: unknown): PlanImportDraft {
+  return PlanImportDraftSchema.parse(value);
+}
+
+export function parseComparisonRun(value: unknown): ComparisonRun {
+  return ComparisonRunSchema.parse(value);
+}

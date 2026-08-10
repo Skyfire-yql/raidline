@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-4000-8000-000000000001",
+  "provider": "wcl",
+  "normalizerVersion": "fixture-v1",
+  "importedAt": 1800000000000,
+  "source": {
+    "reportCode": "ABC123",
+    "fightId": 7,
+    "reportRevision": 1,
+    "reportStartEpochMs": 1800000000000,
+    "fightStartReportMs": 12345,
+    "fightEndReportMs": 98765,
+    "language": "zh-CN"
+  },
+  "encounter": {
+    "encounterId": 9001,
+    "zoneId": 42,
+    "name": "测试首领",
+    "kill": false,
+    "durationMs": 86420
+  },
+  "actors": [
+    {
+      "actorKey": "player:1",
+      "reportActorId": 1,
+      "type": "player",
+      "name": "白牧",
+      "server": "测试服务器",
+      "classSlug": "Priest",
+      "specSlug": "discipline"
+    }
+  ],
+  "phases": [
+    {
+      "id": "10000000-0000-4000-8000-000000000002",
+      "semanticPhaseId": 1,
+      "occurrenceIndex": 1,
+      "atMs": 33333
+    }
+  ],
+  "events": [
+    {
+      "eventKey": "event:1",
+      "atMs": 12345,
+      "type": "cast-start",
+      "abilityGameId": 62618,
+      "sourceActorKey": "player:1"
+    }
+  ],
+  "contentHash": "fixture-hash"
+}

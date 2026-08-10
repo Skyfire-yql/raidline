@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-4000-8000-000000000003",
+  "encounterId": 9001,
+  "gameVersion": "retail-12.1",
+  "revision": 1,
+  "status": "draft",
+  "collectionRules": [
+    {
+      "id": "10000000-0000-4000-8000-000000000004",
+      "enabled": true,
+      "dataType": "casts",
+      "hostility": "enemy",
+      "abilityGameIds": [2001],
+      "purpose": "记录人工选择的 Boss 施法"
+    }
+  ],
+  "conversionRules": [
+    {
+      "id": "10000000-0000-4000-8000-000000000005",
+      "enabled": true,
+      "match": {
+        "eventTypes": ["cast-start"],
+        "abilityGameIds": [2001],
+        "sourceActorType": "npc"
+      },
+      "convertTo": {
+        "kind": "mechanic",
+        "definitionId": "10000000-0000-4000-8000-000000000006",
+        "timingPoint": "cast-start"
+      },
+      "notes": "人工核准后发布",
+      "verification": {
+        "reviewedAt": 1800000000000,
+        "sourceReportCodes": ["ABC123"]
+      }
+    }
+  ],
+  "notes": "提供者无关的转换规则 fixture"
+}

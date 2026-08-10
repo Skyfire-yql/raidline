@@ -217,6 +217,7 @@ small { color: var(--text-2); }
 .axis-event.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
 .phase-event { color: var(--accent-text); border-color: var(--accent); background: var(--accent-soft); }
 .note-event { max-width: 220px; color: var(--text); border-color: var(--warning); background: var(--warning-soft); }
+.task-event { max-width: 220px; color: var(--accent-text); border-color: var(--accent); background: var(--accent-soft); }
 .mechanic-event { max-width: 220px; border-color: var(--danger); }
 .mechanic-event.lethal { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
 .assignment-event.warning { box-shadow: 0 0 0 2px var(--warning); }

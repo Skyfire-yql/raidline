@@ -1,4 +1,4 @@
-import { normalizePlanDocument } from "./core";
+import { hasBlockingDiagnostics, parsePlanDocument, validatePlanSemantics } from "./core";
 import { hashPlanDocument } from "./hashing";
 import { objectStore, type ObjectStore } from "./object-store";
 import { assertEditId, assertShareId, randomBase62 } from "./publication-ids";
@@ -13,7 +13,9 @@ export function publicationKey(shareId: string) {
 export async function buildPublication(shareId: string, editId: string, input: unknown): Promise<PublishedPlan> {
   assertShareId(shareId);
   assertEditId(editId);
-  const document = normalizePlanDocument(input);
+  const document = parsePlanDocument(input);
+  const diagnostics = validatePlanSemantics(document);
+  if (hasBlockingDiagnostics(diagnostics)) throw new Error(diagnostics.find((item) => item.severity === "error")?.message ?? "计划包含无法发布的错误");
   return {
     shareId,
     editId,
@@ -47,7 +49,7 @@ export async function readPublication(shareId: string, store: ObjectStore = obje
   assertShareId(shareId);
   const value = await store.getJson<PublishedPlan>(publicationKey(shareId));
   if (!value) return null;
-  const document = normalizePlanDocument(value.document);
+  const document = parsePlanDocument(value.document);
   return { ...value, document, contentHash: await hashPlanDocument(document) };
 }
 

@@ -1,5 +1,5 @@
 import { createPublication, publicationBinding, publicPublication } from "@/lib/publications";
-import { jsonData, jsonError, serverError } from "@/lib/server";
+import { isInputValidationError, jsonData, jsonError, serverError } from "@/lib/server";
 
 export async function POST(request: Request) {
   try {
@@ -9,6 +9,6 @@ export async function POST(request: Request) {
     return jsonData({ ...publicPublication(publication), editId: publication.editId, binding: publicationBinding(publication) }, { status: 201 });
   } catch (error) {
     const message = serverError(error, "发布失败");
-    return jsonError("CREATE_PUBLICATION_FAILED", message, /已存在/.test(message) ? 409 : /计划|版本|超出|无效|时长|ID/.test(message) ? 422 : 500);
+    return jsonError("CREATE_PUBLICATION_FAILED", message, /已存在/.test(message) ? 409 : isInputValidationError(error) ? 422 : 500);
   }
 }

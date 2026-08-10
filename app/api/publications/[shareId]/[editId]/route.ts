@@ -1,5 +1,6 @@
 import { deletePublication, EDIT_ID_PATTERN, publicationBinding, publicPublication, readPublication, replacePublication, SHARE_ID_PATTERN } from "@/lib/publications";
-import { jsonData, jsonError, serverError } from "@/lib/server";
+import { isInputValidationError, jsonData, jsonError, serverError } from "@/lib/server";
+import { UnsupportedDocumentVersionError } from "@/lib/types";
 
 type RouteContext = { params: Promise<{ shareId: string; editId: string }> };
 
@@ -18,6 +19,7 @@ export async function GET(_request: Request, context: RouteContext) {
     if ("error" in result) return result.error;
     return jsonData({ ...publicPublication(result.publication), editId: result.editId, binding: publicationBinding(result.publication) });
   } catch (error) {
+    if (error instanceof UnsupportedDocumentVersionError) return jsonError("UNSUPPORTED_DOCUMENT_VERSION", "该分享使用了已停止支持的计划格式", 410);
     return jsonError("READ_EDITABLE_PUBLICATION_FAILED", serverError(error, "读取编辑版本失败"), 500);
   }
 }
@@ -31,8 +33,9 @@ export async function PUT(request: Request, context: RouteContext) {
     if (!publication) return jsonError("EDIT_ID_REJECTED", "编辑 ID 不正确", 403);
     return jsonData({ ...publicPublication(publication), editId: result.editId, binding: publicationBinding(publication) });
   } catch (error) {
+    if (error instanceof UnsupportedDocumentVersionError) return jsonError("UNSUPPORTED_DOCUMENT_VERSION", "该分享使用了已停止支持的计划格式", 410);
     const message = serverError(error, "覆盖发布失败");
-    return jsonError("UPDATE_PUBLICATION_FAILED", message, /计划|版本|超出|无效|时长/.test(message) ? 422 : 500);
+    return jsonError("UPDATE_PUBLICATION_FAILED", message, isInputValidationError(error) ? 422 : 500);
   }
 }
 
@@ -43,6 +46,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     if (!await deletePublication(result.shareId, result.editId)) return jsonError("EDIT_ID_REJECTED", "编辑 ID 不正确", 403);
     return jsonData({ deleted: true });
   } catch (error) {
+    if (error instanceof UnsupportedDocumentVersionError) return jsonError("UNSUPPORTED_DOCUMENT_VERSION", "该分享使用了已停止支持的计划格式", 410);
     return jsonError("DELETE_PUBLICATION_FAILED", serverError(error, "删除发布失败"), 500);
   }
 }

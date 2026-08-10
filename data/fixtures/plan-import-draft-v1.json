@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-4000-8000-000000000007",
+  "snapshotId": "10000000-0000-4000-8000-000000000001",
+  "conversionProfileId": "10000000-0000-4000-8000-000000000003",
+  "conversionProfileRevision": 1,
+  "rosterCandidates": [],
+  "phaseCandidates": [],
+  "mechanicCandidates": [],
+  "skillAssignmentCandidates": [],
+  "unresolvedEvents": [
+    {
+      "eventKey": "event:unknown",
+      "reason": "没有已发布的人工转换规则"
+    }
+  ],
+  "warnings": [
+    {
+      "code": "MANUAL_CONFIRMATION_REQUIRED",
+      "message": "用户确认后才允许复制候选对象进计划"
+    }
+  ]
+}

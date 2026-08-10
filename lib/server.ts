@@ -28,3 +28,7 @@ export function readCookie(request: Request, name: string) {
 export function serverError(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
+
+export function isInputValidationError(error: unknown) {
+  return error instanceof Error && (error.name === "ZodError" || error.name === "UnsupportedDocumentVersionError" || /计划|目录|预设|技能|机制|版本|来源|核准|充能|施法|时长|超出|无效|重复|ID/.test(error.message));
+}

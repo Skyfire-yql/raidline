@@ -1,107 +1,50 @@
 import seedJson from "../data/catalog-seed.json" with { type: "json" };
-import { normalizePlanDocument, snapTime } from "./core.ts";
-import { normalizeCooldownDefinition } from "./skills.ts";
-import type { BossMechanic, CatalogRelease, PlayerSkill, RaidMechanic, RaidPlanDocument, TimelinePreset } from "./types.ts";
+import { parseCatalogRelease, parsePlanDocument, type CatalogMechanicDefinition, type CatalogRelease, type CatalogSkillDefinition, type MechanicDefinitionSnapshot, type PlayerSkillDefinitionSnapshot, type RaidPlanDocument, type TimelinePreset } from "./types";
 
 const VERSION_PATTERN = /^[0-9A-Za-z][0-9A-Za-z._-]{0,79}$/;
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+function duplicateValues(values: string[]) {
+  const seen = new Set<string>();
+  return values.filter((value) => seen.has(value) || !seen.add(value));
+}
+
+function validateVerification(skill: CatalogSkillDefinition) {
+  if (skill.castType === "instant" && skill.castTimeMs !== 0) throw new Error(`技能 ${skill.name} 的瞬发时间必须为 0`);
+  if ((skill.castType === "cast" || skill.castType === "channel") && (!skill.castTimeMs || skill.castTimeMs <= 0)) throw new Error(`技能 ${skill.name} 缺少有效施法或引导时间`);
+  if (duplicateValues(skill.variants.map((item) => item.id)).length) throw new Error(`技能 ${skill.name} 的变体 ID 重复`);
+  if (skill.dataStatus !== "verified") return;
+  const verification = skill.verification;
+  if (!verification || verification.gameVersion !== skill.gameVersion || verification.checkedAt == null) throw new Error(`已核准技能 ${skill.name} 缺少匹配版本的核准记录`);
+  if (!verification.sources.some((source) => source.kind === "blizzard" || source.kind === "in-game")) throw new Error(`已核准技能 ${skill.name} 缺少正式服或 Blizzard 主来源`);
+  if (!verification.sources.some((source) => source.kind === "community")) throw new Error(`已核准技能 ${skill.name} 缺少社区复核来源`);
 }
 
 export function validateCatalogRelease(value: unknown): CatalogRelease {
-  if (!isObject(value) || !isObject(value.manifest)) throw new Error("目录缺少 manifest");
-  const raw = structuredClone(value) as Record<string, unknown> & { manifest: Record<string, unknown> };
-  if (raw.manifest.schemaVersion !== 1 && raw.manifest.schemaVersion !== 2 && raw.manifest.schemaVersion !== 3) throw new Error("不支持的目录版本");
-  raw.manifest.schemaVersion = 3;
-  raw.playerSkills = (Array.isArray(raw.playerSkills) ? raw.playerSkills : []).map((entry) => {
-    const source = isObject(entry) ? entry : {};
-    return {
-      ...normalizeCooldownDefinition(source, {
-        defaultStatus: "unconfigured",
-        defaultCatalogVersion: String(raw.manifest.version ?? "unknown"),
-      }),
-      catalogVersion: String(raw.manifest.version ?? "unknown"),
-      enabled: source.enabled !== false,
-      gameVersion: String(source.gameVersion ?? raw.manifest.gameVersion ?? "retail"),
-    } satisfies PlayerSkill;
-  });
-  raw.bossMechanics = (Array.isArray(raw.bossMechanics) ? raw.bossMechanics : []).map((entry) => {
-    const item = { ...(entry as Record<string, unknown>) };
-    delete item.difficulties;
-    return item;
-  });
-  raw.timelinePresets = (Array.isArray(raw.timelinePresets) ? raw.timelinePresets : []).map((entry) => {
-    const item = { ...(entry as Record<string, unknown>) };
-    const encounter = isObject(item.encounter) ? item.encounter : {};
-    item.encounter = { name: String(encounter.name ?? item.name ?? "未命名预设") };
-    item.phases = (Array.isArray(item.phases) ? item.phases : []).map((phase) => {
-      const source = phase as Record<string, unknown>;
-      return { id: String(source.id ?? crypto.randomUUID()), name: String(source.name ?? "阶段"), atMs: snapTime(Number(source.atMs) || 0) };
-    });
-    item.timelineNotes = (Array.isArray(item.timelineNotes) ? item.timelineNotes : []).map((note) => {
-      const source = note as Record<string, unknown>;
-      return { id: String(source.id ?? crypto.randomUUID()), text: String(source.text ?? ""), atMs: snapTime(Number(source.atMs) || 0) };
-    });
-    item.mechanics = (Array.isArray(item.mechanics) ? item.mechanics : []).map((reference) => {
-      const source = reference as Record<string, unknown>;
-      return { mechanicId: String(source.mechanicId ?? ""), atMs: snapTime(Number(source.atMs) || 0), ...(source.phaseId ? { phaseId: String(source.phaseId) } : {}) };
-    });
-    delete item.difficulties;
-    return item;
-  });
-  const release = raw as unknown as CatalogRelease;
+  const release = parseCatalogRelease(value);
   if (!VERSION_PATTERN.test(release.manifest.version)) throw new Error("目录版本标识无效");
-  if (!Array.isArray(release.playerSkills) || !Array.isArray(release.bossMechanics) || !Array.isArray(release.timelinePresets)) throw new Error("目录数据不完整");
-  const ids = new Set<string>();
-  for (const item of [...release.playerSkills, ...release.bossMechanics, ...release.timelinePresets]) {
-    if (!item || typeof item.id !== "string" || !item.id.trim()) throw new Error("目录条目缺少 ID");
-    if (ids.has(item.id)) throw new Error(`目录 ID 重复：${item.id}`);
-    ids.add(item.id);
-  }
-  for (const skill of release.playerSkills) validatePlayerSkill(skill);
-  const mechanicIds = new Set(release.bossMechanics.map((item) => item.id));
+  const ids = [
+    ...release.playerSkills.map((item) => item.id),
+    ...release.bossMechanics.map((item) => item.id),
+    ...release.timelinePresets.map((item) => item.id),
+    ...release.playerSkills.flatMap((item) => item.variants.map((variant) => variant.id)),
+    ...release.timelinePresets.flatMap((item) => [...item.phases.map((phase) => phase.id), ...item.mechanics.map((mechanic) => mechanic.id), ...item.notes.map((note) => note.id)]),
+  ];
+  if (duplicateValues(ids).length) throw new Error("目录条目 ID 重复");
+  if (release.manifest.counts.playerSkills !== release.playerSkills.length || release.manifest.counts.bossMechanics !== release.bossMechanics.length || release.manifest.counts.timelinePresets !== release.timelinePresets.length) throw new Error("目录 manifest 计数与正文不一致");
+  for (const skill of release.playerSkills) validateVerification(skill);
+  const mechanicsById = new Map(release.bossMechanics.map((item) => [item.id, item]));
   for (const preset of release.timelinePresets) {
-    if (!Array.isArray(preset.mechanics)) throw new Error(`预设 ${preset.id} 缺少机制引用`);
-    for (const reference of preset.mechanics) {
-      if (!mechanicIds.has(reference.mechanicId)) throw new Error(`预设 ${preset.id} 引用了不存在的机制 ${reference.mechanicId}`);
-      if (!Number.isFinite(reference.atMs) || reference.atMs < 0) throw new Error(`预设 ${preset.id} 的机制时间无效`);
+    const phaseIds = new Set(preset.phases.map((item) => item.id));
+    if (duplicateValues([...phaseIds]).length) throw new Error(`预设 ${preset.name} 的阶段 ID 重复`);
+    for (const occurrence of preset.mechanics) {
+      const definition = mechanicsById.get(occurrence.definitionId);
+      if (!definition) throw new Error(`预设 ${preset.name} 引用了不存在的机制定义`);
+      if (definition.encounterId !== preset.encounter.id) throw new Error(`预设 ${preset.name} 引用了其他遭遇的机制定义`);
+      if (occurrence.anchor.kind === "phase" && !phaseIds.has(occurrence.anchor.phaseId)) throw new Error(`预设 ${preset.name} 的机制引用了不存在的阶段`);
     }
+    for (const note of preset.notes) if (note.kind !== "note") throw new Error(`预设 ${preset.name} 只能包含通用说明`);
   }
-  release.manifest.counts = {
-    playerSkills: release.playerSkills.length,
-    bossMechanics: release.bossMechanics.length,
-    timelinePresets: release.timelinePresets.length,
-  };
   return release;
-}
-
-function validatePlayerSkill(skill: PlayerSkill) {
-  if (!Number.isInteger(skill.maxCharges) || skill.maxCharges < 1 || skill.maxCharges > 10) throw new Error(`技能 ${skill.id} 的充能层数无效`);
-  if (skill.castType === "instant" && skill.castTimeMs !== 0) throw new Error(`技能 ${skill.id} 的瞬发时间必须为 0`);
-  if ((skill.castType === "cast" || skill.castType === "channel") && (skill.castTimeMs == null || skill.castTimeMs <= 0)) throw new Error(`技能 ${skill.id} 缺少有效施法或引导时间`);
-  const variantIds = new Set<string>();
-  for (const variant of skill.variants) {
-    if (!VERSION_PATTERN.test(variant.id) || variantIds.has(variant.id)) throw new Error(`技能 ${skill.id} 的变体 ID 无效或重复`);
-    if (!variant.name.trim()) throw new Error(`技能 ${skill.id} 的变体缺少名称`);
-    variantIds.add(variant.id);
-    if (variant.overrides.maxCharges != null && (!Number.isInteger(variant.overrides.maxCharges) || variant.overrides.maxCharges < 1 || variant.overrides.maxCharges > 10)) throw new Error(`技能 ${skill.id} 的变体充能层数无效`);
-  }
-  for (const source of skill.verification?.sources ?? []) {
-    if (!source.label) throw new Error(`技能 ${skill.id} 的来源缺少名称`);
-    if (source.url) {
-      let parsed: URL;
-      try { parsed = new URL(source.url); }
-      catch { throw new Error(`技能 ${skill.id} 的来源链接无效`); }
-      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error(`技能 ${skill.id} 的来源链接无效`);
-    }
-  }
-  if (skill.dataStatus !== "verified") return;
-  if (skill.cooldownMs == null || skill.castType === "unknown" || skill.castTimeMs == null || skill.durationMs == null || skill.triggersGcd == null) throw new Error(`已核准技能 ${skill.id} 的基础时间数据不完整`);
-  const verification = skill.verification;
-  if (!verification || verification.gameVersion !== skill.gameVersion || verification.checkedAt == null || verification.checkedAt <= 0) throw new Error(`已核准技能 ${skill.id} 缺少匹配版本的核准记录`);
-  if (!verification.sources.some((source) => source.kind === "blizzard" || source.kind === "in-game")) throw new Error(`已核准技能 ${skill.id} 缺少正式服或 Blizzard 主来源`);
-  if (!verification.sources.some((source) => source.kind === "community")) throw new Error(`已核准技能 ${skill.id} 缺少社区复核来源`);
 }
 
 export const SEED_CATALOG = validateCatalogRelease(seedJson);
@@ -117,62 +60,99 @@ export function catalogReleaseKeys(version: string) {
   };
 }
 
-function mechanicSnapshot(definition: BossMechanic, atMs: number, phaseId?: string): RaidMechanic {
-  return {
-    id: crypto.randomUUID(),
-    name: definition.name,
-    description: definition.description,
-    atMs,
-    castTimeMs: definition.castTimeMs,
-    durationMs: definition.durationMs,
-    damage: structuredClone(definition.damage),
-    targets: structuredClone(definition.targets),
-    ...(definition.spellId == null ? {} : { spellId: definition.spellId }),
-    severity: definition.severity,
-    ...(phaseId ? { phaseId } : {}),
-    source: "preset",
-    note: definition.note,
-  };
+function skillSnapshot(item: CatalogSkillDefinition, sourceId: string): PlayerSkillDefinitionSnapshot {
+  const { enabled: _enabled, ...definition } = item;
+  void _enabled;
+  return { ...structuredClone(definition), origin: { sourceId } };
+}
+
+export function ensureCatalogSkillSnapshot(plan: RaidPlanDocument, release: CatalogRelease, skillDefinitionId: string) {
+  const existing = plan.definitions.skills.find((item) => item.id === skillDefinitionId);
+  if (existing) return existing;
+  const catalogSkill = release.playerSkills.find((item) => item.enabled && item.id === skillDefinitionId);
+  if (!catalogSkill) throw new Error("目录中找不到可用的技能定义");
+  let source = plan.sources.find((item) => item.kind === "catalog" && item.catalogVersion === release.manifest.version);
+  if (!source) {
+    source = { id: crypto.randomUUID(), kind: "catalog", catalogVersion: release.manifest.version, importedAt: Date.now() };
+    plan.sources.push(source);
+  }
+  const snapshot = skillSnapshot(catalogSkill, source.id);
+  plan.definitions.skills.push(snapshot);
+  return snapshot;
+}
+
+export function upgradeCatalogSkillSnapshots(current: RaidPlanDocument, release: CatalogRelease) {
+  const next = structuredClone(current);
+  const currentSkills = new Map(next.definitions.skills.map((item) => [item.id, item]));
+  const catalogSkills = new Map(release.playerSkills.filter((item) => item.enabled).map((item) => [item.id, item]));
+  for (const selection of next.roster.memberSkills) {
+    if (!selection.variantId || !currentSkills.has(selection.skillDefinitionId)) continue;
+    const replacement = catalogSkills.get(selection.skillDefinitionId);
+    if (replacement && !replacement.variants.some((variant) => variant.id === selection.variantId)) throw new Error("新版目录移除了计划正在使用的技能变体，请先将对应成员切回基础版本或其他变体");
+  }
+  const sourceId = crypto.randomUUID();
+  next.sources.push({ id: sourceId, kind: "catalog", catalogVersion: release.manifest.version, importedAt: Date.now() });
+  next.definitions.skills = next.definitions.skills.map((item) => {
+    if (item.dataStatus === "custom") return item;
+    const replacement = catalogSkills.get(item.id);
+    return replacement ? skillSnapshot(replacement, sourceId) : item;
+  });
+  return parsePlanDocument(next);
+}
+
+function mechanicSnapshot(item: CatalogMechanicDefinition, sourceId: string): MechanicDefinitionSnapshot {
+  const { enabled: _enabled, encounterId: _encounterId, ...definition } = item;
+  void _enabled; void _encounterId;
+  return { ...structuredClone(definition), origin: { sourceId } };
 }
 
 export function applyCatalogPreset(current: RaidPlanDocument, release: CatalogRelease, preset: TimelinePreset) {
-  const mechanics = new Map(release.bossMechanics.map((item) => [item.id, item]));
+  const sourceId = crypto.randomUUID();
+  const source = { id: sourceId, kind: "catalog" as const, catalogVersion: release.manifest.version, presetId: preset.id, importedAt: Date.now() };
+  const referencedMechanicIds = new Set(preset.mechanics.map((item) => item.definitionId));
+  const definitions = release.bossMechanics.filter((item) => item.enabled && referencedMechanicIds.has(item.id)).map((item) => mechanicSnapshot(item, sourceId));
+  const skillDefinitions = release.playerSkills.filter((item) => item.enabled).map((item) => skillSnapshot(item, sourceId));
   const next = structuredClone(current);
+  next.metadata.title = preset.name;
   next.encounter = structuredClone(preset.encounter);
-  next.phases = structuredClone(preset.phases);
-  next.timelineNotes = structuredClone(preset.timelineNotes);
-  next.mechanics = preset.mechanics.map((reference) => {
-    const definition = mechanics.get(reference.mechanicId);
-    if (!definition) throw new Error(`预设引用的机制不存在：${reference.mechanicId}`);
-    return mechanicSnapshot(definition, reference.atMs, reference.phaseId);
-  });
-  next.cooldowns = release.playerSkills.filter((item) => item.enabled).map((item) => {
-    const { enabled: _enabled, gameVersion: _gameVersion, ...skill } = item;
-    void _enabled; void _gameVersion;
-    return structuredClone(skill);
-  });
-  next.memberSkillVariants = [];
-  next.assignments = [];
-  next.catalogSource = { version: release.manifest.version, presetId: preset.id, appliedAt: Date.now() };
-  return normalizePlanDocument(next);
+  next.sources = [source];
+  next.templateSourceId = sourceId;
+  next.definitions.mechanics = definitions;
+  next.definitions.skills = skillDefinitions;
+  next.timeline.phases = preset.phases.map((item) => ({ ...structuredClone(item), origin: { sourceId } }));
+  next.timeline.mechanics = preset.mechanics.map((item) => ({ ...structuredClone(item), origin: { sourceId } }));
+  next.timeline.directives = preset.notes.map((item) => ({ ...structuredClone(item), origin: { sourceId } }));
+  next.timeline.skillAssignments = [];
+  next.roster.memberSkills = [];
+  return parsePlanDocument(next);
 }
 
 export function catalogDifference(current: RaidPlanDocument, release: CatalogRelease) {
-  const currentSkills = new Map(current.cooldowns.map((item) => [item.id, item]));
-  const releaseSkills = release.playerSkills.filter((item) => item.enabled).map((item) => {
-    const { enabled: _enabled, gameVersion: _gameVersion, ...definition } = item;
-    void _enabled; void _gameVersion;
-    return definition;
-  });
-  const releaseSkillIds = new Set(releaseSkills.map((item) => item.id));
+  const currentSkills = new Map(current.definitions.skills.map((item) => [item.id, item]));
+  const releaseSkills = release.playerSkills.filter((item) => item.enabled).map((item) => skillSnapshot(item, item.origin?.sourceId ?? crypto.randomUUID()));
+  const currentMechanics = new Map(current.definitions.mechanics.map((item) => [item.id, item]));
+  const releaseMechanics = release.bossMechanics.filter((item) => item.enabled).map((item) => mechanicSnapshot(item, item.origin?.sourceId ?? crypto.randomUUID()));
+  const stripOrigin = <T extends { origin?: unknown }>(item: T) => {
+    const { origin: _origin, ...rest } = item;
+    void _origin;
+    return rest;
+  };
+  const changed = <T extends { id: string; origin?: unknown }>(items: T[], existing: Map<string, T>) => items.filter((item) => {
+    const value = existing.get(item.id);
+    return value && JSON.stringify(stripOrigin(value)) !== JSON.stringify(stripOrigin(item));
+  }).length;
+  const catalogSources = current.sources.filter((item) => item.kind === "catalog");
+  const currentSource = catalogSources.at(-1);
+  const currentVersion = currentSource?.catalogVersion ?? "未记录";
   return {
     addedSkills: releaseSkills.filter((item) => !currentSkills.has(item.id)).length,
-    changedSkills: releaseSkills.filter((item) => {
-      const existing = currentSkills.get(item.id);
-      return existing && existing.dataStatus !== "custom" && JSON.stringify(existing) !== JSON.stringify(item);
-    }).length,
-    removedSkills: current.cooldowns.filter((item) => !releaseSkillIds.has(item.id) && item.dataStatus !== "custom" && !item.id.startsWith("custom-")).length,
-    currentVersion: current.catalogSource?.version ?? "未记录",
+    changedSkills: changed(releaseSkills, currentSkills),
+    removedSkills: current.definitions.skills.filter((item) => !releaseSkills.some((candidate) => candidate.id === item.id) && item.dataStatus !== "custom").length,
+    addedMechanics: releaseMechanics.filter((item) => !currentMechanics.has(item.id)).length,
+    changedMechanics: changed(releaseMechanics, currentMechanics),
+    removedMechanics: current.definitions.mechanics.filter((item) => !releaseMechanics.some((candidate) => candidate.id === item.id) && item.dataStatus !== "custom").length,
+    currentVersion,
     availableVersion: release.manifest.version,
+    versionChanged: currentVersion !== "未记录" && currentVersion !== release.manifest.version,
   };
 }
