@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { detectConflicts, exportMrtNote, formatTime } from "@/lib/core";
 import { specializationLabel, WOW_CLASS_LABELS } from "@/lib/cooldowns";
+import { resolveCooldownForMember, skillDataStatusLabel } from "@/lib/skills";
 import type { ApiError, PublicPublication, RaidPlanDocument } from "@/lib/types";
 import { anchoredScroll, defaultOrientation, shouldInterceptTimelineWheel, viewPreferenceKey, zoomFromWheel, type TimelineOrientation } from "@/lib/view";
 import { ThemeControl } from "./ThemeControl";
@@ -31,9 +32,9 @@ function ReadonlyDetails({ plan, selection }: { plan: RaidPlanDocument; selectio
   if (mechanic) return <div className="inspector readonly-inspector"><header><h2>{mechanic.name}</h2><span>机制</span></header><ReadonlyField label="时间" value={formatTime(mechanic.atMs)} /><ReadonlyField label="说明" value={mechanic.description || "暂无说明"} multiline /><div className="field-grid"><ReadonlyField label="施法" value={mechanic.castTimeMs == null ? "未配置" : formatTime(mechanic.castTimeMs)} /><ReadonlyField label="持续" value={mechanic.durationMs == null ? "未配置" : formatTime(mechanic.durationMs)} /></div>{mechanic.note && <ReadonlyField label="备注" value={mechanic.note} multiline />}</div>;
   if (assignment) {
     const memberName = plan.roster.find((item) => item.id === assignment.memberId)?.name ?? "未知成员";
-    const cooldown = plan.cooldowns.find((item) => item.id === assignment.cooldownId);
+    const cooldown = resolveCooldownForMember(plan, assignment.memberId, assignment.cooldownId);
     const linkedMechanic = plan.mechanics.find((item) => item.id === assignment.mechanicId);
-    return <div className="inspector readonly-inspector"><header><h2>{cooldown?.name ?? "未知技能"}</h2><span>技能分配</span></header><ReadonlyField label="成员" value={memberName} /><ReadonlyField label="开始时间" value={formatTime(assignment.atMs)} />{linkedMechanic && <ReadonlyField label="关联机制" value={linkedMechanic.name} />}{assignment.note && <ReadonlyField label="备注" value={assignment.note} multiline />}</div>;
+    return <div className="inspector readonly-inspector"><header><h2>{cooldown?.name ?? "未知技能"}</h2><span>{cooldown ? skillDataStatusLabel(cooldown.dataStatus) : "技能分配"}</span></header><ReadonlyField label="成员" value={memberName} />{cooldown?.selectedVariant && <ReadonlyField label="天赋版本" value={cooldown.selectedVariant.name} />}<ReadonlyField label="开始时间" value={formatTime(assignment.atMs)} />{cooldown && <ReadonlyField label="技能时间" value={`${cooldown.cooldownMs == null ? "冷却待补" : `${cooldown.cooldownMs / 1000} 秒冷却`}${cooldown.maxCharges > 1 ? ` · ${cooldown.maxCharges} 层充能` : ""} · ${cooldown.castType === "channel" ? "引导" : cooldown.castType === "cast" ? "读条" : cooldown.castType === "instant" ? "瞬发" : "施法待补"}`} />}{linkedMechanic && <ReadonlyField label="关联机制" value={linkedMechanic.name} />}{cooldown?.limitations.map((limitation) => <ReadonlyField key={limitation} label="计算限制" value={limitation} multiline />)}{assignment.note && <ReadonlyField label="备注" value={assignment.note} multiline />}</div>;
   }
   return <div className="context-empty"><strong>对象已不存在</strong><p>它可能已从发布版本中移除。</p></div>;
 }

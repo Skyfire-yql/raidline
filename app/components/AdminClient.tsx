@@ -4,13 +4,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { validateCatalogRelease } from "@/lib/catalog";
+import { specializationsForClass, WOW_CLASS_LABELS } from "@/lib/cooldowns";
 import { formatTime, parseTime, snapTime } from "@/lib/core";
-import type { ApiError, BossMechanic, CatalogRelease, PlayerSkill, TimelinePreset } from "@/lib/types";
+import { skillDataStatusLabel } from "@/lib/skills";
+import type { ApiError, BossMechanic, CatalogRelease, CooldownEffect, PlayerSkill, SkillSource, SkillVariant, TimelinePreset } from "@/lib/types";
 import { ThemeControl } from "./ThemeControl";
 
 type Tab = "skills" | "mechanics" | "presets";
 
 function copyId(id: string) { return `${id}-copy-${Date.now().toString(36)}`.slice(0, 80); }
+function nextCatalogVersion(current: string) {
+  return current.startsWith("builtin-seed-") ? "retail-12.1-priest-v1" : `${new Date().toISOString().slice(0, 10).replaceAll("-", ".")}-1`;
+}
 
 function AdminTimeField({ value, onChange }: { value: number; onChange: (value: number) => void }) {
   const [draft, setDraft] = useState(formatTime(value));
@@ -40,7 +45,7 @@ export function AdminClient() {
     const payload = await response.json() as { data?: CatalogRelease; error?: ApiError };
     if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "读取目录失败");
     const next = structuredClone(payload.data);
-    next.manifest.version = `${new Date().toISOString().slice(0, 10).replaceAll("-", ".")}-1`;
+    next.manifest.version = nextCatalogVersion(next.manifest.version);
     setDraft(next);
   }
 
@@ -54,7 +59,7 @@ export function AdminClient() {
       setAuthenticated(Boolean(session.data?.authenticated));
       if (catalog.data) {
         const next = structuredClone(catalog.data as CatalogRelease);
-        next.manifest.version = `${new Date().toISOString().slice(0, 10).replaceAll("-", ".")}-1`;
+        next.manifest.version = nextCatalogVersion(next.manifest.version);
         setDraft(next);
       }
     }).catch((error) => { if (!cancelled) setMessage(error instanceof Error ? error.message : "加载失败"); });
@@ -79,7 +84,7 @@ export function AdminClient() {
   function addItem() {
     if (!draft) return;
     const id = `${tab.slice(0, -1)}-${Date.now().toString(36)}`;
-    if (tab === "skills") draft.playerSkills.push({ id, name: "新技能", description: "", classSlug: "Priest", specSlugs: [], scope: "team", cooldownMs: null, castTimeMs: null, durationMs: null, triggersGcd: null, maxTargets: null, effects: [], category: "自定义", color: "#e7e7e7", catalogVersion: draft.manifest.version, dataStatus: "unconfigured", enabled: false, gameVersion: draft.manifest.gameVersion });
+    if (tab === "skills") draft.playerSkills.push({ id, name: "新技能", description: "", classSlug: "Priest", specSlugs: [], scope: "team", cooldownMs: null, castType: "unknown", castTimeMs: null, durationMs: null, triggersGcd: null, maxCharges: 1, maxTargets: null, effects: [], variants: [], limitations: [], category: "自定义", color: "#e7e7e7", catalogVersion: draft.manifest.version, dataStatus: "unconfigured", enabled: false, gameVersion: draft.manifest.gameVersion });
     if (tab === "mechanics") draft.bossMechanics.push({ id, name: "新机制", description: "", gameVersion: draft.manifest.gameVersion, raidId: "", bossId: "", enabled: false, castTimeMs: 0, durationMs: 0, damage: { school: "magic", directAmount: null, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false }, targets: { mode: "all" }, severity: "warning", note: "" });
     if (tab === "presets") draft.timelinePresets.push({ id, name: "新预设", description: "", gameVersion: draft.manifest.gameVersion, raidId: "", bossId: "", enabled: false, encounter: { name: "新首领" }, phases: [{ id: "p1", name: "P1", atMs: 0 }], timelineNotes: [], mechanics: [] });
     update(draft); setSelectedId(id);
@@ -139,7 +144,71 @@ function CommonFields({ item, onChange }: { item: PlayerSkill | BossMechanic | T
 }
 
 function SkillFields({ item, onChange }: { item: PlayerSkill; onChange: () => void }) {
-  return <div className="admin-form"><label>职业<input value={item.classSlug} onChange={(event) => { item.classSlug = event.target.value; onChange(); }} /></label><label>类别<input value={item.category} onChange={(event) => { item.category = event.target.value as PlayerSkill["category"]; onChange(); }} /></label><label>冷却毫秒<input type="number" value={item.cooldownMs ?? ""} onChange={(event) => { item.cooldownMs = event.target.value ? Number(event.target.value) : null; onChange(); }} /></label><label>持续毫秒<input type="number" value={item.durationMs ?? ""} onChange={(event) => { item.durationMs = event.target.value ? Number(event.target.value) : null; onChange(); }} /></label><p className="wide field-note">未知数值保持为空；不要用 0 代替“未配置”。复杂效果可保留现有结构，第一版表单不强迫补齐易变数值。</p></div>;
+  const specs = specializationsForClass(item.classSlug);
+  function toggleSpec(slug: string) {
+    item.specSlugs = item.specSlugs.includes(slug) ? item.specSlugs.filter((value) => value !== slug) : [...item.specSlugs, slug];
+    onChange();
+  }
+  return <div className="admin-form">
+    <label>法术 ID<input type="number" value={item.spellId ?? ""} onChange={(event) => { if (event.target.value) item.spellId = Number(event.target.value); else delete item.spellId; onChange(); }} /></label>
+    <label>职业<select value={item.classSlug} onChange={(event) => { item.classSlug = event.target.value; item.specSlugs = []; onChange(); }}>{Object.entries(WOW_CLASS_LABELS).map(([slug, label]) => <option value={slug} key={slug}>{label}</option>)}</select></label>
+    <fieldset className="wide admin-fieldset"><legend>专精归属（不选表示职业通用）</legend><div className="check-grid">{specs.map((spec) => <label key={spec.slug}><input type="checkbox" checked={item.specSlugs.includes(spec.slug)} onChange={() => toggleSpec(spec.slug)} />{spec.label}</label>)}</div></fieldset>
+    <label>作用范围<select value={item.scope} onChange={(event) => { item.scope = event.target.value as PlayerSkill["scope"]; if (item.scope === "personal") item.maxTargets = 1; onChange(); }}><option value="team">团队</option><option value="external">单体外部</option><option value="personal">个人</option></select></label>
+    <label>类别<select value={item.category} onChange={(event) => { item.category = event.target.value as PlayerSkill["category"]; onChange(); }}>{["团队减伤", "外部减伤", "个人减伤", "治疗", "免疫", "位移", "自定义"].map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
+    <label>数据状态<select value={item.dataStatus} onChange={(event) => { item.dataStatus = event.target.value as PlayerSkill["dataStatus"]; onChange(); }}><option value="unconfigured">数值待补</option><option value="needs-live-check">待正式服复核</option><option value="verified">已核准</option><option value="legacy">旧数据</option><option value="custom">自定义</option></select></label>
+    <label>施法类型<select value={item.castType} onChange={(event) => { item.castType = event.target.value as PlayerSkill["castType"]; if (item.castType === "instant") item.castTimeMs = 0; else if (item.castType === "unknown") item.castTimeMs = null; else if (item.castTimeMs == null || item.castTimeMs === 0) item.castTimeMs = 1000; onChange(); }}><option value="unknown">待补</option><option value="instant">瞬发</option><option value="cast">读条</option><option value="channel">引导</option></select></label>
+    <NullableAdminNumber label="冷却毫秒" value={item.cooldownMs} onChange={(value) => { item.cooldownMs = value; onChange(); }} />
+    <NullableAdminNumber label="施法 / 引导毫秒" value={item.castTimeMs} onChange={(value) => { item.castTimeMs = value; if (value === 0) item.castType = "instant"; else if (value == null) item.castType = "unknown"; onChange(); }} />
+    <NullableAdminNumber label="持续毫秒" value={item.durationMs} onChange={(value) => { item.durationMs = value; onChange(); }} />
+    <label>充能层数<input type="number" min={1} max={10} value={item.maxCharges} onChange={(event) => { item.maxCharges = Math.max(1, Math.round(Number(event.target.value) || 1)); onChange(); }} /></label>
+    <label>GCD<select value={item.triggersGcd == null ? "unknown" : item.triggersGcd ? "yes" : "no"} onChange={(event) => { item.triggersGcd = event.target.value === "unknown" ? null : event.target.value === "yes"; onChange(); }}><option value="unknown">待补</option><option value="yes">占用</option><option value="no">不占用</option></select></label>
+    <NullableAdminNumber label="目标上限" value={item.maxTargets} onChange={(value) => { item.maxTargets = value; onChange(); }} />
+    <label>标识色<input type="color" value={item.color} onChange={(event) => { item.color = event.target.value; onChange(); }} /></label>
+    <label className="wide">计算限制<textarea rows={3} placeholder="每行一项" value={item.limitations.join("\n")} onChange={(event) => { item.limitations = event.target.value.split("\n").map((value) => value.trim()).filter(Boolean); onChange(); }} /></label>
+    <section className="wide admin-skill-section"><header><div><b>结构化效果</b><small>用于覆盖与目标检查</small></div><button onClick={() => { item.effects.push({ type: "damageReduction", percent: null, schools: ["physical", "magic"] }); onChange(); }}>＋ 效果</button></header><EffectsEditor effects={item.effects} onChange={onChange} /></section>
+    <section className="wide admin-skill-section"><header><div><b>关键天赋变体</b><small>同一成员、同一技能只选择一个</small></div><button onClick={() => { item.variants.push({ id: `variant-${Date.now().toString(36)}`, name: "新变体", description: "", overrides: {}, limitations: [] }); onChange(); }}>＋ 变体</button></header>{item.variants.map((variant) => <VariantEditor key={variant.id} variant={variant} onRemove={() => { item.variants = item.variants.filter((entry) => entry !== variant); onChange(); }} onChange={onChange} />)}{!item.variants.length && <p className="table-empty">该技能没有关键变体。</p>}</section>
+    <VerificationEditor item={item} onChange={onChange} />
+  </div>;
+}
+
+function NullableAdminNumber({ label, value, onChange }: { label: string; value: number | null | undefined; onChange: (value: number | null) => void }) {
+  return <label>{label}<input type="number" min={0} value={value ?? ""} onChange={(event) => onChange(event.target.value === "" ? null : Math.max(0, Number(event.target.value)))} /></label>;
+}
+
+function toggleEffectSchool(effect: Exclude<CooldownEffect, { type: "maxHealth" }>, school: "physical" | "magic") {
+  effect.schools = effect.schools.includes(school) ? effect.schools.filter((value) => value !== school) : [...effect.schools, school];
+}
+
+function effectForType(type: CooldownEffect["type"]): CooldownEffect {
+  if (type === "damageReduction") return { type, percent: null, schools: ["physical", "magic"] };
+  if (type === "absorb") return { type, amount: null, allocation: "perTarget", schools: ["physical", "magic"] };
+  if (type === "maxHealth") return { type, percent: null };
+  return { type, schools: ["physical", "magic"] };
+}
+
+function EffectsEditor({ effects, onChange }: { effects: CooldownEffect[]; onChange: () => void }) {
+  return <div className="admin-effect-list">{effects.map((effect, index) => <div key={`${effect.type}-${index}`}><select value={effect.type} onChange={(event) => { effects[index] = effectForType(event.target.value as CooldownEffect["type"]); onChange(); }}><option value="damageReduction">减伤</option><option value="absorb">吸收</option><option value="maxHealth">最大生命</option><option value="immunity">免疫</option></select>{effect.type === "damageReduction" && <input type="number" min={0} max={100} placeholder="百分比" value={effect.percent ?? ""} onChange={(event) => { effect.percent = event.target.value === "" ? null : Number(event.target.value); onChange(); }} />}{effect.type === "maxHealth" && <input type="number" min={0} placeholder="百分比" value={effect.percent ?? ""} onChange={(event) => { effect.percent = event.target.value === "" ? null : Number(event.target.value); onChange(); }} />}{effect.type === "absorb" && <><input type="number" min={0} placeholder="吸收量" value={effect.amount ?? ""} onChange={(event) => { effect.amount = event.target.value === "" ? null : Number(event.target.value); onChange(); }} /><select value={effect.allocation} onChange={(event) => { effect.allocation = event.target.value as "perTarget" | "shared"; onChange(); }}><option value="perTarget">每目标</option><option value="shared">共享</option></select></>}{effect.type !== "maxHealth" && <span className="effect-schools"><label><input type="checkbox" checked={effect.schools.includes("physical")} onChange={() => { toggleEffectSchool(effect, "physical"); onChange(); }} />物理</label><label><input type="checkbox" checked={effect.schools.includes("magic")} onChange={() => { toggleEffectSchool(effect, "magic"); onChange(); }} />魔法</label></span>}<button className="danger-link" onClick={() => { effects.splice(index, 1); onChange(); }}>删除</button></div>)}{!effects.length && <p className="table-empty">暂无结构化效果。</p>}</div>;
+}
+
+function setOptionalNumber(target: SkillVariant["overrides"], key: "cooldownMs" | "castTimeMs" | "durationMs" | "maxCharges" | "maxTargets", value: string) {
+  if (value === "") delete target[key];
+  else (target as Record<string, unknown>)[key] = Math.max(key === "maxCharges" ? 1 : 0, Number(value));
+}
+
+function VariantEditor({ variant, onRemove, onChange }: { variant: SkillVariant; onRemove: () => void; onChange: () => void }) {
+  const overrides = variant.overrides;
+  return <article className="admin-variant-card"><header><b>{variant.name}</b><button className="danger-link" onClick={onRemove}>删除</button></header><div className="admin-form"><label>稳定 ID<input value={variant.id} onChange={(event) => { variant.id = event.target.value; onChange(); }} /></label><label>名称<input value={variant.name} onChange={(event) => { variant.name = event.target.value; onChange(); }} /></label><label>天赋法术 ID<input type="number" value={variant.talentSpellId ?? ""} onChange={(event) => { if (event.target.value) variant.talentSpellId = Number(event.target.value); else delete variant.talentSpellId; onChange(); }} /></label><label className="wide">说明<textarea rows={2} value={variant.description} onChange={(event) => { variant.description = event.target.value; onChange(); }} /></label><label>冷却覆盖<input type="number" min={0} placeholder="继承基础值" value={overrides.cooldownMs ?? ""} onChange={(event) => { setOptionalNumber(overrides, "cooldownMs", event.target.value); onChange(); }} /></label><label>充能覆盖<input type="number" min={1} max={10} placeholder="继承基础值" value={overrides.maxCharges ?? ""} onChange={(event) => { setOptionalNumber(overrides, "maxCharges", event.target.value); onChange(); }} /></label><label>施法类型覆盖<select value={overrides.castType ?? "inherit"} onChange={(event) => { if (event.target.value === "inherit") delete overrides.castType; else overrides.castType = event.target.value as NonNullable<typeof overrides.castType>; if (overrides.castType === "instant") overrides.castTimeMs = 0; onChange(); }}><option value="inherit">继承</option><option value="unknown">待补</option><option value="instant">瞬发</option><option value="cast">读条</option><option value="channel">引导</option></select></label><label>施法时间覆盖<input type="number" min={0} placeholder="继承基础值" value={overrides.castTimeMs ?? ""} onChange={(event) => { setOptionalNumber(overrides, "castTimeMs", event.target.value); onChange(); }} /></label><label>持续覆盖<input type="number" min={0} placeholder="继承基础值" value={overrides.durationMs ?? ""} onChange={(event) => { setOptionalNumber(overrides, "durationMs", event.target.value); onChange(); }} /></label><label>GCD 覆盖<select value={overrides.triggersGcd == null ? "inherit" : overrides.triggersGcd ? "yes" : "no"} onChange={(event) => { if (event.target.value === "inherit") delete overrides.triggersGcd; else overrides.triggersGcd = event.target.value === "yes"; onChange(); }}><option value="inherit">继承</option><option value="yes">占用</option><option value="no">不占用</option></select></label><label>目标上限覆盖<input type="number" min={0} placeholder="继承基础值" value={overrides.maxTargets ?? ""} onChange={(event) => { setOptionalNumber(overrides, "maxTargets", event.target.value); onChange(); }} /></label><label className="wide">计算限制<textarea rows={2} value={variant.limitations.join("\n")} onChange={(event) => { variant.limitations = event.target.value.split("\n").map((value) => value.trim()).filter(Boolean); onChange(); }} /></label></div><label className="inline-check"><input type="checkbox" checked={overrides.effects != null} onChange={(event) => { if (event.target.checked) overrides.effects = []; else delete overrides.effects; onChange(); }} />覆盖基础效果</label>{overrides.effects && <EffectsEditor effects={overrides.effects} onChange={onChange} />}</article>;
+}
+
+function VerificationEditor({ item, onChange }: { item: PlayerSkill; onChange: () => void }) {
+  const verification = item.verification;
+  if (!verification) return <section className="wide admin-skill-section"><header><div><b>核准记录</b><small>{skillDataStatusLabel(item.dataStatus)}</small></div><button onClick={() => { item.verification = { gameVersion: item.gameVersion, checkedAt: null, sources: [] }; onChange(); }}>＋ 建立记录</button></header><p className="table-empty">正式服核准前可保持为空。</p></section>;
+  function addSource() { item.verification?.sources.push({ kind: "community", label: "新来源" }); onChange(); }
+  return <section className="wide admin-skill-section"><header><div><b>核准记录</b><small>“已核准”必须同时有正式服/Blizzard 主来源与社区复核</small></div><button onClick={addSource}>＋ 来源</button></header><div className="admin-form"><label>核准版本<input value={verification.gameVersion} onChange={(event) => { verification.gameVersion = event.target.value; onChange(); }} /></label><label>客户端构建<input value={verification.clientBuild ?? ""} placeholder="可选" onChange={(event) => { verification.clientBuild = event.target.value || undefined; onChange(); }} /></label><label>核准时间<input type="datetime-local" value={verification.checkedAt ? new Date(verification.checkedAt).toISOString().slice(0, 16) : ""} onChange={(event) => { verification.checkedAt = event.target.value ? new Date(event.target.value).getTime() : null; onChange(); }} /></label></div><div className="admin-source-list">{verification.sources.map((source, index) => <SourceEditor key={`${source.kind}-${index}`} source={source} onRemove={() => { verification.sources.splice(index, 1); onChange(); }} onChange={onChange} />)}{!verification.sources.length && <p className="table-empty">尚未添加数据来源。</p>}</div></section>;
+}
+
+function SourceEditor({ source, onRemove, onChange }: { source: SkillSource; onRemove: () => void; onChange: () => void }) {
+  return <div><select value={source.kind} onChange={(event) => { source.kind = event.target.value as SkillSource["kind"]; onChange(); }}><option value="in-game">正式服客户端</option><option value="blizzard">Blizzard</option><option value="community">社区</option></select><input value={source.label} placeholder="来源名称" onChange={(event) => { source.label = event.target.value; onChange(); }} /><input value={source.url ?? ""} placeholder="https://（客户端来源可留空）" onChange={(event) => { source.url = event.target.value || undefined; onChange(); }} /><input value={source.note ?? ""} placeholder="备注" onChange={(event) => { source.note = event.target.value || undefined; onChange(); }} /><button className="danger-link" onClick={onRemove}>删除</button></div>;
 }
 
 function MechanicFields({ item, onChange }: { item: BossMechanic; onChange: () => void }) {

@@ -1,8 +1,8 @@
 import seedJson from "../data/catalog-seed.json" with { type: "json" };
 import { normalizePlanDocument, snapTime } from "./core.ts";
-import type { BossMechanic, CatalogRelease, RaidMechanic, RaidPlanDocument, TimelinePreset } from "./types.ts";
+import { normalizeCooldownDefinition } from "./skills.ts";
+import type { BossMechanic, CatalogRelease, PlayerSkill, RaidMechanic, RaidPlanDocument, TimelinePreset } from "./types.ts";
 
-export const SEED_CATALOG = structuredClone(seedJson) as unknown as CatalogRelease;
 const VERSION_PATTERN = /^[0-9A-Za-z][0-9A-Za-z._-]{0,79}$/;
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -12,8 +12,20 @@ function isObject(value: unknown): value is Record<string, unknown> {
 export function validateCatalogRelease(value: unknown): CatalogRelease {
   if (!isObject(value) || !isObject(value.manifest)) throw new Error("目录缺少 manifest");
   const raw = structuredClone(value) as Record<string, unknown> & { manifest: Record<string, unknown> };
-  if (raw.manifest.schemaVersion !== 1 && raw.manifest.schemaVersion !== 2) throw new Error("不支持的目录版本");
-  raw.manifest.schemaVersion = 2;
+  if (raw.manifest.schemaVersion !== 1 && raw.manifest.schemaVersion !== 2 && raw.manifest.schemaVersion !== 3) throw new Error("不支持的目录版本");
+  raw.manifest.schemaVersion = 3;
+  raw.playerSkills = (Array.isArray(raw.playerSkills) ? raw.playerSkills : []).map((entry) => {
+    const source = isObject(entry) ? entry : {};
+    return {
+      ...normalizeCooldownDefinition(source, {
+        defaultStatus: "unconfigured",
+        defaultCatalogVersion: String(raw.manifest.version ?? "unknown"),
+      }),
+      catalogVersion: String(raw.manifest.version ?? "unknown"),
+      enabled: source.enabled !== false,
+      gameVersion: String(source.gameVersion ?? raw.manifest.gameVersion ?? "retail"),
+    } satisfies PlayerSkill;
+  });
   raw.bossMechanics = (Array.isArray(raw.bossMechanics) ? raw.bossMechanics : []).map((entry) => {
     const item = { ...(entry as Record<string, unknown>) };
     delete item.difficulties;
@@ -47,6 +59,7 @@ export function validateCatalogRelease(value: unknown): CatalogRelease {
     if (ids.has(item.id)) throw new Error(`目录 ID 重复：${item.id}`);
     ids.add(item.id);
   }
+  for (const skill of release.playerSkills) validatePlayerSkill(skill);
   const mechanicIds = new Set(release.bossMechanics.map((item) => item.id));
   for (const preset of release.timelinePresets) {
     if (!Array.isArray(preset.mechanics)) throw new Error(`预设 ${preset.id} 缺少机制引用`);
@@ -62,6 +75,36 @@ export function validateCatalogRelease(value: unknown): CatalogRelease {
   };
   return release;
 }
+
+function validatePlayerSkill(skill: PlayerSkill) {
+  if (!Number.isInteger(skill.maxCharges) || skill.maxCharges < 1 || skill.maxCharges > 10) throw new Error(`技能 ${skill.id} 的充能层数无效`);
+  if (skill.castType === "instant" && skill.castTimeMs !== 0) throw new Error(`技能 ${skill.id} 的瞬发时间必须为 0`);
+  if ((skill.castType === "cast" || skill.castType === "channel") && (skill.castTimeMs == null || skill.castTimeMs <= 0)) throw new Error(`技能 ${skill.id} 缺少有效施法或引导时间`);
+  const variantIds = new Set<string>();
+  for (const variant of skill.variants) {
+    if (!VERSION_PATTERN.test(variant.id) || variantIds.has(variant.id)) throw new Error(`技能 ${skill.id} 的变体 ID 无效或重复`);
+    if (!variant.name.trim()) throw new Error(`技能 ${skill.id} 的变体缺少名称`);
+    variantIds.add(variant.id);
+    if (variant.overrides.maxCharges != null && (!Number.isInteger(variant.overrides.maxCharges) || variant.overrides.maxCharges < 1 || variant.overrides.maxCharges > 10)) throw new Error(`技能 ${skill.id} 的变体充能层数无效`);
+  }
+  for (const source of skill.verification?.sources ?? []) {
+    if (!source.label) throw new Error(`技能 ${skill.id} 的来源缺少名称`);
+    if (source.url) {
+      let parsed: URL;
+      try { parsed = new URL(source.url); }
+      catch { throw new Error(`技能 ${skill.id} 的来源链接无效`); }
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error(`技能 ${skill.id} 的来源链接无效`);
+    }
+  }
+  if (skill.dataStatus !== "verified") return;
+  if (skill.cooldownMs == null || skill.castType === "unknown" || skill.castTimeMs == null || skill.durationMs == null || skill.triggersGcd == null) throw new Error(`已核准技能 ${skill.id} 的基础时间数据不完整`);
+  const verification = skill.verification;
+  if (!verification || verification.gameVersion !== skill.gameVersion || verification.checkedAt == null || verification.checkedAt <= 0) throw new Error(`已核准技能 ${skill.id} 缺少匹配版本的核准记录`);
+  if (!verification.sources.some((source) => source.kind === "blizzard" || source.kind === "in-game")) throw new Error(`已核准技能 ${skill.id} 缺少正式服或 Blizzard 主来源`);
+  if (!verification.sources.some((source) => source.kind === "community")) throw new Error(`已核准技能 ${skill.id} 缺少社区复核来源`);
+}
+
+export const SEED_CATALOG = validateCatalogRelease(seedJson);
 
 export function catalogReleaseKeys(version: string) {
   if (!VERSION_PATTERN.test(version)) throw new Error("目录版本标识无效");
@@ -108,6 +151,7 @@ export function applyCatalogPreset(current: RaidPlanDocument, release: CatalogRe
     void _enabled; void _gameVersion;
     return structuredClone(skill);
   });
+  next.memberSkillVariants = [];
   next.assignments = [];
   next.catalogSource = { version: release.manifest.version, presetId: preset.id, appliedAt: Date.now() };
   return normalizePlanDocument(next);

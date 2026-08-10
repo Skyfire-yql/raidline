@@ -1,8 +1,8 @@
 {
   "manifest": {
-    "schemaVersion": 2,
-    "version": "builtin-seed-v2",
-    "gameVersion": "retail",
+    "schemaVersion": 3,
+    "version": "builtin-seed-v3",
+    "gameVersion": "retail-12.1",
     "title": "Raidline 内置种子目录",
     "publishedAt": 0,
     "counts": {
@@ -18,29 +18,46 @@
       "name": "真言术：障",
       "description": "为范围内队友提供团队防护。",
       "classSlug": "Priest",
-      "specSlugs": [],
+      "specSlugs": [
+        "discipline"
+      ],
       "scope": "team",
-      "cooldownMs": null,
-      "castTimeMs": null,
-      "durationMs": null,
-      "triggersGcd": null,
+      "cooldownMs": 180000,
+      "castType": "instant",
+      "castTimeMs": 0,
+      "durationMs": 10000,
+      "triggersGcd": true,
+      "maxCharges": 1,
       "maxTargets": null,
       "effects": [
         {
           "type": "damageReduction",
-          "percent": null,
+          "percent": 20,
           "schools": [
             "physical",
             "magic"
           ]
         }
       ],
+      "variants": [],
+      "limitations": [],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": null,
+        "sources": [
+          {
+            "kind": "community",
+            "label": "Wowhead 12.1 PTR 技能页",
+            "url": "https://www.wowhead.com/ptr/spell=62618/power-word-barrier"
+          }
+        ]
+      },
       "category": "团队减伤",
       "color": "#e7e7e7",
-      "catalogVersion": "retail-structure-2026-08",
-      "dataStatus": "unconfigured",
+      "catalogVersion": "builtin-seed-v3",
+      "dataStatus": "needs-live-check",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1"
     },
     {
       "id": "spell-64843",
@@ -48,20 +65,55 @@
       "name": "神圣赞美诗",
       "description": "持续引导的团队治疗技能。",
       "classSlug": "Priest",
-      "specSlugs": [],
+      "specSlugs": [
+        "holy"
+      ],
       "scope": "team",
-      "cooldownMs": null,
-      "castTimeMs": null,
-      "durationMs": null,
-      "triggersGcd": null,
+      "cooldownMs": 180000,
+      "castType": "channel",
+      "castTimeMs": 5000,
+      "durationMs": 5000,
+      "triggersGcd": true,
+      "maxCharges": 1,
       "maxTargets": null,
       "effects": [],
+      "variants": [
+        {
+          "id": "seraphic-crescendo",
+          "name": "Seraphic Crescendo",
+          "description": "神圣赞美诗的冷却时间缩短 60 秒。",
+          "overrides": {
+            "cooldownMs": 120000
+          },
+          "limitations": []
+        }
+      ],
+      "limitations": [
+        "基础引导时间受急速影响，当前按 5 秒计算。",
+        "12.1 PTR 显示引导期间获得 Guardian Spirit；该额外效果暂不参与排轴计算。"
+      ],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": null,
+        "sources": [
+          {
+            "kind": "community",
+            "label": "Wowhead 12.1 PTR 技能页",
+            "url": "https://www.wowhead.com/ptr/spell=64843/divine-hymn"
+          },
+          {
+            "kind": "community",
+            "label": "Wowhead 神圣牧师技能与天赋指南",
+            "url": "https://www.wowhead.com/guide/classes/priest/holy/abilities-talents-pve-healer"
+          }
+        ]
+      },
       "category": "治疗",
       "color": "#e7e7e7",
-      "catalogVersion": "retail-structure-2026-08",
-      "dataStatus": "unconfigured",
+      "catalogVersion": "builtin-seed-v3",
+      "dataStatus": "needs-live-check",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1"
     },
     {
       "id": "spell-33206",
@@ -69,29 +121,64 @@
       "name": "痛苦压制",
       "description": "为一名队友提供外部减伤。",
       "classSlug": "Priest",
-      "specSlugs": [],
+      "specSlugs": [
+        "discipline"
+      ],
       "scope": "external",
-      "cooldownMs": null,
-      "castTimeMs": null,
-      "durationMs": null,
-      "triggersGcd": null,
-      "maxTargets": null,
+      "cooldownMs": 180000,
+      "castType": "instant",
+      "castTimeMs": 0,
+      "durationMs": 8000,
+      "triggersGcd": false,
+      "maxCharges": 1,
+      "maxTargets": 1,
       "effects": [
         {
           "type": "damageReduction",
-          "percent": null,
+          "percent": 40,
           "schools": [
             "physical",
             "magic"
           ]
         }
       ],
+      "variants": [
+        {
+          "id": "protector-of-the-frail",
+          "name": "Protector of the Frail",
+          "talentSpellId": 373036,
+          "description": "痛苦压制获得第二层充能。",
+          "overrides": {
+            "maxCharges": 2
+          },
+          "limitations": [
+            "真言术：盾触发的动态冷却缩减未计算；排轴检查使用 180 秒基础充能时间。"
+          ]
+        }
+      ],
+      "limitations": [],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": null,
+        "sources": [
+          {
+            "kind": "community",
+            "label": "Wowhead 12.1 PTR 技能页",
+            "url": "https://www.wowhead.com/ptr/spell=33206/pain-suppression"
+          },
+          {
+            "kind": "community",
+            "label": "Warcraft Wiki：Protector of the Frail",
+            "url": "https://warcraft.wiki.gg/wiki/Protector_of_the_Frail"
+          }
+        ]
+      },
       "category": "外部减伤",
       "color": "#e7e7e7",
-      "catalogVersion": "retail-structure-2026-08",
-      "dataStatus": "unconfigured",
+      "catalogVersion": "builtin-seed-v3",
+      "dataStatus": "needs-live-check",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1"
     },
     {
       "id": "spell-19236",
@@ -101,23 +188,55 @@
       "classSlug": "Priest",
       "specSlugs": [],
       "scope": "personal",
-      "cooldownMs": null,
-      "castTimeMs": null,
-      "durationMs": null,
-      "triggersGcd": null,
+      "cooldownMs": 90000,
+      "castType": "instant",
+      "castTimeMs": 0,
+      "durationMs": 10000,
+      "triggersGcd": false,
+      "maxCharges": 1,
       "maxTargets": 1,
       "effects": [
         {
           "type": "maxHealth",
-          "percent": null
+          "percent": 25
         }
       ],
+      "variants": [
+        {
+          "id": "lights-inspiration",
+          "name": "Light's Inspiration",
+          "description": "最大生命值与治疗效果由 25% 提高至 35%。",
+          "overrides": {
+            "effects": [
+              {
+                "type": "maxHealth",
+                "percent": 35
+              }
+            ]
+          },
+          "limitations": [
+            "额外治疗量仅展示说明，不参与当前压力计算。"
+          ]
+        }
+      ],
+      "limitations": [],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": null,
+        "sources": [
+          {
+            "kind": "community",
+            "label": "Wowhead 12.1 PTR 技能页",
+            "url": "https://www.wowhead.com/ptr/spell=19236/desperate-prayer"
+          }
+        ]
+      },
       "category": "个人减伤",
       "color": "#e7e7e7",
-      "catalogVersion": "retail-structure-2026-08",
-      "dataStatus": "unconfigured",
+      "catalogVersion": "builtin-seed-v3",
+      "dataStatus": "needs-live-check",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1"
     },
     {
       "id": "spell-47585",
@@ -125,29 +244,63 @@
       "name": "消散",
       "description": "暗影牧师的强力个人防护。",
       "classSlug": "Priest",
-      "specSlugs": [],
+      "specSlugs": [
+        "shadow"
+      ],
       "scope": "personal",
-      "cooldownMs": null,
-      "castTimeMs": null,
-      "durationMs": null,
-      "triggersGcd": null,
+      "cooldownMs": 120000,
+      "castType": "instant",
+      "castTimeMs": 0,
+      "durationMs": 6000,
+      "triggersGcd": true,
+      "maxCharges": 1,
       "maxTargets": 1,
       "effects": [
         {
           "type": "damageReduction",
-          "percent": null,
+          "percent": 75,
           "schools": [
             "physical",
             "magic"
           ]
         }
       ],
+      "variants": [
+        {
+          "id": "intangibility",
+          "name": "Intangibility",
+          "description": "消散的冷却时间缩短 30 秒。",
+          "overrides": {
+            "cooldownMs": 90000
+          },
+          "limitations": [
+            "额外治疗效果仅展示说明，不参与当前压力计算。"
+          ]
+        }
+      ],
+      "limitations": [],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": null,
+        "sources": [
+          {
+            "kind": "community",
+            "label": "Wowhead 12.1 PTR 技能页",
+            "url": "https://www.wowhead.com/ptr/spell=47585/dispersion"
+          },
+          {
+            "kind": "community",
+            "label": "Warcraft Wiki：Intangibility",
+            "url": "https://warcraft.wiki.gg/wiki/Intangibility"
+          }
+        ]
+      },
       "category": "个人减伤",
       "color": "#e7e7e7",
-      "catalogVersion": "retail-structure-2026-08",
-      "dataStatus": "unconfigured",
+      "catalogVersion": "builtin-seed-v3",
+      "dataStatus": "needs-live-check",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1"
     },
     {
       "id": "spell-98008",
@@ -174,10 +327,14 @@
       ],
       "category": "团队减伤",
       "color": "#0070dd",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-108271",
@@ -204,10 +361,14 @@
       ],
       "category": "个人减伤",
       "color": "#0070dd",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-740",
@@ -225,10 +386,14 @@
       "effects": [],
       "category": "治疗",
       "color": "#ff7c0a",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-22812",
@@ -255,10 +420,14 @@
       ],
       "category": "个人减伤",
       "color": "#ff7c0a",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-61336",
@@ -285,10 +454,14 @@
       ],
       "category": "个人减伤",
       "color": "#ff7c0a",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-102342",
@@ -315,10 +488,14 @@
       ],
       "category": "外部减伤",
       "color": "#ff7c0a",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-31821",
@@ -345,10 +522,14 @@
       ],
       "category": "团队减伤",
       "color": "#f48cba",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-642",
@@ -374,10 +555,14 @@
       ],
       "category": "免疫",
       "color": "#f48cba",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-6940",
@@ -404,10 +589,14 @@
       ],
       "category": "外部减伤",
       "color": "#f48cba",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-31850",
@@ -434,10 +623,14 @@
       ],
       "category": "个人减伤",
       "color": "#f48cba",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-115310",
@@ -455,10 +648,14 @@
       "effects": [],
       "category": "治疗",
       "color": "#00ff98",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-115203",
@@ -485,10 +682,14 @@
       ],
       "category": "个人减伤",
       "color": "#00ff98",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-122278",
@@ -515,10 +716,14 @@
       ],
       "category": "个人减伤",
       "color": "#00ff98",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-116849",
@@ -546,10 +751,14 @@
       ],
       "category": "外部减伤",
       "color": "#00ff98",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-97462",
@@ -572,10 +781,14 @@
       ],
       "category": "团队减伤",
       "color": "#c69b6d",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-871",
@@ -602,10 +815,14 @@
       ],
       "category": "个人减伤",
       "color": "#c69b6d",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-23920",
@@ -631,10 +848,14 @@
       ],
       "category": "个人减伤",
       "color": "#c69b6d",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-196718",
@@ -661,10 +882,14 @@
       ],
       "category": "团队减伤",
       "color": "#a330c9",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-198589",
@@ -691,10 +916,14 @@
       ],
       "category": "个人减伤",
       "color": "#a330c9",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-196555",
@@ -720,10 +949,14 @@
       ],
       "category": "免疫",
       "color": "#a330c9",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-51052",
@@ -749,10 +982,14 @@
       ],
       "category": "团队减伤",
       "color": "#c41e3a",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-48792",
@@ -779,10 +1016,14 @@
       ],
       "category": "个人减伤",
       "color": "#c41e3a",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-48707",
@@ -809,10 +1050,14 @@
       ],
       "category": "个人减伤",
       "color": "#c41e3a",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-363534",
@@ -830,10 +1075,14 @@
       "effects": [],
       "category": "治疗",
       "color": "#33937f",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-363916",
@@ -860,10 +1109,14 @@
       ],
       "category": "个人减伤",
       "color": "#33937f",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-374227",
@@ -890,10 +1143,14 @@
       ],
       "category": "团队减伤",
       "color": "#33937f",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-357170",
@@ -920,10 +1177,14 @@
       ],
       "category": "外部减伤",
       "color": "#33937f",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-186265",
@@ -949,10 +1210,14 @@
       ],
       "category": "免疫",
       "color": "#aad372",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-264735",
@@ -979,10 +1244,14 @@
       ],
       "category": "个人减伤",
       "color": "#aad372",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-45438",
@@ -1008,10 +1277,14 @@
       ],
       "category": "免疫",
       "color": "#3fc7eb",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-110959",
@@ -1038,10 +1311,14 @@
       ],
       "category": "个人减伤",
       "color": "#3fc7eb",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-414660",
@@ -1069,10 +1346,14 @@
       ],
       "category": "团队减伤",
       "color": "#3fc7eb",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-31224",
@@ -1097,10 +1378,14 @@
       ],
       "category": "免疫",
       "color": "#fff468",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-5277",
@@ -1127,10 +1412,14 @@
       ],
       "category": "个人减伤",
       "color": "#fff468",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-1966",
@@ -1157,10 +1446,14 @@
       ],
       "category": "个人减伤",
       "color": "#fff468",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-104773",
@@ -1187,10 +1480,14 @@
       ],
       "category": "个人减伤",
       "color": "#8788ee",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     },
     {
       "id": "spell-108416",
@@ -1218,10 +1515,14 @@
       ],
       "category": "个人减伤",
       "color": "#8788ee",
-      "catalogVersion": "retail-structure-2026-08",
+      "catalogVersion": "builtin-seed-v3",
       "dataStatus": "unconfigured",
       "enabled": true,
-      "gameVersion": "retail"
+      "gameVersion": "retail-12.1",
+      "castType": "unknown",
+      "maxCharges": 1,
+      "variants": [],
+      "limitations": []
     }
   ],
   "bossMechanics": [

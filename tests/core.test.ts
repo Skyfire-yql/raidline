@@ -17,7 +17,8 @@ import {
   syncLinkedAssignments,
 } from "../lib/core.ts";
 import { applyCatalogPreset, catalogDifference, SEED_CATALOG, validateCatalogRelease } from "../lib/catalog.ts";
-import { cooldownsForClass, specializationFor, specializationLabel, specializationsForClass } from "../lib/cooldowns.ts";
+import { cooldownsForClass, cooldownsForMember, specializationFor, specializationLabel, specializationsForClass } from "../lib/cooldowns.ts";
+import { memberSkillVariantId, resolveCooldownForMember, setMemberSkillVariant } from "../lib/skills.ts";
 import { EDIT_ID_PATTERN, randomBase62, SHARE_ID_PATTERN } from "../lib/publication-ids.ts";
 import { isExpectedRevision, snapshotIdsToDelete } from "../lib/local-policy.ts";
 import type { CooldownDefinition, CooldownEffect, RaidMechanic, TargetSelection } from "../lib/types.ts";
@@ -45,7 +46,7 @@ function mechanic(id: string, atMs: number, amount: number | null, targets: Targ
 }
 
 function cooldown(id: string, effects: CooldownEffect[], extra: Partial<CooldownDefinition> = {}): CooldownDefinition {
-  return {
+  const result = {
     id,
     name: id,
     description: "测试技能",
@@ -53,36 +54,42 @@ function cooldown(id: string, effects: CooldownEffect[], extra: Partial<Cooldown
     specSlugs: [],
     scope: "team",
     cooldownMs: 60_000,
+    castType: "instant",
     castTimeMs: 0,
     durationMs: 120_000,
     triggersGcd: false,
+    maxCharges: 1,
     maxTargets: null,
     effects,
+    variants: [],
+    limitations: [],
     category: "团队减伤",
     color: "#fff",
     catalogVersion: "test",
     dataStatus: "custom",
     ...extra,
-  };
+  } as CooldownDefinition;
+  if (extra.castType == null && extra.castTimeMs != null) result.castType = extra.castTimeMs === 0 ? "instant" : "cast";
+  return result;
 }
 
 function assignment(id: string, memberId: string, cooldownId: string, atMs = 0, targets: TargetSelection = ALL_TARGETS) {
   return { id, memberId, cooldownId, atMs, targets: structuredClone(targets), note: "", source: "manual" as const };
 }
 
-test("migrates v1 to v4 while preserving old numeric data as legacy", () => {
+test("migrates v1 to v5 while preserving old numeric data as legacy", () => {
   const v1 = {
     schemaVersion: 1,
     encounter: { name: "旧计划", difficulty: "英雄", durationMs: 120_000 },
     roster: [member("m1")],
     phases: [{ id: "p1", name: "P1", atMs: 0 }],
     mechanics: [{ id: "mec", name: "旧机制", atMs: 10_000, durationMs: 5000, severity: "warning", source: "manual", note: "旧备注" }],
-    cooldowns: [{ id: "old", name: "旧技能", classSlug: "Priest", cooldownMs: 180_000, durationMs: 8000, category: "减伤", color: "#fff" }],
+    cooldowns: [{ id: "old", name: "旧技能", classSlug: "Priest", cooldownMs: 180_000, castTimeMs: 2500, durationMs: 8000, category: "减伤", color: "#fff" }],
     assignments: [{ id: "a1", memberId: "m1", cooldownId: "old", mechanicId: "mec", atMs: 7000, note: "", source: "manual" }],
     settings: { snapMs: 1000, zoom: 1.5, showMinorMechanics: true },
   };
   const plan = normalizePlanDocument(v1);
-  assert.equal(plan.schemaVersion, 4);
+  assert.equal(plan.schemaVersion, 5);
   assert.equal("difficulty" in plan.encounter, false);
   assert.equal("durationMs" in plan.encounter, false);
   assert.deepEqual(plan.timelineNotes, []);
@@ -92,15 +99,20 @@ test("migrates v1 to v4 while preserving old numeric data as legacy", () => {
   assert.equal(plan.cooldowns[0].cooldownMs, 180_000);
   assert.equal(plan.cooldowns[0].durationMs, 8000);
   assert.equal(plan.cooldowns[0].dataStatus, "legacy");
+  assert.equal(plan.cooldowns[0].castType, "cast");
+  assert.equal(plan.cooldowns[0].castTimeMs, 2500);
+  assert.equal(plan.cooldowns[0].maxCharges, 1);
+  assert.deepEqual(plan.cooldowns[0].variants, []);
+  assert.deepEqual(plan.memberSkillVariants, []);
   assert.equal(plan.assignments[0].targets.mode, "inherit");
   assert.equal(plan.assignments[0].offsetMs, -3000);
   assert.equal(plan.settings.referenceMaxHealth, null);
   assert.equal(plan.settings.pressureResetMs, 10_000);
 });
 
-test("distinguishes unknown null from explicit zero and validates v4 documents", () => {
+test("distinguishes unknown null from explicit zero and validates v5 documents", () => {
   const plan = createBlankPlan();
-  assert.equal(plan.schemaVersion, 4);
+  assert.equal(plan.schemaVersion, 5);
   assert.equal(plan.roster.length, 20);
   assert.equal("durationMs" in plan.encounter, false);
   assert.equal("snapMs" in plan.settings, false);
@@ -108,7 +120,9 @@ test("distinguishes unknown null from explicit zero and validates v4 documents",
   assert.equal(plan.roster[0].name, "成员 01");
   assert.equal(plan.roster[19].name, "成员 20");
   assert.ok(plan.roster.every((item) => item.classSlug === ""));
-  assert.equal(plan.cooldowns[0].cooldownMs, null);
+  assert.equal(plan.cooldowns[0].cooldownMs, 180_000);
+  assert.equal(plan.cooldowns[0].dataStatus, "needs-live-check");
+  assert.ok(plan.cooldowns.some((item) => item.dataStatus === "unconfigured" && item.cooldownMs == null));
   const unknown = mechanic("unknown", 10_000, 100_000, ALL_TARGETS, { castTimeMs: null });
   const instant = mechanic("instant", 10_000, 100_000, ALL_TARGETS, { castTimeMs: 0, durationMs: 0 });
   assert.deepEqual(buildMechanicDamageEvents(unknown), []);
@@ -126,6 +140,40 @@ test("filters skills only after a class is selected", () => {
   assert.ok(priestSkills.length > 0);
   assert.ok(priestSkills.every((item) => item.classSlug === "Priest"));
   assert.ok(priestSkills.length < plan.cooldowns.length);
+});
+
+test("ships the five 12.1 Priest pilot skills while keeping every other skill selectable but unconfigured", () => {
+  const release = validateCatalogRelease(SEED_CATALOG);
+  assert.equal(release.manifest.schemaVersion, 3);
+  assert.equal(release.manifest.version, "builtin-seed-v3");
+  assert.equal(release.manifest.gameVersion, "retail-12.1");
+  const priest = release.playerSkills.filter((item) => item.classSlug === "Priest");
+  assert.equal(priest.length, 5);
+  assert.ok(priest.every((item) => item.dataStatus === "needs-live-check"));
+  assert.equal(release.playerSkills.filter((item) => item.classSlug !== "Priest" && item.dataStatus === "unconfigured").length, 37);
+  const barrier = priest.find((item) => item.id === "spell-62618")!;
+  assert.deepEqual(barrier.specSlugs, ["discipline"]);
+  assert.equal(barrier.cooldownMs, 180_000);
+  assert.equal(barrier.effects[0].type === "damageReduction" ? barrier.effects[0].percent : null, 20);
+  const hymn = priest.find((item) => item.id === "spell-64843")!;
+  assert.equal(hymn.castType, "channel");
+  assert.equal(hymn.castTimeMs, 5000);
+  assert.equal(hymn.variants[0].overrides.cooldownMs, 120_000);
+  const suppression = priest.find((item) => item.id === "spell-33206")!;
+  assert.equal(suppression.variants[0].overrides.maxCharges, 2);
+  assert.match(suppression.variants[0].limitations[0], /动态冷却缩减未计算/);
+});
+
+test("shows only class-wide skills before a specialization is selected", () => {
+  const plan = createBlankPlan();
+  const general = cooldownsForMember(plan.cooldowns, { classSlug: "Priest", specSlug: "" });
+  assert.deepEqual(general.map((item) => item.id), ["spell-19236"]);
+  const discipline = cooldownsForMember(plan.cooldowns, { classSlug: "Priest", specSlug: "discipline" });
+  assert.deepEqual(discipline.map((item) => item.id), ["spell-62618", "spell-33206", "spell-19236"]);
+  const holy = cooldownsForMember(plan.cooldowns, { classSlug: "Priest", specSlug: "holy" });
+  assert.deepEqual(holy.map((item) => item.id), ["spell-64843", "spell-19236"]);
+  const shadow = cooldownsForMember(plan.cooldowns, { classSlug: "Priest", specSlug: "shadow" });
+  assert.deepEqual(shadow.map((item) => item.id), ["spell-19236", "spell-47585"]);
 });
 
 test("maps specialization dropdown values to labels and roles", () => {
@@ -284,6 +332,60 @@ test("detects cast overlap, explicit GCD spacing, cooldowns, and leaves zero-len
   assert.ok(!warnings.some((item) => item.assignmentId === "a4" && (item.type === "cast" || item.type === "gcd")));
 });
 
+test("stores one variant per member and applies serial two-charge recovery", () => {
+  const plan = createBlankPlan();
+  plan.roster = [{ ...member("priest"), specSlug: "discipline", role: "healer" }];
+  const suppression = plan.cooldowns.find((item) => item.id === "spell-33206")!;
+  assert.equal(resolveCooldownForMember(plan, "priest", suppression)?.maxCharges, 1);
+  setMemberSkillVariant(plan, "priest", suppression.id, "protector-of-the-frail");
+  assert.equal(memberSkillVariantId(plan, "priest", suppression.id), "protector-of-the-frail");
+  const resolved = resolveCooldownForMember(plan, "priest", suppression)!;
+  assert.equal(resolved.maxCharges, 2);
+  assert.equal(resolved.selectedVariant?.name, "Protector of the Frail");
+  assert.match(resolved.limitations.join(" "), /动态冷却缩减未计算/);
+  plan.assignments = [
+    assignment("charge-1", "priest", suppression.id, 0),
+    assignment("charge-2", "priest", suppression.id, 1000),
+    assignment("too-early-1", "priest", suppression.id, 2000),
+    assignment("charge-3", "priest", suppression.id, 180_000),
+    assignment("too-early-2", "priest", suppression.id, 181_000),
+    assignment("charge-4", "priest", suppression.id, 360_000),
+  ];
+  const cooldownWarnings = detectConflicts(plan).filter((item) => item.type === "cooldown");
+  assert.deepEqual(cooldownWarnings.map((item) => item.assignmentId), ["too-early-1", "too-early-2"]);
+});
+
+test("starts channel effects immediately while keeping the caster occupied", () => {
+  const plan = createBlankPlan();
+  plan.roster = [member("m1")];
+  plan.mechanics = [mechanic("during-channel", 1000, 100)];
+  plan.cooldowns = [
+    cooldown("channel", [{ type: "damageReduction", percent: 50, schools: ["magic"] }], { castType: "channel", castTimeMs: 5000, durationMs: 5000 }),
+    cooldown("instant", [], { castType: "instant", castTimeMs: 0 }),
+  ];
+  plan.assignments = [assignment("channel-use", "m1", "channel", 0), assignment("overlap", "m1", "instant", 1000)];
+  assert.equal(calculateMechanicPressure(plan)[0].members[0].currentDamage, 50);
+  assert.ok(detectConflicts(plan).some((item) => item.assignmentId === "overlap" && item.type === "cast"));
+});
+
+test("warns instead of deleting a skill after the member specialization changes", () => {
+  const plan = createBlankPlan();
+  plan.roster = [{ ...member("priest"), specSlug: "holy", role: "healer" }];
+  plan.assignments = [assignment("barrier", "priest", "spell-62618")];
+  assert.ok(detectConflicts(plan).some((item) => item.assignmentId === "barrier" && item.type === "ownership" && /专精/.test(item.message)));
+  assert.equal(plan.assignments.length, 1);
+});
+
+test("requires a live or Blizzard source plus a community cross-check before verified status", () => {
+  const release = structuredClone(validateCatalogRelease(SEED_CATALOG));
+  const barrier = release.playerSkills.find((item) => item.id === "spell-62618")!;
+  barrier.dataStatus = "verified";
+  barrier.verification = { gameVersion: barrier.gameVersion, checkedAt: Date.now(), clientBuild: "12.1.0", sources: [{ kind: "in-game", label: "正式服客户端" }] };
+  assert.throws(() => validateCatalogRelease(release), /社区复核/);
+  barrier.verification.sources.push({ kind: "community", label: "Wowhead", url: "https://www.wowhead.com/ptr/spell=62618/power-word-barrier" });
+  assert.doesNotThrow(() => validateCatalogRelease(release));
+});
+
 test("uses the three-second defensive lead, healing cast back-timing, and linked offsets", () => {
   const plan = createBlankPlan();
   const hit = mechanic("hit", 10_000, 100, ALL_TARGETS, { castTimeMs: 2000 });
@@ -304,8 +406,9 @@ test("catalog presets snapshot referenced mechanics and preserve player-owned sc
   plan.groups = [{ id: "g1", name: "左场", color: "#f00" }];
   plan.roster = [member("m1", "Priest", "g1")];
   plan.assignments = [assignment("a1", "m1", plan.cooldowns[0].id)];
+  setMemberSkillVariant(plan, "m1", "spell-33206", "protector-of-the-frail");
   const release = validateCatalogRelease(SEED_CATALOG);
-  assert.equal(release.manifest.schemaVersion, 2);
+  assert.equal(release.manifest.schemaVersion, 3);
   const preset = release.timelinePresets[0];
   const applied = applyCatalogPreset(plan, release, preset);
   assert.equal(applied.encounter.name, "基础机制示例");
@@ -316,6 +419,7 @@ test("catalog presets snapshot referenced mechanics and preserve player-owned sc
   assert.deepEqual(applied.groups, plan.groups);
   assert.deepEqual(applied.cooldowns.map((item) => item.id), release.playerSkills.map((item) => item.id));
   assert.deepEqual(applied.assignments, []);
+  assert.deepEqual(applied.memberSkillVariants, []);
   assert.deepEqual(applied.timelineNotes, preset.timelineNotes);
   assert.equal(applied.catalogSource?.version, release.manifest.version);
   const broken = structuredClone(release);
@@ -340,22 +444,35 @@ test("only offers a catalog upgrade for real built-in skill differences", () => 
   assert.equal(catalogDifference(plan, changed).changedSkills, 0);
 });
 
-test("migrates existing v2 and v3 plans to v4 locally", () => {
+test("migrates existing v2, v3, and v4 plans to v5 locally", () => {
   const source = structuredClone(createBlankPlan()) as unknown as Record<string, unknown>;
   source.schemaVersion = 2;
   source.encounter = { name: "旧计划", difficulty: "史诗", durationMs: 600_000 };
   source.settings = { snapMs: 5000, showMinorMechanics: true, referenceMaxHealth: null, pressureResetMs: 10_000, defensiveLeadMs: 3000 };
+  const oldSkill = (source.cooldowns as Array<Record<string, unknown>>)[0];
+  oldSkill.castTimeMs = 2500;
+  delete oldSkill.castType;
+  delete oldSkill.maxCharges;
+  delete oldSkill.variants;
+  delete oldSkill.limitations;
+  delete oldSkill.verification;
   const migrated = normalizePlanDocument(source);
-  assert.equal(migrated.schemaVersion, 4);
+  assert.equal(migrated.schemaVersion, 5);
   assert.equal(migrated.encounter.name, "旧计划");
   assert.equal("difficulty" in migrated.encounter, false);
   assert.equal("durationMs" in migrated.encounter, false);
   assert.equal("snapMs" in migrated.settings, false);
+  assert.equal(migrated.cooldowns[0].castType, "cast");
+  assert.equal(migrated.cooldowns[0].castTimeMs, 2500);
+  assert.equal(migrated.cooldowns[0].maxCharges, 1);
+  assert.deepEqual(migrated.cooldowns[0].variants, []);
   source.schemaVersion = 3;
-  assert.equal(normalizePlanDocument(source).schemaVersion, 4);
+  assert.equal(normalizePlanDocument(source).schemaVersion, 5);
+  source.schemaVersion = 4;
+  assert.equal(normalizePlanDocument(source).schemaVersion, 5);
 });
 
-test("migrates v1 catalogs to v2 without difficulty or fixed preset duration", () => {
+test("migrates v1 and v2 catalogs to v3 without difficulty or fixed preset duration", () => {
   const legacy = structuredClone(SEED_CATALOG) as unknown as {
     manifest: { schemaVersion: number; version: string };
     bossMechanics: Array<Record<string, unknown>>;
@@ -368,11 +485,13 @@ test("migrates v1 catalogs to v2 without difficulty or fixed preset duration", (
   legacy.timelinePresets[0].encounter = { name: "旧预设", difficulty: "史诗", durationMs: 600_000 };
   delete legacy.timelinePresets[0].timelineNotes;
   const migrated = validateCatalogRelease(legacy);
-  assert.equal(migrated.manifest.schemaVersion, 2);
+  assert.equal(migrated.manifest.schemaVersion, 3);
   assert.equal("difficulties" in migrated.bossMechanics[0], false);
   assert.equal("difficulties" in migrated.timelinePresets[0], false);
   assert.deepEqual(migrated.timelinePresets[0].encounter, { name: "旧预设" });
   assert.deepEqual(migrated.timelinePresets[0].timelineNotes, []);
+  assert.equal(migrated.playerSkills[0].maxCharges, 1);
+  assert.ok(["instant", "cast", "channel", "unknown"].includes(migrated.playerSkills[0].castType));
 });
 
 test("generates exact base62 publication identifiers without modulo bias", () => {

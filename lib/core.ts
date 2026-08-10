@@ -1,4 +1,10 @@
 import { DEFAULT_COOLDOWNS, WOW_CLASS_COLORS, specializationFor } from "./cooldowns.ts";
+import {
+  normalizeCooldownDefinition,
+  resolveCooldownForMember,
+  skillBusyEndMs,
+  skillEffectStartMs,
+} from "./skills.ts";
 import type {
   CooldownDefinition,
   CooldownEffect,
@@ -17,6 +23,7 @@ export const PLAN_LIMITS = {
   timelineNotes: 1500,
   mechanics: 1500,
   cooldowns: 250,
+  memberSkillVariants: 3000,
   assignments: 3000,
   bytes: 1_000_000,
 } as const;
@@ -47,7 +54,7 @@ export function makeId(prefix = "id") {
 
 export function createBlankPlan(title = "新建团本排轴", initialPhaseId = makeId("phase")): RaidPlanDocument {
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     encounter: { name: title },
     groups: [],
     roster: createDefaultRoster(),
@@ -55,6 +62,7 @@ export function createBlankPlan(title = "新建团本排轴", initialPhaseId = m
     timelineNotes: [],
     mechanics: [],
     cooldowns: DEFAULT_COOLDOWNS.map((item) => structuredClone(item)),
+    memberSkillVariants: [],
     assignments: [],
     settings: {
       showMinorMechanics: true,
@@ -114,48 +122,18 @@ function normalizedTarget(value: unknown, fallback: TargetSelection = ALL_TARGET
   };
 }
 
-function normalizeEffect(value: unknown): CooldownEffect | null {
-  if (!value || typeof value !== "object") return null;
-  const effect = value as Record<string, unknown>;
-  const schools: DamageSchool[] = Array.isArray(effect.schools)
-    ? effect.schools.filter((item): item is DamageSchool => item === "physical" || item === "magic")
-    : ["physical", "magic"];
-  if (effect.type === "damageReduction") return { type: "damageReduction", percent: nullableNumber(effect.percent), schools };
-  if (effect.type === "absorb") return { type: "absorb", amount: nullableNumber(effect.amount), allocation: effect.allocation === "shared" ? "shared" : "perTarget", schools };
-  if (effect.type === "maxHealth") return { type: "maxHealth", percent: nullableNumber(effect.percent) };
-  if (effect.type === "immunity") return { type: "immunity", schools };
-  return null;
-}
-
 function normalizeCooldown(value: Record<string, unknown>, legacy = false): CooldownDefinition {
-  const oldCategory = String(value.category ?? "自定义");
-  const category = legacy && oldCategory === "减伤" ? "团队减伤" : oldCategory;
-  return {
-    id: String(value.id ?? makeId("spell")),
-    ...(value.spellId == null ? {} : { spellId: Number(value.spellId) }),
-    name: String(value.name ?? "未命名技能"),
-    description: String(value.description ?? ""),
-    classSlug: String(value.classSlug ?? "Warrior"),
-    specSlugs: Array.isArray(value.specSlugs) ? value.specSlugs.map(String) : [],
-    scope: value.scope === "personal" || value.scope === "external" ? value.scope : "team",
-    cooldownMs: nullableNumber(value.cooldownMs),
-    castTimeMs: legacy ? 0 : nullableNumber(value.castTimeMs),
-    durationMs: nullableNumber(value.durationMs),
-    triggersGcd: typeof value.triggersGcd === "boolean" ? value.triggersGcd : null,
-    maxTargets: nullableNumber(value.maxTargets),
-    effects: Array.isArray(value.effects) ? value.effects.map(normalizeEffect).filter((item): item is CooldownEffect => Boolean(item)) : [],
-    category: (["团队减伤", "外部减伤", "个人减伤", "治疗", "免疫", "位移", "自定义"].includes(category) ? category : "自定义") as CooldownDefinition["category"],
-    color: String(value.color ?? WOW_CLASS_COLORS[String(value.classSlug)] ?? "#7b8490"),
-    catalogVersion: String(value.catalogVersion ?? (legacy ? "legacy-v1" : "custom")),
-    dataStatus: legacy ? "legacy" : value.dataStatus === "unconfigured" || value.dataStatus === "legacy" ? value.dataStatus : "custom",
-  };
+  const normalized = normalizeCooldownDefinition(value, { legacy, defaultStatus: "custom" });
+  if (!value.color) normalized.color = WOW_CLASS_COLORS[normalized.classSlug] ?? "#7b8490";
+  if (normalized.id === "skill-missing-id") normalized.id = makeId("spell");
+  return normalized;
 }
 
 export function normalizePlanDocument(value: unknown): RaidPlanDocument {
   if (!value || typeof value !== "object") throw new Error("计划内容不是有效对象");
   const source = structuredClone(value) as Record<string, unknown>;
   const legacy = source.schemaVersion === 1;
-  if (!legacy && source.schemaVersion !== 2 && source.schemaVersion !== 3 && source.schemaVersion !== 4) throw new Error("不支持的计划版本");
+  if (!legacy && source.schemaVersion !== 2 && source.schemaVersion !== 3 && source.schemaVersion !== 4 && source.schemaVersion !== 5) throw new Error("不支持的计划版本");
   const encounter = (source.encounter ?? {}) as Record<string, unknown>;
   const oldSettings = (source.settings ?? {}) as Record<string, unknown>;
   const rawMechanics = Array.isArray(source.mechanics) ? source.mechanics as Array<Record<string, unknown>> : [];
@@ -198,7 +176,7 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
     };
   });
   const document: RaidPlanDocument = {
-    schemaVersion: 4,
+    schemaVersion: 5,
     encounter: {
       name: String(encounter.name ?? "未命名排轴"),
       ...(encounter.source ? { source: encounter.source as RaidPlanDocument["encounter"]["source"] } : {}),
@@ -225,6 +203,10 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
     })),
     mechanics,
     cooldowns,
+    memberSkillVariants: [...new Map((Array.isArray(source.memberSkillVariants) ? source.memberSkillVariants as Array<Record<string, unknown>> : [])
+      .map((item) => ({ memberId: String(item.memberId ?? ""), cooldownId: String(item.cooldownId ?? ""), variantId: String(item.variantId ?? "") }))
+      .filter((item) => item.memberId && item.cooldownId && item.variantId)
+      .map((item) => [`${item.memberId}:${item.cooldownId}`, item] as const)).values()],
     assignments,
     settings: {
       showMinorMechanics: oldSettings.showMinorMechanics !== false,
@@ -247,12 +229,12 @@ export function normalizePlanDocument(value: unknown): RaidPlanDocument {
 export function assertPlanDocument(value: unknown): asserts value is RaidPlanDocument {
   if (!value || typeof value !== "object") throw new Error("计划内容不是有效对象");
   const plan = value as Partial<RaidPlanDocument>;
-  if (plan.schemaVersion !== 4) throw new Error("不支持的计划版本");
+  if (plan.schemaVersion !== 5) throw new Error("不支持的计划版本");
   if (!plan.encounter || typeof plan.encounter.name !== "string") throw new Error("战斗信息不完整");
   const arrays: Array<[keyof RaidPlanDocument, number]> = [
     ["groups", PLAN_LIMITS.groups], ["roster", PLAN_LIMITS.roster], ["phases", PLAN_LIMITS.phases],
     ["timelineNotes", PLAN_LIMITS.timelineNotes],
-    ["mechanics", PLAN_LIMITS.mechanics], ["cooldowns", PLAN_LIMITS.cooldowns], ["assignments", PLAN_LIMITS.assignments],
+    ["mechanics", PLAN_LIMITS.mechanics], ["cooldowns", PLAN_LIMITS.cooldowns], ["memberSkillVariants", PLAN_LIMITS.memberSkillVariants], ["assignments", PLAN_LIMITS.assignments],
   ];
   for (const [key, limit] of arrays) {
     if (!Array.isArray(plan[key])) throw new Error(`计划缺少 ${key}`);
@@ -271,6 +253,25 @@ export function assertPlanDocument(value: unknown): asserts value is RaidPlanDoc
     for (const value of [cooldown.cooldownMs, cooldown.castTimeMs, cooldown.durationMs, cooldown.maxTargets]) {
       if (value != null && (!Number.isFinite(value) || value < 0)) throw new Error("技能时间和人数不能为负数");
     }
+    if (!Number.isInteger(cooldown.maxCharges) || cooldown.maxCharges < 1) throw new Error("技能充能层数必须是正整数");
+    if (cooldown.castType === "instant" && cooldown.castTimeMs !== 0) throw new Error("瞬发技能的施法时间必须为 0");
+    if (cooldown.castType === "unknown" && cooldown.castTimeMs !== null) throw new Error("未知施法类型不能保存施法时间");
+    const variantIds = new Set<string>();
+    for (const variant of cooldown.variants) {
+      if (!variant.id || variantIds.has(variant.id)) throw new Error(`技能 ${cooldown.name} 的变体 ID 无效或重复`);
+      variantIds.add(variant.id);
+      if (variant.overrides.maxCharges != null && (!Number.isInteger(variant.overrides.maxCharges) || variant.overrides.maxCharges < 1)) throw new Error("技能变体充能层数必须是正整数");
+    }
+  }
+  const memberIds = new Set((plan.roster ?? []).map((item) => item.id));
+  const cooldownMap = new Map((plan.cooldowns ?? []).map((item) => [item.id, item]));
+  const selectionKeys = new Set<string>();
+  for (const selection of plan.memberSkillVariants ?? []) {
+    const key = `${selection.memberId}:${selection.cooldownId}`;
+    const cooldown = cooldownMap.get(selection.cooldownId);
+    if (selectionKeys.has(key)) throw new Error("同一成员和技能只能选择一个变体");
+    if (!memberIds.has(selection.memberId) || !cooldown || !cooldown.variants.some((item) => item.id === selection.variantId)) throw new Error("成员技能变体引用无效");
+    selectionKeys.add(key);
   }
   if (new TextEncoder().encode(JSON.stringify(plan)).byteLength > PLAN_LIMITS.bytes) throw new Error("计划内容超过 1 MB 限制");
 }
@@ -286,7 +287,9 @@ export function isDefensiveCooldown(cooldown: CooldownDefinition) {
 
 export function defaultAssignmentStart(plan: RaidPlanDocument, cooldown: CooldownDefinition, mechanic: RaidMechanic) {
   const impact = mechanicImpactMs(mechanic);
-  return Math.max(0, isDefensiveCooldown(cooldown) ? impact - plan.settings.defensiveLeadMs : impact - (cooldown.castTimeMs ?? 0));
+  return Math.max(0, isDefensiveCooldown(cooldown)
+    ? impact - plan.settings.defensiveLeadMs
+    : cooldown.castType === "cast" ? impact - (cooldown.castTimeMs ?? 0) : impact);
 }
 
 export function syncLinkedAssignments(plan: RaidPlanDocument, mechanicId: string) {
@@ -381,11 +384,10 @@ function effectApplies(effect: CooldownEffect, school: DamageSchool) {
 }
 
 function resolveEffects(plan: RaidPlanDocument): ResolvedEffect[] {
-  const cooldownMap = new Map(plan.cooldowns.map((item) => [item.id, item]));
   const mechanicMap = new Map(plan.mechanics.map((item) => [item.id, item]));
   const resolved: ResolvedEffect[] = [];
   for (const assignment of plan.assignments) {
-    const cooldown = cooldownMap.get(assignment.cooldownId);
+    const cooldown = resolveCooldownForMember(plan, assignment.memberId, assignment.cooldownId);
     // null 是未知而非瞬发；缺少施法或持续时间时不生成可能误导的效果区间。
     if (!cooldown || cooldown.castTimeMs == null || cooldown.durationMs == null) continue;
     const mechanic = assignment.mechanicId ? mechanicMap.get(assignment.mechanicId) : undefined;
@@ -393,7 +395,7 @@ function resolveEffects(plan: RaidPlanDocument): ResolvedEffect[] {
       ? [assignment.memberId]
       : resolveTargetMemberIds(plan, assignment.targets, assignment, mechanic);
     if (cooldown.maxTargets != null) targetIds = targetIds.slice(0, Math.max(0, cooldown.maxTargets));
-    const startMs = assignment.atMs + (cooldown.castTimeMs ?? 0);
+    const startMs = skillEffectStartMs(assignment.atMs, cooldown);
     const endMs = startMs + cooldown.durationMs;
     for (const effect of cooldown.effects) {
       const entry: ResolvedEffect = { assignment, cooldown, effect, startMs, endMs, targetIds };
@@ -510,14 +512,16 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
   const ordered = [...plan.assignments].sort((left, right) => left.atMs - right.atMs);
   for (const assignment of ordered) {
     const member = members.get(assignment.memberId);
-    const cooldown = cooldowns.get(assignment.cooldownId);
+    const baseCooldown = cooldowns.get(assignment.cooldownId);
+    const cooldown = member && baseCooldown ? resolveCooldownForMember(plan, member.id, baseCooldown) : undefined;
     if (!member || !cooldown) {
       warnings.push({ assignmentId: assignment.id, type: "missing", message: "分配引用了已删除的成员或技能" });
       continue;
     }
-    if (cooldown.castTimeMs == null) warnings.push({ assignmentId: assignment.id, type: "configuration", message: `${cooldown.name} 的施法长度未知；0 才表示明确瞬发` });
+    if (cooldown.castType === "unknown" || cooldown.castTimeMs == null) warnings.push({ assignmentId: assignment.id, type: "configuration", message: `${cooldown.name} 的施法类型或长度未知` });
     if (cooldown.durationMs == null) warnings.push({ assignmentId: assignment.id, type: "configuration", message: `${cooldown.name} 的持续时间未知；0 才表示明确无持续` });
     if (cooldown.classSlug && cooldown.classSlug !== member.classSlug) warnings.push({ assignmentId: assignment.id, type: "ownership", message: `${member.name} 的职业与 ${cooldown.name} 不匹配` });
+    else if (cooldown.specSlugs.length > 0 && !cooldown.specSlugs.includes(member.specSlug)) warnings.push({ assignmentId: assignment.id, type: "ownership", message: `${member.name} 的专精不能使用 ${cooldown.name}` });
     const mechanic = assignment.mechanicId ? mechanics.get(assignment.mechanicId) : undefined;
     const targetIds = cooldown.scope === "personal" ? [member.id] : resolveTargetMemberIds(plan, assignment.targets, assignment, mechanic);
     if (cooldown.maxTargets != null && targetIds.length > cooldown.maxTargets) warnings.push({ assignmentId: assignment.id, type: "target", message: `${cooldown.name} 目标数 ${targetIds.length} 超过上限 ${cooldown.maxTargets}` });
@@ -525,7 +529,7 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
       const damageEvents = buildMechanicDamageEvents(mechanic);
       const first = damageEvents[0]?.atMs ?? mechanicImpactMs(mechanic);
       const last = damageEvents.at(-1)?.atMs ?? first;
-      const effectStart = assignment.atMs + cooldown.castTimeMs;
+      const effectStart = skillEffectStartMs(assignment.atMs, cooldown);
       const effectEnd = effectStart + cooldown.durationMs;
       if (effectStart > first || effectEnd < last) warnings.push({ assignmentId: assignment.id, type: "coverage", message: `${cooldown.name} 未完整覆盖 ${mechanic.name}` });
     }
@@ -538,18 +542,34 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
     byMemberAndSpell.set(key, [...(byMemberAndSpell.get(key) ?? []), assignment]);
   }
   for (const assignments of byMemberAndSpell.values()) {
-    for (let index = 1; index < assignments.length; index += 1) {
-      const current = assignments[index]; const previous = assignments[index - 1];
-      const cooldown = cooldowns.get(current.cooldownId);
-      if (cooldown?.cooldownMs != null && current.atMs - previous.atMs < cooldown.cooldownMs) warnings.push({ assignmentId: current.id, type: "cooldown", message: `${cooldown.name} 尚未冷却完成` });
+    const first = assignments[0];
+    const cooldown = first ? resolveCooldownForMember(plan, first.memberId, first.cooldownId) : undefined;
+    if (!cooldown || cooldown.cooldownMs == null || cooldown.cooldownMs <= 0) continue;
+    let availableCharges = cooldown.maxCharges;
+    let missingCharges = 0;
+    let nextRechargeAt: number | null = null;
+    for (const assignment of assignments) {
+      while (nextRechargeAt != null && nextRechargeAt <= assignment.atMs) {
+        availableCharges = Math.min(cooldown.maxCharges, availableCharges + 1);
+        missingCharges = Math.max(0, missingCharges - 1);
+        nextRechargeAt = missingCharges > 0 ? nextRechargeAt + cooldown.cooldownMs : null;
+      }
+      if (availableCharges <= 0) {
+        warnings.push({ assignmentId: assignment.id, type: "cooldown", message: `${cooldown.name} 的充能尚未恢复` });
+        continue;
+      }
+      availableCharges -= 1;
+      missingCharges += 1;
+      if (nextRechargeAt == null) nextRechargeAt = assignment.atMs + cooldown.cooldownMs;
     }
   }
   for (const assignments of byMember.values()) {
     for (let index = 1; index < assignments.length; index += 1) {
       const current = assignments[index]; const previous = assignments[index - 1];
-      const currentCooldown = cooldowns.get(current.cooldownId); const previousCooldown = cooldowns.get(previous.cooldownId);
+      const currentCooldown = resolveCooldownForMember(plan, current.memberId, current.cooldownId);
+      const previousCooldown = resolveCooldownForMember(plan, previous.memberId, previous.cooldownId);
       if (!currentCooldown || !previousCooldown) continue;
-      const previousEnd = previous.atMs + (previousCooldown.castTimeMs ?? 0);
+      const previousEnd = skillBusyEndMs(previous.atMs, previousCooldown);
       if (current.atMs < previousEnd) warnings.push({ assignmentId: current.id, type: "cast", message: `${members.get(current.memberId)?.name ?? "成员"} 的施法区间重叠` });
       if (currentCooldown.triggersGcd === true && previousCooldown.triggersGcd === true && current.atMs - previous.atMs < 1500) warnings.push({ assignmentId: current.id, type: "gcd", message: "两项占用 GCD 的技能相隔不足 1.5 秒" });
     }

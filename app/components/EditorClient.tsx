@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  cooldownsForClass,
+  cooldownsForMember,
   specializationFor,
   specializationsForClass,
   WOW_CLASS_COLORS,
@@ -19,6 +19,7 @@ import type { ConflictWarning } from "@/lib/core";
 import { catalogDifference, SEED_CATALOG } from "@/lib/catalog";
 import { hashPlanDocument } from "@/lib/hashing";
 import { randomBase62 } from "@/lib/publication-ids";
+import { memberSkillVariantId, resolveCooldownForMember, setMemberSkillVariant, skillDataStatusLabel } from "@/lib/skills";
 import type { ApiError, CatalogRelease, CooldownDefinition, LocalPlanRecord, PlanSnapshot, PublicPublication, PublicationBinding, RaidAssignment, RaidMechanic, RaidPhase, RaidPlanDocument, RaidTimelineNote, RosterMember, TargetSelection } from "@/lib/types";
 import { anchoredScroll, defaultOrientation, shouldInterceptTimelineWheel, viewPreferenceKey, zoomFromWheel, type TimelineOrientation } from "@/lib/view";
 import { ThemeControl } from "./ThemeControl";
@@ -34,6 +35,21 @@ const roleLabels = { tank: "坦克", healer: "治疗", damage: "输出" } as con
 
 function clonePlan(plan: RaidPlanDocument) { return structuredClone(plan); }
 function currentTimestamp() { return Date.now(); }
+function skillTimingSummary(cooldown: Pick<CooldownDefinition, "cooldownMs" | "maxCharges" | "durationMs">) {
+  const cooldownText = cooldown.cooldownMs == null ? "冷却待补" : `${cooldown.cooldownMs / 1000} 秒冷却`;
+  const chargeText = cooldown.maxCharges > 1 ? ` · ${cooldown.maxCharges} 层充能` : "";
+  const durationText = cooldown.durationMs == null ? " · 持续待补" : ` · 持续 ${cooldown.durationMs / 1000} 秒`;
+  return `${cooldownText}${chargeText}${durationText}`;
+}
+function skillEffectSummary(cooldown: CooldownDefinition) {
+  if (!cooldown.effects.length) return "无结构化数值效果";
+  return cooldown.effects.map((effect) => {
+    if (effect.type === "damageReduction") return effect.percent == null ? "减伤待补" : `${effect.percent}% 减伤`;
+    if (effect.type === "maxHealth") return effect.percent == null ? "最大生命待补" : `最大生命 +${effect.percent}%`;
+    if (effect.type === "immunity") return "免疫";
+    return effect.amount == null ? "吸收量待补" : `吸收 ${effect.amount}`;
+  }).join("、");
+}
 
 function TimeField({ value, onCommit, label = "时间" }: { value: number; onCommit: (value: number) => void; label?: string }) {
   const [draft, setDraft] = useState(formatTime(value));
@@ -205,7 +221,8 @@ export function EditorClient({ planId }: { planId: string }) {
 
   const warnings = useMemo(() => plan ? detectConflicts(plan) : [], [plan]);
   const warningIds = useMemo(() => new Set(warnings.flatMap((item) => item.assignmentId ? [item.assignmentId] : [])), [warnings]);
-  const classCooldowns = useMemo(() => cooldownsForClass(plan?.cooldowns ?? [], skillClassSlug), [plan?.cooldowns, skillClassSlug]);
+  const skillMember = plan?.roster.find((item) => item.id === skillMemberId);
+  const classCooldowns = useMemo(() => cooldownsForMember(plan?.cooldowns ?? [], skillMember), [plan?.cooldowns, skillMember]);
 
   if (fatal) return <main className="state-page"><div className="state-card"><h1>无法打开编辑器</h1><p>{fatal}</p><a className="primary-action" href="/">回到首页</a></div></main>;
   if (!plan || !record) return <main className="state-page"><p>正在读取本地计划…</p></main>;
@@ -239,19 +256,27 @@ export function EditorClient({ planId }: { planId: string }) {
   function addCustomSkill() {
     if (!skillClassSlug) { setToast("请先选择职业"); return; }
     const id = makeId("custom-spell"); const classSlug = skillClassSlug;
-    mutate((draft) => draft.cooldowns.push({ id, name: "自定义技能", description: "", classSlug, specSlugs: [], scope: "team", cooldownMs: null, castTimeMs: null, durationMs: null, triggersGcd: null, maxTargets: null, effects: [], category: "自定义", color: WOW_CLASS_COLORS[classSlug], catalogVersion: "custom", dataStatus: "custom" }), { type: "cooldown", id });
+    mutate((draft) => draft.cooldowns.push({ id, name: "自定义技能", description: "", classSlug, specSlugs: [], scope: "team", cooldownMs: null, castType: "unknown", castTimeMs: null, durationMs: null, triggersGcd: null, maxCharges: 1, maxTargets: null, effects: [], variants: [], limitations: [], category: "自定义", color: WOW_CLASS_COLORS[classSlug], catalogVersion: "custom", dataStatus: "custom" }), { type: "cooldown", id });
     setPanelMode("object");
   }
-  function addAssignment(cooldownId: string) {
+  function addAssignment(cooldownId: string, variantId?: string) {
     const cooldown = activePlan.cooldowns.find((item) => item.id === cooldownId); if (!cooldown) return;
-    const timelineMember = activePlan.roster.find((item) => item.id === skillMemberId && item.classSlug === cooldown.classSlug);
-    const selectedAssignmentMember = selectedAssignment ? activePlan.roster.find((item) => item.id === selectedAssignment.memberId) : null;
-    const preferredMember = selectedMember?.classSlug === cooldown.classSlug ? selectedMember : selectedAssignmentMember?.classSlug === cooldown.classSlug ? selectedAssignmentMember : null;
-    const member = timelineMember ?? preferredMember ?? activePlan.roster.find((item) => item.classSlug === cooldown.classSlug);
+    const member = activePlan.roster.find((item) => item.id === skillMemberId && item.classSlug === cooldown.classSlug);
     if (!member) { setToast(`先为至少一名成员选择${WOW_CLASS_LABELS[cooldown.classSlug] ?? "对应"}职业`); return; }
+    if (variantId && !cooldown.variants.some((item) => item.id === variantId)) { setToast("这个技能变体已不存在，请刷新后重试"); return; }
+    const currentVariantId = memberSkillVariantId(activePlan, member.id, cooldown.id);
+    const hasExistingAssignments = activePlan.assignments.some((item) => item.memberId === member.id && item.cooldownId === cooldown.id);
+    if (currentVariantId !== variantId && hasExistingAssignments && !confirm(`将 ${member.name} 的“${cooldown.name}”统一改为${variantId ? `“${cooldown.variants.find((item) => item.id === variantId)?.name}”` : "基础版本"}？现有分配也会使用这个版本。`)) return;
+    const preview = clonePlan(activePlan);
+    setMemberSkillVariant(preview, member.id, cooldown.id, variantId);
+    const effectiveCooldown = resolveCooldownForMember(preview, member.id, cooldown.id);
+    if (!effectiveCooldown) return;
     const mechanic = selectedMechanic ?? (selectedAssignment?.mechanicId ? activePlan.mechanics.find((item) => item.id === selectedAssignment.mechanicId) : null);
-    const id = makeId("assignment"); const atMs = mechanic ? defaultAssignmentStart(activePlan, cooldown, mechanic) : snapTime(skillInsertionMs);
-    mutate((draft) => draft.assignments.push({ id, memberId: member.id, cooldownId, ...(mechanic ? { mechanicId: mechanic.id, offsetMs: atMs - mechanicImpactMs(mechanic) } : {}), atMs, targets: cooldown.scope === "personal" ? { mode: "members", memberIds: [member.id] } : mechanic ? structuredClone(INHERIT_TARGETS) : structuredClone(ALL_TARGETS), note: "", source: "manual" }), { type: "assignment", id });
+    const id = makeId("assignment"); const atMs = mechanic ? defaultAssignmentStart(activePlan, effectiveCooldown, mechanic) : snapTime(skillInsertionMs);
+    mutate((draft) => {
+      setMemberSkillVariant(draft, member.id, cooldown.id, variantId);
+      draft.assignments.push({ id, memberId: member.id, cooldownId, ...(mechanic ? { mechanicId: mechanic.id, offsetMs: atMs - mechanicImpactMs(mechanic) } : {}), atMs, targets: effectiveCooldown.scope === "personal" ? { mode: "members", memberIds: [member.id] } : mechanic ? structuredClone(INHERIT_TARGETS) : structuredClone(ALL_TARGETS), note: "", source: "manual" });
+    }, { type: "assignment", id });
     setPanelMode("object");
   }
   function moveAssignment(id: string, atMs: number) {
@@ -291,6 +316,13 @@ export function EditorClient({ planId }: { planId: string }) {
     setLeftCollapsed(false);
   }
 
+  function previewVariant(cooldown: CooldownDefinition, variantId?: string) {
+    if (!skillMember) return cooldown;
+    const preview = clonePlan(activePlan);
+    setMemberSkillVariant(preview, skillMember.id, cooldown.id, variantId);
+    return resolveCooldownForMember(preview, skillMember.id, cooldown) ?? cooldown;
+  }
+
   async function copyText(value: string, message: string) { await navigator.clipboard.writeText(value); setToast(message); }
 
   async function refreshSnapshots() { setSnapshots(await listPlanSnapshots(planId)); }
@@ -305,6 +337,8 @@ export function EditorClient({ planId }: { planId: string }) {
     const custom = next.cooldowns.filter((item) => item.dataStatus === "custom" || item.id.startsWith("custom-"));
     const customIds = new Set(custom.map((item) => item.id));
     next.cooldowns = [...catalog.playerSkills.filter((item) => item.enabled && !customIds.has(item.id)).map((item) => { const { enabled: _enabled, gameVersion: _gameVersion, ...skill } = item; void _enabled; void _gameVersion; return structuredClone(skill); }), ...custom];
+    const nextCooldowns = new Map(next.cooldowns.map((item) => [item.id, item]));
+    next.memberSkillVariants = next.memberSkillVariants.filter((selection) => nextCooldowns.get(selection.cooldownId)?.variants.some((variant) => variant.id === selection.variantId));
     next.catalogSource = { version: catalog.manifest.version, appliedAt };
     replacePlan(next); setPanelMode("object"); await refreshSnapshots(); setToast("技能目录已升级；旧机制和时间轴保持不变");
   }
@@ -403,7 +437,14 @@ export function EditorClient({ planId }: { planId: string }) {
     {saveState === "conflict" && <div className="conflict-banner"><span>另一个标签页已保存了更新；当前标签页没有覆盖它。</span><button onClick={() => { if (conflict) { const next = normalizePlanDocument(conflict.document); setPlan(next); planRef.current = next; setRecord(conflict); setLocalRevision(conflict.localRevision); localRevisionRef.current = conflict.localRevision; setConflict(null); setSaveState("saved"); } }}>加载较新本地版本</button><button onClick={async () => { const copy = await createLocalPlan(activePlan); location.assign(`/plans/${copy.id}`); }}>将当前内容另存为副本</button></div>}
     <div className={`editor-table-grid ${leftCollapsed ? "left-collapsed" : ""}`}>
       <aside className={`left-table-panel context-panel ${leftCollapsed ? "collapsed" : ""}`}><button className="panel-collapse" onClick={() => setLeftCollapsed((value) => !value)}>{leftCollapsed ? "›" : "‹"}</button>{!leftCollapsed && <>
-        {panelMode === "skills" && <div className="panel-body skill-picker"><header className="context-heading"><button onClick={() => setPanelMode("object")}>← 返回</button><b>选择技能</b></header><p className="skill-target">分配给：<b>{plan.roster.find((member) => member.id === skillMemberId)?.name}</b><small>{formatTime(skillInsertionMs)} 附近</small></p><button className="secondary-action" onClick={addCustomSkill}>＋ 添加自定义技能</button><div className="skill-list">{classCooldowns.map((cooldown) => <div key={cooldown.id} title={cooldown.description || "暂无说明"}><button onClick={() => { setSelection({ type: "cooldown", id: cooldown.id }); setPanelMode("object"); }}><i style={{ background: cooldown.color }} /><span><strong>{cooldown.name}</strong><small>{cooldown.category} · {cooldown.durationMs == null ? "持续待补" : `${cooldown.durationMs / 1000}s`}</small></span></button><button onClick={() => addAssignment(cooldown.id)} title={`分配 ${cooldown.name}`} aria-label={`分配 ${cooldown.name}`}>＋</button></div>)}{!classCooldowns.length && <p className="table-empty">该职业暂无目录技能，可创建自定义技能。</p>}</div></div>}
+        {panelMode === "skills" && <div className="panel-body skill-picker"><header className="context-heading"><button onClick={() => setPanelMode("object")}>← 返回</button><b>选择技能与天赋版本</b></header><p className="skill-target">分配给：<b>{skillMember?.name}</b><small>{formatTime(skillInsertionMs)} 附近</small></p>{skillMember && !skillMember.specSlug && <p className="field-note">尚未选择专精；当前只显示该职业的通用技能。选择专精后会显示对应专精技能。</p>}<button className="secondary-action" onClick={addCustomSkill}>＋ 添加自定义技能</button><div className="skill-list grouped-skill-list">{classCooldowns.map((cooldown) => {
+          const chosenVariantId = skillMember ? memberSkillVariantId(plan, skillMember.id, cooldown.id) : undefined;
+          const base = previewVariant(cooldown);
+          return <section className="skill-group" key={cooldown.id} title={cooldown.description || "暂无说明"}><button className="skill-definition" onClick={() => { setSelection({ type: "cooldown", id: cooldown.id }); setPanelMode("object"); }}><i style={{ background: cooldown.color }} /><span><strong>{cooldown.name}</strong><small>{cooldown.category} · {skillDataStatusLabel(cooldown.dataStatus)}</small></span></button><div className="skill-variant-list"><button className={!chosenVariantId ? "active" : ""} onClick={() => addAssignment(cooldown.id)}><span>基础</span><small>{skillTimingSummary(base)}</small><b>＋</b></button>{cooldown.variants.map((variant) => {
+            const resolved = previewVariant(cooldown, variant.id);
+            return <button className={chosenVariantId === variant.id ? "active" : ""} key={variant.id} onClick={() => addAssignment(cooldown.id, variant.id)}><span>{variant.name}</span><small>{skillTimingSummary(resolved)}</small><b>＋</b></button>;
+          })}</div></section>;
+        })}{!classCooldowns.length && <p className="table-empty">当前职业或专精暂无可用目录技能，可创建自定义技能。</p>}</div></div>}
         {panelMode === "history" && <div className="panel-body"><header className="context-heading"><button onClick={() => setPanelMode("object")}>← 返回</button><b>历史检查点</b></header><div className="snapshot-list">{snapshots.slice(0, 30).map((snapshot) => <button key={snapshot.id} onClick={async () => { if (!confirm(`恢复 ${new Date(snapshot.createdAt).toLocaleString("zh-CN")} 的检查点？`)) return; await createPlanSnapshot(planId, "destructive", activePlan, localRevisionRef.current); replacePlan(snapshot.document); setPanelMode("object"); await refreshSnapshots(); }}><span>{new Date(snapshot.createdAt).toLocaleString("zh-CN")}</span><small>{{ minute: "自动", publish: "发布前", preset: "预设前", "catalog-upgrade": "目录升级前", destructive: "操作前", manual: "手动" }[snapshot.reason]}</small></button>)}{!snapshots.length && <p className="table-empty">尚无可恢复的检查点。</p>}</div></div>}
         {panelMode === "checks" && <div className="panel-body"><header className="context-heading"><button onClick={() => setPanelMode("object")}>← 返回</button><b>排轴检查</b></header><Checks warnings={warnings} onSelect={(next) => selectTimelineObject(next, true)} /></div>}
         {panelMode === "catalog" && <div className="panel-body"><header className="context-heading"><button onClick={() => setPanelMode("object")}>← 返回</button><b>技能目录更新</b></header><div className="catalog-summary"><p>新增 {catalogUpdate.addedSkills} 项，更新 {catalogUpdate.changedSkills} 项，移除 {catalogUpdate.removedSkills} 项。</p><small>只更新内置技能；自定义技能、机制和分配保持不变。</small><button className="primary-action" onClick={upgradeCatalog}>确认升级</button></div></div>}
@@ -436,7 +477,7 @@ interface InspectorProps {
 
 function Inspector({ plan, selection, selectedMember, selectedMechanic, selectedPhase, selectedNote, selectedCooldown, selectedAssignment, warnings, mutate }: InspectorProps) {
   const updateMechanic = (fn: (item: any) => void) => mutate((draft) => { const item = draft.mechanics.find((entry) => entry.id === selectedMechanic?.id); if (item) { fn(item); syncLinkedAssignments(draft, item.id); } });
-  const updateCooldown = (fn: (item: CooldownDefinition) => void) => mutate((draft: RaidPlanDocument) => { const item = draft.cooldowns.find((entry) => entry.id === selectedCooldown?.id); if (item) { fn(item); item.dataStatus = "custom"; if (item.scope === "personal") { item.maxTargets = 1; for (const assignment of draft.assignments.filter((entry) => entry.cooldownId === item.id)) assignment.targets = { mode: "members", memberIds: [assignment.memberId] }; } } });
+  const updateCooldown = (fn: (item: CooldownDefinition) => void) => mutate((draft: RaidPlanDocument) => { const item = draft.cooldowns.find((entry) => entry.id === selectedCooldown?.id); if (item) { fn(item); item.dataStatus = "custom"; item.verification = undefined; if (item.scope === "personal") { item.maxTargets = 1; for (const assignment of draft.assignments.filter((entry) => entry.cooldownId === item.id)) assignment.targets = { mode: "members", memberIds: [assignment.memberId] }; } } });
   if (!selection) return <div className="context-empty"><b>选择时间轴对象</b><p>点击右侧的成员、技能、机制、阶段或注释，在这里查看和编辑。</p></div>;
   if (selectedMember) {
     const specializations = specializationsForClass(selectedMember.classSlug);
@@ -451,7 +492,7 @@ function Inspector({ plan, selection, selectedMember, selectedMechanic, selected
       <label>自定义分组<select value={selectedMember.groupId ?? ""} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.roster.find((entry) => entry.id === selectedMember.id); if (item) item.groupId = event.target.value || undefined; })}><option value="">未分组</option>{plan.groups.map((group: any) => <option value={group.id} key={group.id}>{group.name}</option>)}</select></label>
       <button className="secondary-action" onClick={() => mutate((draft) => { const id = makeId("group"); draft.groups.push({ id, name: `分组 ${draft.groups.length + 1}`, color: "#6f7f91" }); const member = draft.roster.find((item) => item.id === selectedMember.id); if (member) member.groupId = id; })}>＋ 新建并加入分组</button>
       {selectedGroup && <section className="inline-group-editor"><b>当前分组</b><label>名称<input value={selectedGroup.name} onChange={(event) => mutate((draft) => { const group = draft.groups.find((item) => item.id === selectedGroup.id); if (group) group.name = event.target.value; })} /></label><label>标识色<input type="color" value={selectedGroup.color} onChange={(event) => mutate((draft) => { const group = draft.groups.find((item) => item.id === selectedGroup.id); if (group) group.color = event.target.value; })} /></label><button className="danger-link" onClick={() => { if (!confirm(`删除分组“${selectedGroup.name}”？成员会变为未分组。`)) return; mutate((draft) => { draft.groups = draft.groups.filter((item) => item.id !== selectedGroup.id); draft.roster.forEach((member) => { if (member.groupId === selectedGroup.id) member.groupId = undefined; }); }); }}>删除分组</button></section>}
-      <button className="danger-button" onClick={() => { if (confirm(`删除成员“${selectedMember.name}”及其分配？`)) mutate((draft: RaidPlanDocument) => { draft.roster = draft.roster.filter((entry) => entry.id !== selectedMember.id); draft.assignments = draft.assignments.filter((entry) => entry.memberId !== selectedMember.id); }, null); }}>删除成员</button>
+      <button className="danger-button" onClick={() => { if (confirm(`删除成员“${selectedMember.name}”及其分配？`)) mutate((draft: RaidPlanDocument) => { draft.roster = draft.roster.filter((entry) => entry.id !== selectedMember.id); draft.assignments = draft.assignments.filter((entry) => entry.memberId !== selectedMember.id); draft.memberSkillVariants = draft.memberSkillVariants.filter((entry) => entry.memberId !== selectedMember.id); }, null); }}>删除成员</button>
     </div>;
   }
   if (selectedPhase) return <div className="inspector"><header><h2>阶段</h2><span>PHASE</span></header><label>名称<input value={selectedPhase.name} onChange={(event) => mutate((draft) => { const item = draft.phases.find((entry) => entry.id === selectedPhase.id); if (item) item.name = event.target.value; })} /></label><label>时间点<TimeField value={selectedPhase.atMs} onCommit={(value) => mutate((draft) => { const item = draft.phases.find((entry) => entry.id === selectedPhase.id); if (item) item.atMs = snapTime(value); })} /></label><button className="danger-button" onClick={() => mutate((draft) => { draft.phases = draft.phases.filter((entry) => entry.id !== selectedPhase.id); draft.mechanics.forEach((item) => { if (item.phaseId === selectedPhase.id) item.phaseId = undefined; }); }, null)}>删除阶段</button></div>;
@@ -473,14 +514,35 @@ function Inspector({ plan, selection, selectedMember, selectedMechanic, selected
   if (selectedCooldown && !selectedAssignment) return <SkillInspector cooldown={selectedCooldown} update={updateCooldown} mutate={mutate} />;
   if (selectedAssignment && selectedCooldown) {
     const member = plan.roster.find((item) => item.id === selectedAssignment.memberId);
-    const compatibleCooldowns = plan.cooldowns.filter((item) => item.classSlug === member?.classSlug || item.id === selectedAssignment.cooldownId);
-    return <div className="inspector"><header><h2>技能分配</h2><span>ASSIGNMENT</span></header><label>成员<select value={selectedAssignment.memberId} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; item.memberId = event.target.value; const nextMember = draft.roster.find((entry) => entry.id === item.memberId); const currentCooldown = draft.cooldowns.find((entry) => entry.id === item.cooldownId); const firstCompatible = draft.cooldowns.find((entry) => entry.classSlug === nextMember?.classSlug); if (currentCooldown?.classSlug !== nextMember?.classSlug && firstCompatible) item.cooldownId = firstCompatible.id; const cooldown = draft.cooldowns.find((entry) => entry.id === item.cooldownId); if (cooldown?.scope === "personal") item.targets = { mode: "members", memberIds: [item.memberId] }; })}>{plan.roster.map((entry: any) => <option value={entry.id} key={entry.id}>{entry.name} · {WOW_CLASS_LABELS[entry.classSlug] ?? "待选择职业"}</option>)}</select></label><label>技能<select value={selectedAssignment.cooldownId} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; item.cooldownId = event.target.value; const cooldown = draft.cooldowns.find((entry) => entry.id === item.cooldownId); if (cooldown?.scope === "personal") item.targets = { mode: "members", memberIds: [item.memberId] }; })}>{compatibleCooldowns.map((cooldown: any) => <option value={cooldown.id} key={cooldown.id}>{cooldown.name}{cooldown.classSlug !== member?.classSlug ? "（旧分配）" : ""}</option>)}</select></label><label>开始施法<TimeField value={selectedAssignment.atMs} onCommit={(value) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; item.atMs = snapTime(value); const mechanic = item.mechanicId ? draft.mechanics.find((entry) => entry.id === item.mechanicId) : undefined; if (mechanic) item.offsetMs = item.atMs - mechanicImpactMs(mechanic); })} /></label><label>关联机制<select value={selectedAssignment.mechanicId ?? ""} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; const mechanic = draft.mechanics.find((entry) => entry.id === event.target.value); item.mechanicId = mechanic?.id; if (mechanic) { item.atMs = defaultAssignmentStart(draft, selectedCooldown, mechanic); item.offsetMs = item.atMs - mechanicImpactMs(mechanic); item.targets = selectedCooldown.scope === "personal" ? { mode: "members", memberIds: [item.memberId] } : structuredClone(INHERIT_TARGETS); } else { item.offsetMs = undefined; if (item.targets.mode === "inherit") item.targets = structuredClone(ALL_TARGETS); } })}><option value="">自由时间点</option>{plan.mechanics.map((mechanic: any) => <option value={mechanic.id} key={mechanic.id}>{formatTime(mechanic.atMs)} {mechanic.name}</option>)}</select></label>{selectedCooldown.scope === "personal" ? <div className="field-note"><b>实际目标：施放者本人</b><br />个人技能固定作用于当前成员，不能改为其他目标。</div> : <label>实际目标<TargetEditor target={selectedAssignment.targets} plan={plan} allowInherit onChange={(target) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (item) item.targets = target; })} /></label>}<label>备注<textarea value={selectedAssignment.note} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (item) item.note = event.target.value; })} /></label>{warnings.filter((warning: any) => warning.assignmentId === selectedAssignment.id).map((warning: any, index: number) => <div className="warning-box" key={`${warning.type}-${index}`}>{warning.message}</div>)}<button className="danger-button" onClick={() => mutate((draft: RaidPlanDocument) => { draft.assignments = draft.assignments.filter((entry) => entry.id !== selectedAssignment.id); }, null)}>删除分配</button></div>;
+    const compatibleCooldowns = [...cooldownsForMember(plan.cooldowns, member), ...plan.cooldowns.filter((item) => item.id === selectedAssignment.cooldownId && !cooldownsForMember(plan.cooldowns, member).some((candidate) => candidate.id === item.id))];
+    const effectiveCooldown = resolveCooldownForMember(plan, selectedAssignment.memberId, selectedCooldown)!;
+    const currentVariantId = memberSkillVariantId(plan, selectedAssignment.memberId, selectedCooldown.id) ?? "";
+    function changeVariant(variantId: string) {
+      if (variantId === currentVariantId) return;
+      const label = variantId ? selectedCooldown?.variants.find((item) => item.id === variantId)?.name ?? variantId : "基础版本";
+      if (!confirm(`将 ${member?.name ?? "该成员"} 的“${selectedCooldown?.name}”所有分配统一改为“${label}”？`)) return;
+      mutate((draft) => setMemberSkillVariant(draft, selectedAssignment!.memberId, selectedCooldown!.id, variantId || undefined));
+    }
+    return <div className="inspector">
+      <header><h2>技能分配</h2><span>{skillDataStatusLabel(selectedCooldown.dataStatus)}</span></header>
+      <label>成员<select value={selectedAssignment.memberId} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; item.memberId = event.target.value; const cooldown = resolveCooldownForMember(draft, item.memberId, item.cooldownId); if (cooldown?.scope === "personal") item.targets = { mode: "members", memberIds: [item.memberId] }; })}>{plan.roster.map((entry: any) => <option value={entry.id} key={entry.id}>{entry.name} · {WOW_CLASS_LABELS[entry.classSlug] ?? "待选择职业"}</option>)}</select></label>
+      <label>技能<select value={selectedAssignment.cooldownId} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; item.cooldownId = event.target.value; const cooldown = resolveCooldownForMember(draft, item.memberId, item.cooldownId); if (cooldown?.scope === "personal") item.targets = { mode: "members", memberIds: [item.memberId] }; })}>{compatibleCooldowns.map((cooldown: any) => <option value={cooldown.id} key={cooldown.id}>{cooldown.name}{cooldown.classSlug !== member?.classSlug || cooldown.specSlugs.length > 0 && !cooldown.specSlugs.includes(member?.specSlug ?? "") ? "（旧分配）" : ""}</option>)}</select></label>
+      {selectedCooldown.variants.length > 0 && <label>天赋版本<select value={currentVariantId} onChange={(event) => changeVariant(event.target.value)}><option value="">基础</option>{selectedCooldown.variants.map((variant) => <option value={variant.id} key={variant.id}>{variant.name}</option>)}</select></label>}
+      <div className="field-note"><b>{effectiveCooldown.selectedVariant ? effectiveCooldown.selectedVariant.name : "基础版本"}</b><br />{skillTimingSummary(effectiveCooldown)} · {effectiveCooldown.castType === "channel" ? "引导" : effectiveCooldown.castType === "cast" ? "读条" : effectiveCooldown.castType === "instant" ? "瞬发" : "施法待补"}<br />目录 {effectiveCooldown.catalogVersion}</div>
+      {effectiveCooldown.limitations.map((limitation) => <div className="warning-box" key={limitation}>{limitation}</div>)}
+      <label>开始施法<TimeField value={selectedAssignment.atMs} onCommit={(value) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; item.atMs = snapTime(value); const mechanic = item.mechanicId ? draft.mechanics.find((entry) => entry.id === item.mechanicId) : undefined; if (mechanic) item.offsetMs = item.atMs - mechanicImpactMs(mechanic); })} /></label>
+      <label>关联机制<select value={selectedAssignment.mechanicId ?? ""} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (!item) return; const mechanic = draft.mechanics.find((entry) => entry.id === event.target.value); const cooldown = resolveCooldownForMember(draft, item.memberId, item.cooldownId) ?? selectedCooldown; item.mechanicId = mechanic?.id; if (mechanic) { item.atMs = defaultAssignmentStart(draft, cooldown, mechanic); item.offsetMs = item.atMs - mechanicImpactMs(mechanic); item.targets = cooldown.scope === "personal" ? { mode: "members", memberIds: [item.memberId] } : structuredClone(INHERIT_TARGETS); } else { item.offsetMs = undefined; if (item.targets.mode === "inherit") item.targets = structuredClone(ALL_TARGETS); } })}><option value="">自由时间点</option>{plan.mechanics.map((mechanic: any) => <option value={mechanic.id} key={mechanic.id}>{formatTime(mechanic.atMs)} {mechanic.name}</option>)}</select></label>
+      {effectiveCooldown.scope === "personal" ? <div className="field-note"><b>实际目标：施放者本人</b><br />个人技能固定作用于当前成员，不能改为其他目标。</div> : <label>实际目标<TargetEditor target={selectedAssignment.targets} plan={plan} allowInherit onChange={(target) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (item) item.targets = target; })} /></label>}
+      <label>备注<textarea value={selectedAssignment.note} onChange={(event) => mutate((draft: RaidPlanDocument) => { const item = draft.assignments.find((entry) => entry.id === selectedAssignment.id); if (item) item.note = event.target.value; })} /></label>
+      {warnings.filter((warning: any) => warning.assignmentId === selectedAssignment.id).map((warning: any, index: number) => <div className="warning-box" key={`${warning.type}-${index}`}>{warning.message}</div>)}
+      <button className="danger-button" onClick={() => mutate((draft: RaidPlanDocument) => { draft.assignments = draft.assignments.filter((entry) => entry.id !== selectedAssignment.id); }, null)}>删除分配</button>
+    </div>;
   }
   return <div className="context-empty"><b>对象已不存在</b><p>请在右侧选择其他对象。</p></div>;
 }
 
 function SkillInspector({ cooldown, update, mutate }: { cooldown: CooldownDefinition; update: (fn: (item: CooldownDefinition) => void) => void; mutate: MutatePlan }) {
-  const status = cooldown.dataStatus === "unconfigured" ? "数值待补" : cooldown.dataStatus === "legacy" ? "旧数据" : "已自定义";
+  const status = skillDataStatusLabel(cooldown.dataStatus);
   return <div className="inspector">
     <header><h2>技能定义</h2><span>{status}</span></header>
     <label>名称<input value={cooldown.name} onChange={(event) => update((item) => { item.name = event.target.value; })} /></label>
@@ -495,12 +557,19 @@ function SkillInspector({ cooldown, update, mutate }: { cooldown: CooldownDefini
     </div>
     <label>冷却秒数<NullableNumber value={cooldown.cooldownMs} scale={1000} onChange={(value) => update((item) => { item.cooldownMs = value; })} /></label>
     <div className="field-grid">
-      <label>施法秒数<NullableNumber value={cooldown.castTimeMs} scale={1000} onChange={(value) => update((item) => { item.castTimeMs = value; })} /></label>
-      <label>持续秒数<NullableNumber value={cooldown.durationMs} scale={1000} onChange={(value) => update((item) => { item.durationMs = value; })} /></label>
+      <label>施法类型<select value={cooldown.castType} onChange={(event) => update((item) => { item.castType = event.target.value as CooldownDefinition["castType"]; if (item.castType === "instant") item.castTimeMs = 0; else if (item.castType === "unknown") item.castTimeMs = null; else if (item.castTimeMs == null || item.castTimeMs === 0) item.castTimeMs = 1000; })}><option value="unknown">待补</option><option value="instant">瞬发</option><option value="cast">读条</option><option value="channel">引导</option></select></label>
+      <label>施法 / 引导秒数<NullableNumber value={cooldown.castTimeMs} scale={1000} onChange={(value) => update((item) => { item.castTimeMs = value; if (value === 0) item.castType = "instant"; else if (value == null) item.castType = "unknown"; })} /></label>
     </div>
-    <p className="field-note">留空表示未知；填写 0 表示明确瞬发或无持续时间。目录 {cooldown.catalogVersion}</p>
+    <div className="field-grid">
+      <label>持续秒数<NullableNumber value={cooldown.durationMs} scale={1000} onChange={(value) => update((item) => { item.durationMs = value; })} /></label>
+      <label>充能层数<input type="number" min={1} max={10} value={cooldown.maxCharges} onChange={(event) => update((item) => { item.maxCharges = Math.max(1, Math.round(Number(event.target.value) || 1)); })} /></label>
+    </div>
+    <p className="field-note">{skillEffectSummary(cooldown)}<br />目录 {cooldown.catalogVersion}</p>
     <label>GCD<select value={cooldown.triggersGcd == null ? "unknown" : cooldown.triggersGcd ? "yes" : "no"} onChange={(event) => update((item) => { item.triggersGcd = event.target.value === "unknown" ? null : event.target.value === "yes"; })}><option value="unknown">未设置</option><option value="yes">占用 GCD</option><option value="no">不占用 GCD</option></select></label>
-    <button className="danger-button" onClick={() => { if (confirm(`删除技能“${cooldown.name}”及其分配？`)) mutate((draft) => { draft.cooldowns = draft.cooldowns.filter((entry) => entry.id !== cooldown.id); draft.assignments = draft.assignments.filter((entry) => entry.cooldownId !== cooldown.id); }, null); }}>删除技能</button>
+    <label>计算限制<textarea rows={3} placeholder="每行一项" value={cooldown.limitations.join("\n")} onChange={(event) => update((item) => { item.limitations = event.target.value.split("\n").map((value) => value.trim()).filter(Boolean); })} /></label>
+    {cooldown.variants.length > 0 && <section className="skill-detail-section"><b>关键天赋变体</b>{cooldown.variants.map((variant) => <div key={variant.id}><strong>{variant.name}</strong><small>{variant.description || skillTimingSummary({ cooldownMs: variant.overrides.cooldownMs ?? cooldown.cooldownMs, maxCharges: variant.overrides.maxCharges ?? cooldown.maxCharges, durationMs: variant.overrides.durationMs ?? cooldown.durationMs })}</small>{variant.limitations.map((limitation) => <p key={limitation}>{limitation}</p>)}</div>)}</section>}
+    {cooldown.verification && <section className="skill-detail-section"><b>数据来源 · {cooldown.verification.gameVersion}</b><small>{cooldown.verification.clientBuild ? `客户端 ${cooldown.verification.clientBuild} · ` : ""}{cooldown.verification.checkedAt ? new Date(cooldown.verification.checkedAt).toLocaleDateString("zh-CN") : "尚未正式服核准"}</small>{cooldown.verification.sources.map((source, index) => <div key={`${source.kind}-${index}`}><strong>{{ blizzard: "Blizzard", "in-game": "正式服客户端", community: "社区复核" }[source.kind]}</strong>{source.url ? <a href={source.url} target="_blank" rel="noreferrer">{source.label}</a> : <span>{source.label}</span>}</div>)}</section>}
+    <button className="danger-button" onClick={() => { if (confirm(`删除技能“${cooldown.name}”及其分配？`)) mutate((draft) => { draft.cooldowns = draft.cooldowns.filter((entry) => entry.id !== cooldown.id); draft.assignments = draft.assignments.filter((entry) => entry.cooldownId !== cooldown.id); draft.memberSkillVariants = draft.memberSkillVariants.filter((entry) => entry.cooldownId !== cooldown.id); }, null); }}>删除技能</button>
   </div>;
 }
 

@@ -72,8 +72,9 @@ test("server-renders Raidline and implements explicit R2 publication semantics",
     assert.equal(created.payload.data.editId, editId);
     assert.match(created.payload.data.shareId, /^[0-9A-Za-z]{16}$/);
     assert.match(created.payload.data.editId, /^[0-9A-Za-z]{4}$/);
-    assert.equal(created.payload.data.document.schemaVersion, 4);
+    assert.equal(created.payload.data.document.schemaVersion, 5);
     assert.deepEqual(created.payload.data.document.timelineNotes, []);
+    assert.deepEqual(created.payload.data.document.memberSkillVariants, []);
     assert.equal("difficulty" in created.payload.data.document.encounter, false);
     assert.equal("durationMs" in created.payload.data.document.encounter, false);
 
@@ -110,8 +111,9 @@ test("server-renders Raidline and implements explicit R2 publication semantics",
 
     const catalog = await json(await fetch(`${base}/api/catalog/current`));
     assert.equal(catalog.response.status, 200);
-    assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v2");
-    assert.equal(catalog.payload.data.manifest.schemaVersion, 2);
+    assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v3");
+    assert.equal(catalog.payload.data.manifest.schemaVersion, 3);
+    assert.equal(catalog.payload.data.playerSkills.filter((item) => item.classSlug === "Priest" && item.dataStatus === "needs-live-check").length, 5);
     assert.ok(catalog.payload.data.playerSkills.length > 20);
     assert.equal((await fetch(`${base}/api/plans`, { method: "POST" })).status, 404);
     assert.equal((await fetch(`${base}/api/shared/${secondShareId}`)).status, 404);

@@ -38,7 +38,7 @@ let databasePromise: Promise<IDBDatabase> | null = null;
 async function normalizeLocalRecord(record: LocalPlanRecord, persist = false) {
   const schemaVersion = (record.document as unknown as { schemaVersion?: number }).schemaVersion;
   const document = normalizePlanDocument(record.document);
-  if (schemaVersion === 4) return { ...record, document };
+  if (schemaVersion === 5) return { ...record, document };
   let activePublication = record.activePublication;
   if (activePublication) {
     const legacyHash = await sha256(JSON.stringify(record.document));
@@ -218,7 +218,7 @@ export async function listPlanSnapshots(planId: string) {
   const records = await requestValue(transaction.objectStore("snapshots").index("planId").getAll(planId) as IDBRequest<PlanSnapshot[]>);
   await transactionDone(transaction);
   const migrated = records.map((snapshot) => ({ ...snapshot, document: normalizePlanDocument(snapshot.document) }));
-  const changed = migrated.filter((snapshot, index) => (records[index].document as unknown as { schemaVersion?: number }).schemaVersion !== 4);
+  const changed = migrated.filter((snapshot, index) => (records[index].document as unknown as { schemaVersion?: number }).schemaVersion !== 5);
   if (changed.length) {
     const write = db.transaction("snapshots", "readwrite");
     const store = write.objectStore("snapshots");
@@ -254,7 +254,7 @@ export async function getCachedCatalog() {
   await transactionDone(transaction);
   if (!record) return null;
   const normalized = validateCatalogRelease(record.release);
-  if ((record.release.manifest as unknown as { schemaVersion?: number }).schemaVersion !== 2) await cacheCatalog(normalized);
+  if ((record.release.manifest as unknown as { schemaVersion?: number }).schemaVersion !== 3) await cacheCatalog(normalized);
   return normalized;
 }
 

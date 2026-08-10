@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { formatTime, MAX_TIMELINE_MS } from "@/lib/core";
 import { specializationLabel, WOW_CLASS_LABELS } from "@/lib/cooldowns";
+import { resolveCooldownForMember, skillEffectStartMs } from "@/lib/skills";
 import type { RaidPlanDocument } from "@/lib/types";
 import { adaptiveTickMs, timeAxisPosition, timelineRangeMs, timelineTimeFromDrag, type TimelineOrientation } from "@/lib/view";
 
@@ -208,14 +209,15 @@ export function TimelineView({
       })}
       {plan.assignments.map((assignment) => {
         const memberIndex = plan.roster.findIndex((item) => item.id === assignment.memberId);
-        const cooldown = plan.cooldowns.find((item) => item.id === assignment.cooldownId);
+        const cooldown = resolveCooldownForMember(plan, assignment.memberId, assignment.cooldownId);
         if (memberIndex < 0 || !cooldown) return null;
         const lane = memberIndex + 2;
         const atMs = displayedTime("assignment", assignment.id, assignment.atMs);
         const cast = cooldown.castTimeMs;
         const duration = cooldown.durationMs;
-        const effectAt = atMs + (cast ?? 0);
-        return <div key={assignment.id}>{cast != null && cast > 0 && <span className="axis-segment cast-segment" style={lengthStyle(orientation, atMs, cast, lane, pixelsPerSecond)} />}{duration != null && duration > 0 && <span className="axis-segment effect-segment" style={{ ...lengthStyle(orientation, effectAt, duration, lane, pixelsPerSecond), background: cooldown.color }} />}<button data-timeline-key={`assignment:${assignment.id}`} className={`axis-event assignment-event ${selected === `assignment:${assignment.id}` ? "selected" : ""} ${warningIds.has(assignment.id) ? "warning" : ""}`} style={{ ...pointStyle(orientation, atMs, lane, pixelsPerSecond), borderColor: cooldown.color }} onPointerDown={(event) => beginDrag("assignment", assignment.id, assignment.atMs, event)} onPointerMove={continueDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onClick={() => handleSelect(`assignment:${assignment.id}`)} title={`${formatTime(atMs)} 开始 · ${cooldown.name}`}><i style={{ background: cooldown.color }} /><strong>{cooldown.name}</strong>{warningIds.has(assignment.id) && <b>!</b>}</button></div>;
+        const effectAt = skillEffectStartMs(atMs, cooldown);
+        const displayName = cooldown.selectedVariant ? `${cooldown.name} · ${cooldown.selectedVariant.name}` : cooldown.name;
+        return <div key={assignment.id}>{cast != null && cast > 0 && (cooldown.castType === "cast" || cooldown.castType === "channel") && <span className="axis-segment cast-segment" style={lengthStyle(orientation, atMs, cast, lane, pixelsPerSecond)} />}{duration != null && duration > 0 && <span className="axis-segment effect-segment" style={{ ...lengthStyle(orientation, effectAt, duration, lane, pixelsPerSecond), background: cooldown.color }} />}<button data-timeline-key={`assignment:${assignment.id}`} className={`axis-event assignment-event ${selected === `assignment:${assignment.id}` ? "selected" : ""} ${warningIds.has(assignment.id) ? "warning" : ""}`} style={{ ...pointStyle(orientation, atMs, lane, pixelsPerSecond), borderColor: cooldown.color }} onPointerDown={(event) => beginDrag("assignment", assignment.id, assignment.atMs, event)} onPointerMove={continueDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onClick={() => handleSelect(`assignment:${assignment.id}`)} title={`${formatTime(atMs)} 开始 · ${displayName}`}><i style={{ background: cooldown.color }} /><strong>{displayName}</strong>{warningIds.has(assignment.id) && <b>!</b>}</button></div>;
       })}
     </div>
   );

@@ -10,6 +10,6 @@ export async function POST(request: Request) {
     return jsonData(release, { status: 201 });
   } catch (error) {
     const message = serverError(error, "发布目录失败");
-    return jsonError("PUBLISH_CATALOG_FAILED", message, /目录|预设|版本|ID/.test(message) ? 422 : 500);
+    return jsonError("PUBLISH_CATALOG_FAILED", message, /目录|预设|技能|版本|来源|核准|充能|施法|ID/.test(message) ? 422 : 500);
   }
 }

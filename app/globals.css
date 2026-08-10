@@ -143,6 +143,16 @@ small { color: var(--text-2); }
 .skill-picker .skill-list { margin: 0 -10px; border-top: 1px solid var(--line); }
 .skill-target { margin: -2px 0 8px; padding: 6px 8px; border: 1px solid var(--accent); border-radius: 3px; color: var(--accent-text); background: var(--accent-soft); font-size: 11px; }
 .skill-target b, .skill-target small { display: block; margin-top: 2px; }
+.grouped-skill-list .skill-group { border-bottom: 1px solid var(--line); background: var(--surface); }
+.skill-definition { display: flex; width: 100%; min-height: 48px; align-items: center; gap: 8px; padding: 7px 9px; border: 0; border-radius: 0; background: transparent; text-align: left; }
+.skill-definition:hover { background: var(--surface-2); }
+.skill-variant-list { display: grid; padding: 0 8px 8px 23px; }
+.skill-variant-list > button { display: grid; min-height: 38px; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; align-items: center; gap: 1px 7px; padding: 5px 7px; border-color: var(--line); border-radius: 0; background: var(--surface-2); text-align: left; }
+.skill-variant-list > button + button { border-top: 0; }
+.skill-variant-list > button.active { color: var(--accent-text); border-color: var(--accent); background: var(--accent-soft); }
+.skill-variant-list > button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.skill-variant-list > button small { grid-column: 1; color: var(--text-3); }
+.skill-variant-list > button b { grid-column: 2; grid-row: 1 / 3; font-size: 16px; }
 /* 时间轴 */
 .timeline-work-panel { display: grid; min-width: 0; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--surface-2); }
 .axis-toolbar { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--surface); }
@@ -231,6 +241,10 @@ small { color: var(--text-2); }
 .inline-group-editor > button { justify-self: start; }
 .danger-button { width: 100%; margin-top: 8px; color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); background: var(--danger-soft); }
 .warning-box { margin: 6px 0; padding: 7px; color: var(--warning); border: 1px solid var(--warning); border-radius: 4px; background: var(--warning-soft); font-size: 11px; line-height: 1.45; }
+.skill-detail-section { display: grid; gap: 6px; margin: 10px 0; padding: 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
+.skill-detail-section > div { display: grid; gap: 2px; padding-top: 6px; border-top: 1px solid var(--line); }
+.skill-detail-section small, .skill-detail-section p { margin: 0; color: var(--text-2); font-size: 10px; line-height: 1.5; }
+.skill-detail-section a { color: var(--accent-text); font-size: 10px; }
 .checks { margin-top: 14px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
 .checks header { display: flex; justify-content: space-between; padding: 7px; background: var(--surface-2); }
 .checks button { display: block; width: 100%; min-height: 34px; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--warning); text-align: left; font-size: 10px; line-height: 1.4; }
@@ -295,6 +309,19 @@ small { color: var(--text-2); }
 .admin-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 .admin-form label { color: var(--text-2); font-size: 10px; }
 .admin-form .wide { grid-column: 1 / -1; }
+.admin-fieldset { min-width: 0; margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 4px; }
+.admin-fieldset legend { padding: 0 4px; color: var(--text-2); font-size: 10px; }
+.admin-skill-section { padding: 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
+.admin-skill-section > header, .admin-variant-card > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.admin-skill-section > header > div { display: grid; gap: 2px; }
+.admin-skill-section > header small { color: var(--text-3); font-size: 9px; }
+.admin-effect-list, .admin-source-list { display: grid; gap: 6px; }
+.admin-effect-list > div { display: grid; grid-template-columns: 130px minmax(90px, 1fr) minmax(110px, auto) auto; align-items: center; gap: 6px; }
+.effect-schools { display: flex; gap: 8px; }
+.effect-schools label { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.admin-variant-card { margin-top: 8px; padding: 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+.admin-variant-card .admin-form { margin-bottom: 8px; }
+.admin-source-list > div { display: grid; grid-template-columns: 130px minmax(130px, .8fr) minmax(180px, 1.2fr) minmax(120px, .7fr) auto; align-items: center; gap: 6px; }
 .admin-timeline-preview { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }
 .admin-timeline-preview > header { display: flex; min-width: 620px; align-items: center; justify-content: space-between; padding: 7px 9px; background: var(--surface-2); }
 .admin-timeline-preview > header > div { display: flex; gap: 5px; }
@@ -346,6 +373,7 @@ small { color: var(--text-2); }
   .admin-item-list { max-height: 260px; }
   .admin-form { grid-template-columns: 1fr; }
   .admin-form .wide { grid-column: auto; }
+  .admin-effect-list > div, .admin-source-list > div { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

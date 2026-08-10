@@ -1,4 +1,5 @@
 import { MAX_TIMELINE_MS, TIMELINE_SNAP_MS } from "./core.ts";
+import { resolveCooldownForMember, skillBusyEndMs, skillEffectStartMs } from "./skills.ts";
 import type { RaidPlanDocument } from "./types.ts";
 
 export type TimelineOrientation = "horizontal" | "vertical";
@@ -43,10 +44,12 @@ export function timelineContentEnd(plan: RaidPlanDocument) {
   const phaseEnd = Math.max(0, ...plan.phases.map((item) => item.atMs));
   const noteEnd = Math.max(0, ...plan.timelineNotes.map((item) => item.atMs));
   const mechanicEnd = Math.max(0, ...plan.mechanics.map((item) => item.atMs + (item.castTimeMs ?? 0) + (item.durationMs ?? 0)));
-  const cooldowns = new Map(plan.cooldowns.map((item) => [item.id, item]));
   const assignmentEnd = Math.max(0, ...plan.assignments.map((item) => {
-    const cooldown = cooldowns.get(item.cooldownId);
-    return item.atMs + (cooldown?.castTimeMs ?? 0) + (cooldown?.durationMs ?? 0);
+    const cooldown = resolveCooldownForMember(plan, item.memberId, item.cooldownId);
+    if (!cooldown) return item.atMs;
+    const busyEnd = skillBusyEndMs(item.atMs, cooldown);
+    const effectEnd = skillEffectStartMs(item.atMs, cooldown) + (cooldown.durationMs ?? 0);
+    return Math.max(busyEnd, effectEnd);
   }));
   return Math.min(MAX_TIMELINE_MS, Math.max(phaseEnd, noteEnd, mechanicEnd, assignmentEnd));
 }

@@ -3,6 +3,8 @@ export type MechanicSeverity = "info" | "warning" | "danger";
 export type DamageSchool = "physical" | "magic";
 export type CooldownScope = "team" | "external" | "personal";
 export type CooldownCategory = "团队减伤" | "外部减伤" | "个人减伤" | "治疗" | "免疫" | "位移" | "自定义";
+export type SkillCastType = "unknown" | "instant" | "cast" | "channel";
+export type SkillDataStatus = "unconfigured" | "needs-live-check" | "verified" | "legacy" | "custom";
 
 export interface WclSource {
   provider: "wcl";
@@ -82,6 +84,40 @@ export type CooldownEffect =
   | { type: "maxHealth"; percent: number | null }
   | { type: "immunity"; schools: DamageSchool[] };
 
+export interface SkillVariantOverrides {
+  cooldownMs?: number | null;
+  castType?: SkillCastType;
+  castTimeMs?: number | null;
+  durationMs?: number | null;
+  triggersGcd?: boolean | null;
+  maxCharges?: number;
+  maxTargets?: number | null;
+  effects?: CooldownEffect[];
+}
+
+export interface SkillVariant {
+  id: string;
+  name: string;
+  talentSpellId?: number;
+  description: string;
+  overrides: SkillVariantOverrides;
+  limitations: string[];
+}
+
+export interface SkillSource {
+  kind: "blizzard" | "in-game" | "community";
+  label: string;
+  url?: string;
+  note?: string;
+}
+
+export interface SkillVerification {
+  gameVersion: string;
+  checkedAt: number | null;
+  clientBuild?: string;
+  sources: SkillSource[];
+}
+
 export interface CooldownDefinition {
   id: string;
   spellId?: number;
@@ -91,15 +127,26 @@ export interface CooldownDefinition {
   specSlugs: string[];
   scope: CooldownScope;
   cooldownMs: number | null;
+  castType: SkillCastType;
   castTimeMs: number | null;
   durationMs: number | null;
   triggersGcd: boolean | null;
+  maxCharges: number;
   maxTargets: number | null;
   effects: CooldownEffect[];
+  variants: SkillVariant[];
+  limitations: string[];
+  verification?: SkillVerification;
   category: CooldownCategory;
   color: string;
   catalogVersion: string;
-  dataStatus: "unconfigured" | "legacy" | "custom";
+  dataStatus: SkillDataStatus;
+}
+
+export interface MemberSkillVariant {
+  memberId: string;
+  cooldownId: string;
+  variantId: string;
 }
 
 export interface RaidAssignment {
@@ -122,7 +169,7 @@ export interface RaidPlanSettings {
 }
 
 export interface RaidPlanDocument {
-  schemaVersion: 4;
+  schemaVersion: 5;
   encounter: EncounterInfo;
   groups: RaidGroup[];
   roster: RosterMember[];
@@ -130,6 +177,7 @@ export interface RaidPlanDocument {
   timelineNotes: RaidTimelineNote[];
   mechanics: RaidMechanic[];
   cooldowns: CooldownDefinition[];
+  memberSkillVariants: MemberSkillVariant[];
   assignments: RaidAssignment[];
   settings: RaidPlanSettings;
   catalogSource?: {
@@ -217,7 +265,7 @@ export interface TimelinePreset {
 }
 
 export interface CatalogManifest {
-  schemaVersion: 2;
+  schemaVersion: 3;
   version: string;
   gameVersion: string;
   title: string;
