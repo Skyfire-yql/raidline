@@ -1,6 +1,6 @@
-import { MAX_TIMELINE_MS, TIMELINE_SNAP_MS } from "./core.ts";
-import { resolveCooldownForMember, skillBusyEndMs, skillEffectStartMs } from "./skills.ts";
-import type { RaidPlanDocument } from "./types.ts";
+import { MAX_TIMELINE_MS, TIMELINE_SNAP_MS } from "./domain/schema";
+import { buildTimelineScene, type TimelineScene } from "./domain/view-model";
+import type { RaidPlanDocument } from "./types";
 
 export type TimelineOrientation = "horizontal" | "vertical";
 
@@ -40,23 +40,23 @@ export function timeAxisPosition(ms: number, pixelsPerSecond: number) {
   return Math.max(0, ms / 1000 * pixelsPerSecond);
 }
 
-export function timelineContentEnd(plan: RaidPlanDocument) {
-  const phaseEnd = Math.max(0, ...plan.phases.map((item) => item.atMs));
-  const noteEnd = Math.max(0, ...plan.timelineNotes.map((item) => item.atMs));
-  const mechanicEnd = Math.max(0, ...plan.mechanics.map((item) => item.atMs + (item.castTimeMs ?? 0) + (item.durationMs ?? 0)));
-  const assignmentEnd = Math.max(0, ...plan.assignments.map((item) => {
-    const cooldown = resolveCooldownForMember(plan, item.memberId, item.cooldownId);
-    if (!cooldown) return item.atMs;
-    const busyEnd = skillBusyEndMs(item.atMs, cooldown);
-    const effectEnd = skillEffectStartMs(item.atMs, cooldown) + (cooldown.durationMs ?? 0);
-    return Math.max(busyEnd, effectEnd);
-  }));
-  return Math.min(MAX_TIMELINE_MS, Math.max(phaseEnd, noteEnd, mechanicEnd, assignmentEnd));
+function scene(value: RaidPlanDocument | TimelineScene) {
+  return "schemaVersion" in value ? buildTimelineScene(value) : value;
 }
 
-export function timelineRangeMs(plan: RaidPlanDocument) {
-  const desired = Math.ceil((timelineContentEnd(plan) + TIMELINE_TAIL_MS) / TIMELINE_TAIL_MS) * TIMELINE_TAIL_MS;
-  return Math.min(MAX_TIMELINE_MS, Math.max(MIN_TIMELINE_MS, desired));
+export function timelineContentEnd(value: RaidPlanDocument | TimelineScene) {
+  const resolved = scene(value);
+  const ends = [
+    ...resolved.phases.map((item) => item.atMs),
+    ...resolved.directives.map((item) => item.atMs + item.durationMs),
+    ...resolved.mechanics.map((item) => item.endMs),
+    ...resolved.assignments.map((item) => Math.max(item.atMs + item.castTimeMs, item.effectStartMs + item.durationMs)),
+  ];
+  return Math.min(MAX_TIMELINE_MS, Math.max(0, ...ends));
+}
+
+export function timelineRangeMs(value: RaidPlanDocument | TimelineScene) {
+  return scene(value).durationMs;
 }
 
 export function adaptiveTickMs(pixelsPerSecond: number) {

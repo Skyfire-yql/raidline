@@ -1,13 +1,13 @@
 import { catalogReleaseKeys, SEED_CATALOG, validateCatalogRelease } from "./catalog";
 import { objectStore, type ObjectStore } from "./object-store";
-import type { BossMechanic, CatalogRelease, PlayerSkill, TimelinePreset } from "./types";
+import type { CatalogMechanicDefinition, CatalogRelease, CatalogSkillDefinition, TimelinePreset } from "./types";
 
 export async function readCatalogRelease(version: string, store: ObjectStore = objectStore) {
   const keys = catalogReleaseKeys(version);
   const [manifest, playerSkills, bossMechanics, timelinePresets] = await Promise.all([
     store.getJson<CatalogRelease["manifest"]>(keys.manifest),
-    store.getJson<PlayerSkill[]>(keys.playerSkills),
-    store.getJson<BossMechanic[]>(keys.bossMechanics),
+    store.getJson<CatalogSkillDefinition[]>(keys.playerSkills),
+    store.getJson<CatalogMechanicDefinition[]>(keys.bossMechanics),
     store.getJson<TimelinePreset[]>(keys.timelinePresets),
   ]);
   if (!manifest || !playerSkills || !bossMechanics || !timelinePresets) return null;
@@ -17,7 +17,11 @@ export async function readCatalogRelease(version: string, store: ObjectStore = o
 export async function readCurrentCatalog(store: ObjectStore = objectStore) {
   const pointer = await store.getJson<{ version: string }>("catalog/current.json");
   if (!pointer?.version) return validateCatalogRelease(SEED_CATALOG);
-  return await readCatalogRelease(pointer.version, store) ?? validateCatalogRelease(SEED_CATALOG);
+  try {
+    return await readCatalogRelease(pointer.version, store) ?? validateCatalogRelease(SEED_CATALOG);
+  } catch {
+    return validateCatalogRelease(SEED_CATALOG);
+  }
 }
 
 export async function publishCatalogRelease(input: unknown, store: ObjectStore = objectStore) {

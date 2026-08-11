@@ -3,15 +3,14 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { formatTime, MAX_TIMELINE_MS } from "@/lib/core";
 import { specializationLabel, WOW_CLASS_LABELS } from "@/lib/cooldowns";
-import { resolveCooldownForMember, skillEffectStartMs } from "@/lib/skills";
-import type { RaidPlanDocument } from "@/lib/types";
-import { adaptiveTickMs, timeAxisPosition, timelineRangeMs, timelineTimeFromDrag, type TimelineOrientation } from "@/lib/view";
+import type { TimelineScene } from "@/lib/domain/view-model";
+import { adaptiveTickMs, timeAxisPosition, timelineTimeFromDrag, type TimelineOrientation } from "@/lib/view";
 
-export type TimelineSelectionKey = `mechanic:${string}` | `assignment:${string}` | `phase:${string}` | `note:${string}` | null;
-type DragKind = "mechanic" | "assignment" | "phase" | "note";
+export type TimelineSelectionKey = `mechanic:${string}` | `assignment:${string}` | `phase:${string}` | `directive:${string}` | null;
+type DragKind = "mechanic" | "assignment" | "phase" | "directive";
 
 interface TimelineViewProps {
-  plan: RaidPlanDocument;
+  scene: TimelineScene;
   orientation: TimelineOrientation;
   zoom: number;
   selected?: TimelineSelectionKey;
@@ -23,10 +22,10 @@ interface TimelineViewProps {
   onOpenMemberSkills?: (id: string, atMs: number) => void;
   onAddMember?: () => void;
   onAddPhase?: (atMs: number) => void;
-  onAddTimelineNote?: (atMs: number) => void;
+  onAddDirective?: (kind: "task" | "note", atMs: number) => void;
   onAddMechanic?: (atMs: number) => void;
   onMovePhase?: (id: string, atMs: number) => void;
-  onMoveTimelineNote?: (id: string, atMs: number) => void;
+  onMoveDirective?: (id: string, atMs: number) => void;
   onMoveMechanic?: (id: string, atMs: number) => void;
   onMoveAssignment?: (id: string, atMs: number) => void;
 }
@@ -63,7 +62,7 @@ function pointStyle(orientation: TimelineOrientation, atMs: number, lane: number
 }
 
 export function TimelineView({
-  plan,
+  scene,
   orientation,
   zoom,
   selected = null,
@@ -75,23 +74,23 @@ export function TimelineView({
   onOpenMemberSkills,
   onAddMember,
   onAddPhase,
-  onAddTimelineNote,
+  onAddDirective,
   onAddMechanic,
   onMovePhase,
-  onMoveTimelineNote,
+  onMoveDirective,
   onMoveMechanic,
   onMoveAssignment,
 }: TimelineViewProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 920, height: 620 });
-  const durationMs = timelineRangeMs(plan);
+  const durationMs = scene.durationMs;
   const timeViewport = orientation === "horizontal"
     ? Math.max(320, viewport.width - LABEL - END_GUTTER_HORIZONTAL)
     : Math.max(320, viewport.height - HEADER - END_GUTTER_VERTICAL);
   const fitPixelsPerSecond = timeViewport / Math.max(1, durationMs / 1000);
   const pixelsPerSecond = fitPixelsPerSecond * Math.max(1, zoom);
   const durationPx = timeAxisPosition(durationMs, pixelsPerSecond);
-  const laneCount = plan.roster.length + 2 + (readOnly ? 0 : 1);
+  const laneCount = scene.members.length + 2 + (readOnly ? 0 : 1);
   const canvasStyle: CSSProperties = orientation === "horizontal"
     ? { width: Math.max(viewport.width, LABEL + durationPx), height: Math.max(viewport.height, HEADER + laneCount * LANE) }
     : { width: Math.max(viewport.width, LABEL + laneCount * COLUMN), height: Math.max(viewport.height, HEADER + durationPx) };
@@ -149,7 +148,7 @@ export function TimelineView({
       if (drag.kind === "mechanic") onMoveMechanic?.(drag.id, atMs);
       else if (drag.kind === "assignment") onMoveAssignment?.(drag.id, atMs);
       else if (drag.kind === "phase") onMovePhase?.(drag.id, atMs);
-      else onMoveTimelineNote?.(drag.id, atMs);
+      else onMoveDirective?.(drag.id, atMs);
       suppressedClickRef.current = `${drag.kind}:${drag.id}`;
     }
     dragRef.current = null;
@@ -182,42 +181,37 @@ export function TimelineView({
         const style = orientation === "horizontal" ? { left: LABEL + axis } : { top: HEADER + axis };
         return <div className="axis-tick" key={atMs} style={style}><span>{formatTime(atMs)}</span></div>;
       })}
-      {plan.phases.map((phase) => {
+      {scene.phases.map((phase) => {
         const atMs = displayedTime("phase", phase.id, phase.atMs);
         const axis = timeAxisPosition(atMs, pixelsPerSecond);
         const lineStyle = orientation === "horizontal" ? { left: LABEL + axis } : { top: HEADER + axis };
         return <div key={phase.id}><div className="axis-phase" style={lineStyle} /><button data-timeline-key={`phase:${phase.id}`} className={`axis-event phase-event ${selected === `phase:${phase.id}` ? "selected" : ""}`} style={pointStyle(orientation, atMs, 0, pixelsPerSecond, -10)} onPointerDown={(event) => beginDrag("phase", phase.id, phase.atMs, event)} onPointerMove={continueDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onClick={() => handleSelect(`phase:${phase.id}`)} title={`${formatTime(atMs)} · ${phase.name}`}><strong>{phase.name}</strong></button></div>;
       })}
-      {plan.timelineNotes.map((note) => {
-        const atMs = displayedTime("note", note.id, note.atMs);
-        return <button key={note.id} data-timeline-key={`note:${note.id}`} className={`axis-event note-event ${selected === `note:${note.id}` ? "selected" : ""}`} style={pointStyle(orientation, atMs, 0, pixelsPerSecond, 14)} onPointerDown={(event) => beginDrag("note", note.id, note.atMs, event)} onPointerMove={continueDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onClick={() => handleSelect(`note:${note.id}`)} title={`${formatTime(atMs)} · ${note.text}`}><strong>{note.text || "空注释"}</strong></button>;
+      {scene.directives.map((directive) => {
+        const atMs = displayedTime("directive", directive.id, directive.atMs);
+        return <button key={directive.id} data-timeline-key={`directive:${directive.id}`} className={`axis-event ${directive.kind === "task" ? "task-event" : "note-event"} ${selected === `directive:${directive.id}` ? "selected" : ""}`} style={pointStyle(orientation, atMs, 0, pixelsPerSecond, 14)} onPointerDown={(event) => beginDrag("directive", directive.id, directive.atMs, event)} onPointerMove={continueDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onClick={() => handleSelect(`directive:${directive.id}`)} title={`${formatTime(atMs)} · ${directive.text}`}><strong>{directive.text || (directive.kind === "task" ? "空任务" : "空说明")}</strong></button>;
       })}
-      <div className="axis-lane-label phase-note-label" style={laneLabelStyle(0)}><span><b>阶段 / 注释</b></span>{!readOnly && <details className="lane-add-menu"><summary aria-label="添加阶段或注释">＋</summary><div><button onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onAddPhase?.(visibleCenterTime()); }}>阶段</button><button onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onAddTimelineNote?.(visibleCenterTime()); }}>注释</button></div></details>}</div>
+      <div className="axis-lane-label phase-note-label" style={laneLabelStyle(0)}><span><b>阶段 / 战术</b></span>{!readOnly && <details className="lane-add-menu"><summary aria-label="添加阶段、任务或说明">＋</summary><div><button onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onAddPhase?.(visibleCenterTime()); }}>阶段</button><button onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onAddDirective?.("task", visibleCenterTime()); }}>任务</button><button onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onAddDirective?.("note", visibleCenterTime()); }}>说明</button></div></details>}</div>
       <div className="axis-lane-label mechanic-label" style={laneLabelStyle(1)}><span><b>BOSS 机制</b></span>{!readOnly && <button className="axis-lane-add" onClick={() => onAddMechanic?.(visibleCenterTime())} aria-label="添加机制">＋</button>}</div>
-      {plan.roster.map((member, index) => (
+      {scene.members.map((member, index) => (
         <div className={`axis-lane-label member-lane-label ${readOnly ? "readonly" : ""}`} key={member.id} style={laneLabelStyle(index + 2)}>
-          {readOnly ? <button className="axis-member-main" onClick={() => onSelectMember?.(member.id)}><i style={{ background: member.color }} /><span><b>{member.name}</b><small>{WOW_CLASS_LABELS[member.classSlug] ?? "待选择职业"} · {specializationLabel(member.classSlug, member.specSlug)}</small></span></button> : <>
-            <button className="axis-member-main" onClick={() => onSelectMember?.(member.id)} title={`编辑成员：${member.name}`}><i style={{ background: member.color }} /><span><b>{member.name}</b><small>{WOW_CLASS_LABELS[member.classSlug] ?? "待选择职业"} · {specializationLabel(member.classSlug, member.specSlug)}</small></span></button>
+          {readOnly ? <button className="axis-member-main" onClick={() => onSelectMember?.(member.id)}><i style={{ background: member.color }} /><span><b>{member.name}</b><small>{member.classSlug ? WOW_CLASS_LABELS[member.classSlug] ?? member.classSlug : "待选择职业"} · {specializationLabel(member.classSlug ?? "", member.specSlug ?? "")}</small></span></button> : <>
+            <button className="axis-member-main" onClick={() => onSelectMember?.(member.id)} title={`编辑成员：${member.name}`}><i style={{ background: member.color }} /><span><b>{member.name}</b><small>{member.classSlug ? WOW_CLASS_LABELS[member.classSlug] ?? member.classSlug : "待选择职业"} · {specializationLabel(member.classSlug ?? "", member.specSlug ?? "")}</small></span></button>
             <button className="axis-member-skill" onClick={() => onOpenMemberSkills?.(member.id, visibleCenterTime())} title={`为 ${member.name} 安排技能`} aria-label={`为 ${member.name} 安排技能`}>＋</button>
           </>}
         </div>
       ))}
-      {!readOnly && <div className="axis-lane-label add-member-label" style={laneLabelStyle(plan.roster.length + 2)}><button onClick={onAddMember}>＋ 添加成员</button></div>}
-      {plan.mechanics.map((mechanic) => {
+      {!readOnly && <div className="axis-lane-label add-member-label" style={laneLabelStyle(scene.members.length + 2)}><button onClick={onAddMember}>＋ 添加成员</button></div>}
+      {scene.mechanics.map((mechanic) => {
         const atMs = displayedTime("mechanic", mechanic.id, mechanic.atMs);
         return <button key={mechanic.id} data-timeline-key={`mechanic:${mechanic.id}`} className={`axis-event mechanic-event ${selected === `mechanic:${mechanic.id}` ? "selected" : ""}`} style={pointStyle(orientation, atMs, 1, pixelsPerSecond)} onPointerDown={(event) => beginDrag("mechanic", mechanic.id, mechanic.atMs, event)} onPointerMove={continueDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onClick={() => handleSelect(`mechanic:${mechanic.id}`)} title={`${formatTime(atMs)} · ${mechanic.name}${mechanic.description ? `\n${mechanic.description}` : "\n暂无说明"}`}><strong>{mechanic.name}</strong></button>;
       })}
-      {plan.assignments.map((assignment) => {
-        const memberIndex = plan.roster.findIndex((item) => item.id === assignment.memberId);
-        const cooldown = resolveCooldownForMember(plan, assignment.memberId, assignment.cooldownId);
-        if (memberIndex < 0 || !cooldown) return null;
+      {scene.assignments.map((assignment) => {
+        const memberIndex = scene.members.findIndex((item) => item.id === assignment.memberId);
+        if (memberIndex < 0) return null;
         const lane = memberIndex + 2;
         const atMs = displayedTime("assignment", assignment.id, assignment.atMs);
-        const cast = cooldown.castTimeMs;
-        const duration = cooldown.durationMs;
-        const effectAt = skillEffectStartMs(atMs, cooldown);
-        const displayName = cooldown.selectedVariant ? `${cooldown.name} · ${cooldown.selectedVariant.name}` : cooldown.name;
-        return <div key={assignment.id}>{cast != null && cast > 0 && (cooldown.castType === "cast" || cooldown.castType === "channel") && <span className="axis-segment cast-segment" style={lengthStyle(orientation, atMs, cast, lane, pixelsPerSecond)} />}{duration != null && duration > 0 && <span className="axis-segment effect-segment" style={{ ...lengthStyle(orientation, effectAt, duration, lane, pixelsPerSecond), background: cooldown.color }} />}<button data-timeline-key={`assignment:${assignment.id}`} className={`axis-event assignment-event ${selected === `assignment:${assignment.id}` ? "selected" : ""} ${warningIds.has(assignment.id) ? "warning" : ""}`} style={{ ...pointStyle(orientation, atMs, lane, pixelsPerSecond), borderColor: cooldown.color }} onPointerDown={(event) => beginDrag("assignment", assignment.id, assignment.atMs, event)} onPointerMove={continueDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onClick={() => handleSelect(`assignment:${assignment.id}`)} title={`${formatTime(atMs)} 开始 · ${displayName}`}><i style={{ background: cooldown.color }} /><strong>{displayName}</strong>{warningIds.has(assignment.id) && <b>!</b>}</button></div>;
+        return <div key={assignment.id}>{assignment.castTimeMs > 0 && (assignment.castType === "cast" || assignment.castType === "channel") && <span className="axis-segment cast-segment" style={lengthStyle(orientation, atMs, assignment.castTimeMs, lane, pixelsPerSecond)} />}{assignment.durationMs > 0 && <span className="axis-segment effect-segment" style={{ ...lengthStyle(orientation, assignment.effectStartMs, assignment.durationMs, lane, pixelsPerSecond), background: assignment.color }} />}<button data-timeline-key={`assignment:${assignment.id}`} className={`axis-event assignment-event ${selected === `assignment:${assignment.id}` ? "selected" : ""} ${warningIds.has(assignment.id) ? "warning" : ""}`} style={{ ...pointStyle(orientation, atMs, lane, pixelsPerSecond), borderColor: assignment.color }} onPointerDown={(event) => beginDrag("assignment", assignment.id, assignment.atMs, event)} onPointerMove={continueDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onClick={() => handleSelect(`assignment:${assignment.id}`)} title={`${formatTime(atMs)} 开始 · ${assignment.name}`}><i style={{ background: assignment.color }} /><strong>{assignment.name}</strong>{warningIds.has(assignment.id) && <b>!</b>}</button></div>;
       })}
     </div>
   );

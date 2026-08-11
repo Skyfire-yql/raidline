@@ -44,6 +44,10 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    // The persistent workspace may reuse a pnpm dependency directory through
+    // a junction. Keep React on one module identity so SSR and hydration do not
+    // create separate hook dispatchers in local previews.
+    resolve: { dedupe: ["react", "react-dom", "react-server-dom-webpack"] },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,

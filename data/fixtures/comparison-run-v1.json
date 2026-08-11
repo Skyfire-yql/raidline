@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-4000-8000-000000000008",
+  "planId": "10000000-0000-4000-8000-000000000009",
+  "planRevisionHash": "plan-fixture-hash",
+  "snapshotId": "10000000-0000-4000-8000-000000000001",
+  "conversionProfileId": "10000000-0000-4000-8000-000000000003",
+  "conversionProfileRevision": 1,
+  "createdAt": 1800000001000,
+  "results": [
+    {
+      "id": "10000000-0000-4000-8000-00000000000a",
+      "observedEventKeys": ["event:1"],
+      "status": "unverifiable",
+      "message": "本阶段只固定契约，不计算真实对比"
+    }
+  ]
+}

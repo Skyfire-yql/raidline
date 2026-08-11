@@ -1,6 +1,5 @@
-import seedCatalog from "../data/catalog-seed.json" with { type: "json" };
-import { normalizeCooldownDefinition, skillAvailableToMember } from "./skills.ts";
-import type { CooldownDefinition, RaidRole, RosterMember } from "./types.ts";
+import { skillAvailableToMember } from "./skills";
+import type { PlayerSkillDefinitionSnapshot, RaidRole, RosterSlot } from "./types";
 
 export const WOW_CLASS_COLORS: Record<string, string> = {
   DeathKnight: "#c41e3a", DemonHunter: "#a330c9", Druid: "#ff7c0a", Evoker: "#33937f",
@@ -101,24 +100,7 @@ export function specializationLabel(classSlug: string, specSlug: string) {
   return specializationFor(classSlug, specSlug)?.label ?? specSlug;
 }
 
-export const DEFAULT_COOLDOWNS: CooldownDefinition[] = seedCatalog.playerSkills.map((item) => {
-  const { enabled: _enabled, gameVersion: _gameVersion, ...cooldown } = item;
-  void _enabled; void _gameVersion;
-  const normalized = normalizeCooldownDefinition(cooldown, { defaultStatus: "unconfigured", defaultCatalogVersion: seedCatalog.manifest.version });
-  normalized.catalogVersion = seedCatalog.manifest.version;
-  return normalized;
-});
-
-export const COOLDOWN_BY_SPELL_ID = new Map(
-  DEFAULT_COOLDOWNS.filter((item) => item.spellId).map((item) => [item.spellId!, item]),
-);
-
-export function cooldownsForClass(cooldowns: CooldownDefinition[], classSlug: string) {
-  if (!classSlug) return [];
-  return cooldowns.filter((item) => item.classSlug === classSlug);
-}
-
-export function cooldownsForMember(cooldowns: CooldownDefinition[], member: Pick<RosterMember, "classSlug" | "specSlug"> | undefined) {
+export function cooldownsForMember(skills: PlayerSkillDefinitionSnapshot[], member: Pick<RosterSlot, "classSlug" | "specSlug"> | undefined) {
   if (!member) return [];
-  return cooldowns.filter((item) => skillAvailableToMember(item, member));
+  return skills.filter((item) => skillAvailableToMember(item, member));
 }

@@ -83,8 +83,8 @@ export function HomeClient() {
           <header><h2>我的轴</h2><button className="primary-action" onClick={createBlank} disabled={Boolean(busy)}>＋ 空白计划</button></header>
           <div className="compact-list local-plan-list">
             {plans.map((plan) => <div className="compact-plan-row" key={plan.id}>
-              <button onClick={() => router.push(`/plans/${plan.id}`)}><span><strong>{plan.title}</strong><small>{new Date(plan.updatedAt).toLocaleString("zh-CN", { dateStyle: "short", timeStyle: "short" })}</small></span><b>打开</b></button>
-              <button className="danger-link" aria-label={`删除 ${plan.title}`} onClick={async () => { if (!confirm(`删除本地计划“${plan.title}”？此操作不会删除它已发布的链接。`)) return; await deleteLocalPlan(plan.id); await refreshPlans(); }}>删除</button>
+              <button onClick={() => router.push(`/plans/${plan.id}`)}><span><strong>{plan.document.metadata.title}</strong><small>{new Date(plan.updatedAt).toLocaleString("zh-CN", { dateStyle: "short", timeStyle: "short" })}</small></span><b>打开</b></button>
+              <button className="danger-link" aria-label={`删除 ${plan.document.metadata.title}`} onClick={async () => { if (!confirm(`删除本地计划“${plan.document.metadata.title}”？此操作不会删除它已发布的链接。`)) return; await deleteLocalPlan(plan.id); await refreshPlans(); }}>删除</button>
             </div>)}
             {!plans.length && <p className="table-empty">还没有本地计划。</p>}
           </div>
