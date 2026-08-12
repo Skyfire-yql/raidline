@@ -43,8 +43,15 @@ test("Raidline renders and exposes strict v1 publication/catalog APIs", async ()
     const response = await waitForServer(`${base}/`, child, logs);
     assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
     const html = await response.text();
-    assert.match(html, /团轴/); assert.match(html, /空白计划/); assert.match(html, /我的轴/); assert.match(html, /目录预设/);
-    assert.doesNotMatch(html, /团本排轴工作台|本地优先|目录管理|IndexedDB|本地版本|仅所有者可见|WCL|战报|个人预设|导入 JSON/);
+    assert.match(html, /团轴/); assert.match(html, /空白计划/); assert.match(html, /我的轴/); assert.match(html, /目录预设/); assert.match(html, /WCL 实战参考/);
+    assert.doesNotMatch(html, /团本排轴工作台|本地优先|目录管理|IndexedDB|本地版本|仅所有者可见|个人预设|导入 JSON|WCL_CLIENT_SECRET/);
+
+    const invalidWcl = await json(await fetch(`${base}/api/wcl/reports/probe`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: "https://example.com/reports/baxm3wf8MDvF6V7W" }),
+    }));
+    assert.equal(invalidWcl.response.status, 422); assert.equal(invalidWcl.payload.error.code, "INVALID_WCL_LINK");
 
     const shareId = randomBytes(8).toString("hex"); const editId = "A9z0"; const original = plan();
     const created = await json(await fetch(`${base}/api/publications`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ shareId, editId, document: original }) }));

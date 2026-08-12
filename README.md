@@ -49,16 +49,29 @@ ADMIN_SESSION_SECRET=<随机会话签名密钥>
 ## WCL 与导出边界
 
 - `CombatLogSnapshot`、`EncounterConversionProfile`、`PlanImportDraft` 和 `ComparisonRun` 都有提供者无关的严格 v1 契约与 fixture。
-- WCL fight 难度只在请求边界临时检查；非史诗战斗以 `UNSUPPORTED_DIFFICULTY` 停止，难度不写入长期结构。
+- 首页可以粘贴 `cn.warcraftlogs.com` 等允许域名的公开报告链接。服务端使用 client credentials 读取报告、Boss 战斗和 WCL 官方 `phaseTransitions`，浏览器不会接触 client secret 或 access token。
+- 当前探针是只读且不持久化的：它不会创建计划、WCL 快照、导入草稿或服务器数据，也不会读取 Boss/玩家技能事件。首个测试样本是报告 `baxm3wf8MDvF6V7W` 中 Vashnik the Malignant 的史诗击杀（fight 32）。
+- 探针可列出非史诗战斗并标记为不支持；一旦进入快照或导入边界，非史诗战斗以 `UNSUPPORTED_DIFFICULTY` 停止，难度不写入长期结构。
 - 战斗快照保留原始毫秒精度；GraphQL DTO、WCL 缩写和插件语法不会进入计划模型。
-- 当前阶段不连接真实 WCL、不启动任务队列，也不实现真实对比计算。
+- 当前阶段不读取事件分页、不启动任务队列、不保存规范化快照，也不实现技能转换或真实对比计算。
 - 导出统一使用 `ExportRequest → ExportResult`。首个导出器为 MRT 阅读版；无法可靠表达的阶段触发会产生显式降级警告，阻断错误不会静默输出。
 
-契约 fixture 位于 [data/fixtures](data/fixtures)。
+提供者无关的契约 fixture 位于 [data/fixtures](data/fixtures)，WCL GraphQL 边界 fixture 位于 [tests/fixtures](tests/fixtures)。
 
 ## 本地运行与验证
 
 需要 Node.js 22.13 或更高版本，以及 pnpm。
+
+如需测试真实公开 WCL 报告，先把 `.env.example` 复制为被 Git 忽略的 `.env.local`，填写从 Warcraft Logs 创建的 API client：
+
+```dotenv
+WCL_CLIENT_ID=<本地 client id>
+WCL_CLIENT_SECRET=<本地 client secret>
+WCL_TOKEN_URL=https://www.warcraftlogs.com/oauth/token
+WCL_API_URL=https://www.warcraftlogs.com/api/v2/client
+```
+
+不要给这些变量增加 `VITE_` 或 `NEXT_PUBLIC_` 前缀。API 地址保持可配置，以便之后在中国大陆生产服务器上实测并选择可用入口。
 
 ```bash
 pnpm install
@@ -69,7 +82,7 @@ pnpm build
 pnpm test
 ```
 
-测试覆盖严格读取、锚点解析与循环、自动范围、多策略组与小队、阶段任务与说明、技能充能/施法/引导、目录快照隔离、WCL 边界、16+4 发布规则和发布 API。
+测试覆盖严格读取、锚点解析与循环、自动范围、多策略组与小队、阶段任务与说明、技能充能/施法/引导、目录快照隔离、WCL 链接/OAuth/阶段边界、16+4 发布规则和发布 API。
 
 ## 项目结构与开发入口
 
@@ -82,7 +95,10 @@ lib/domain/view-model.ts   RaidPlanDocument → TimelineScene
 lib/core.ts                计划业务规则、冲突检查、统一导出
 lib/catalog.ts             目录校验、预设应用、快照升级
 lib/publications.ts        发布对象和 16+4 分享规则
-lib/wcl-contract.ts        WCL 边界契约（当前不发起真实网络请求）
+lib/wcl-report.ts          WCL 链接、报告 DTO 校验与阶段规范化
+lib/wcl-client.ts          服务端 OAuth、token 缓存与 GraphQL client
+lib/wcl-server.ts          Worker/本地运行时配置边界
+lib/wcl-contract.ts        规范化快照和转换 profile 的接收边界
 app/components/            首页、双栏编辑器、只读页和目录管理
 app/api/                   发布、目录和管理员边界
 data/catalog-seed.json     内置 v1 目录
@@ -104,8 +120,8 @@ tests/                     单元和渲染/API 集成测试
 
 ## 托管边界
 
-当前 Sites 项目仍只用于私有交互验证，`.openai/hosting.json` 继续提供 `OBJECTS` R2 绑定；本阶段不部署 Sites，也不接入真实 WCL 或大陆服务器数据库。
+当前 Sites 项目仍只用于私有交互验证，`.openai/hosting.json` 继续提供 `OBJECTS` R2 绑定；本阶段不向 Sites 配置或部署正式 WCL 密钥，也不接入大陆服务器数据库。真实 WCL 探针仅在开发者本机或之后的自有服务端使用。
 
-长期生产目标是中国大陆普通 Linux 服务器。对象存储已经收敛到小型 `ObjectStore` 接口；SQLite、持久数据目录和 WCL 后端将在后续阶段按独立契约实现，不在 vNext v1 对象模型切换中伪装完成。
+长期生产目标是中国大陆普通 Linux 服务器。对象存储已经收敛到小型 `ObjectStore` 接口；SQLite、持久数据目录、异步 WCL 事件采集与快照库将在后续阶段按独立契约实现。
 
 Raidline 是社区工具，与 Blizzard Entertainment 没有官方关联。

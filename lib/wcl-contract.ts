@@ -1,9 +1,10 @@
 import { parseCombatLogSnapshot, parseConversionProfile, type CombatLogSnapshot, type EncounterConversionProfile } from "./types";
+import type { WclDifficulty } from "./wcl-report";
 
 export interface WclFightProbe {
   reportCode: string;
   fightId: number;
-  difficulty: "mythic" | "heroic" | "normal" | "raid-finder" | "unknown";
+  difficulty: WclDifficulty;
 }
 
 export class UnsupportedDifficultyError extends Error {

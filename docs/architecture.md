@@ -1,6 +1,6 @@
 # Raidline 架构说明
 
-本文描述当前 vNext v1 的稳定边界，帮助贡献者在不重新阅读全部历史需求的情况下定位改动。它不承诺尚未实现的真实 WCL、服务器数据库或插件导入能力。
+本文描述当前 vNext v1 的稳定边界，帮助贡献者在不重新阅读全部历史需求的情况下定位改动。当前真实 WCL 能力止于公开报告、战斗和官方阶段的只读探针，不承诺尚未实现的事件采集、快照持久化、服务器数据库或插件导入能力。
 
 ## 系统分层
 
@@ -26,7 +26,7 @@
           ├── 本地边界：app/components/local-store.ts（IndexedDB）
           ├── HTTP 边界：app/api/**、lib/server.ts
           ├── 对象边界：lib/object-store.ts（可替换 ObjectStore）
-          └── WCL 边界：lib/wcl-contract.ts（v1 契约，当前无网络客户端）
+          └── WCL 边界：wcl-report / wcl-client / wcl-server / wcl-contract
 ```
 
 领域层只处理稳定的业务语义。页面、数据库、对象存储、WCL 和插件格式都必须在边界层转换。这样未来把 Sites/R2 替换为中国大陆服务器上的 SQLite + 内容寻址文件目录时，不需要改计划 schema 或时间轴算法。
@@ -53,7 +53,18 @@
 
 ### WCL 边界（当前阶段）
 
-`lib/wcl-contract.ts` 只接受已经规范化的提供者无关对象，并在保存前检查 fight 难度。GraphQL DTO、报告链接解析、认证、分页、任务队列和真实对比计算属于后续服务端里程碑。它们不能被塞进 `RaidPlanDocument`。
+```text
+公开 WCL URL
+  → parseWclReportUrl（官方零售域名、report code、fight）
+  → 服务端 client credentials（内存 token 缓存）
+  → Report / ReportFight / phaseTransitions 严格 DTO
+  → WclReportProbeResult（报告、Boss 战斗、开怪后阶段时间）
+  → 首页只读预览
+```
+
+探针结果不进入 IndexedDB、R2、`RaidPlanDocument` 或 `CombatLogSnapshot`。GraphQL DTO 只存在于适配器边界，阶段时间以 `transition.startTime - fight.startTime` 保留毫秒精度；若 WCL 没有返回 0 秒阶段，探针为显示补一个 P1=0 基线。数值 fight 难度在边界映射，只有史诗样本标记为后续可转换。
+
+`lib/wcl-contract.ts` 继续负责接收未来已经规范化的提供者无关快照，并在保存前检查 fight 难度。事件分页、人工采集规则、不可变快照、导入草稿、任务队列和真实对比计算仍属于后续服务端里程碑，不能被塞进 `RaidPlanDocument`。
 
 ## 核心不变量
 
@@ -71,7 +82,7 @@
 | 当前实现 | 未来实现 | 不应改变的接口 |
 | --- | --- | --- |
 | Sites/R2 `ObjectStore` | 中国大陆 Linux 服务器持久目录或同网对象存储 | `ObjectStore`、发布哈希和 API 结果 |
-| 仅 v1 WCL fixture | 服务端 WCL client + 异步任务 + 快照库 | `CombatLogSnapshot`、`PlanImportDraft`、`ComparisonRun` |
+| 同步只读 WCL 报告/阶段探针 | 事件分页 + 异步任务 + 不可变快照库 | `CombatLogSnapshot`、`PlanImportDraft`、`ComparisonRun` |
 | MRT 阅读版 | MRT/Kaze、NSRT、STT 导出器 | `ExportRequest → ExportResult` |
 | 内置 `data/catalog-seed.json` | 管理员发布 catalog release | `CatalogRelease`、计划内快照 |
 | IndexedDB | 浏览器本地优先 + 服务器显式发布 | 工作副本/发布语义 |
