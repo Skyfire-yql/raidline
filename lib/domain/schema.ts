@@ -147,6 +147,45 @@ export const DefinitionVerificationSchema = z.strictObject({
   sources: z.array(DefinitionSourceSchema).max(30),
 });
 
+export const MechanicTimelinePointSchema = z.enum(["cast-start", "impact", "end"]);
+export const MechanicTimelinePresentationPartSchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    kind: z.literal("interval"),
+    from: MechanicTimelinePointSchema,
+    to: MechanicTimelinePointSchema,
+    tone: z.enum(["context", "warning", "active"]),
+    text: z.string().min(1).max(120),
+  }),
+  z.strictObject({
+    kind: z.literal("marker"),
+    at: MechanicTimelinePointSchema,
+    tone: z.enum(["point", "judgment"]),
+    text: z.string().min(1).max(120),
+  }),
+]);
+
+const MECHANIC_TIMELINE_POINT_ORDER = { "cast-start": 0, impact: 1, end: 2 } as const;
+
+export const MechanicTimelinePresentationSchema = z.strictObject({
+  parts: z.array(MechanicTimelinePresentationPartSchema).min(1).max(8),
+}).superRefine((presentation, context) => {
+  const intervals = new Set<string>();
+  const markers = new Set<string>();
+  presentation.parts.forEach((part, index) => {
+    if (part.kind === "interval") {
+      if (MECHANIC_TIMELINE_POINT_ORDER[part.from] >= MECHANIC_TIMELINE_POINT_ORDER[part.to]) {
+        context.addIssue({ code: "custom", path: ["parts", index, "to"], message: "机制展示区间的终点必须晚于起点" });
+      }
+      const key = `${part.from}:${part.to}`;
+      if (intervals.has(key)) context.addIssue({ code: "custom", path: ["parts", index], message: "同一机制展示区间不能重复" });
+      intervals.add(key);
+      return;
+    }
+    if (markers.has(part.at)) context.addIssue({ code: "custom", path: ["parts", index], message: "同一机制展示时点不能重复" });
+    markers.add(part.at);
+  });
+});
+
 export const MechanicDefinitionSnapshotSchema = z.strictObject({
   id: Id,
   name: ShortText,
@@ -155,6 +194,7 @@ export const MechanicDefinitionSnapshotSchema = z.strictObject({
   abilityGameIds: z.array(z.number().int().positive()).max(20),
   castTimeMs: Duration,
   durationMs: Duration,
+  timelinePresentation: MechanicTimelinePresentationSchema,
   damage: MechanicDamageProfileSchema,
   defaultTargets: MemberSelectorSchema,
   severity: MechanicSeveritySchema,
@@ -169,6 +209,11 @@ export const MechanicOccurrenceSchema = z.strictObject({
   id: Id,
   definitionId: Id,
   anchor: TimelineAnchorSchema,
+  displayLabel: ShortText.optional(),
+  timing: z.strictObject({
+    castTimeMs: WholeSecond,
+    durationMs: WholeSecond,
+  }).optional(),
   targets: MemberSelectorSchema.optional(),
   runtimeTrigger: RuntimeTriggerSchema.optional(),
   origin: ObjectOriginSchema.optional(),
@@ -366,6 +411,7 @@ export const CombatLogSnapshotSchema = z.strictObject({
     reportStartEpochMs: Timestamp,
     fightStartReportMs: Timestamp,
     fightEndReportMs: Timestamp,
+    gameVersionKey: z.string().min(1).max(80),
     logVersion: z.number().int().nonnegative().optional(),
     gameVersion: z.number().int().nonnegative().optional(),
     language: z.string().min(1).max(20).optional(),
@@ -388,28 +434,54 @@ export const EventCollectionRuleSchema = z.strictObject({
   id: Id,
   enabled: z.boolean(),
   dataType: z.enum(["casts", "buffs", "debuffs", "deaths", "damage", "healing", "interrupts", "dispels"]),
+  eventTypes: z.array(ObservedEventSchema.shape.type).min(1).max(20).optional(),
   hostility: z.enum(["friendly", "enemy", "any"]),
   abilityGameIds: z.array(z.number().int().positive()).max(500).optional(),
+  uses: z.array(z.enum(["timeline", "relationship", "validation", "replay"])).min(1).max(4),
   purpose: z.string().min(1).max(500),
 });
+
+const RuleVerificationSchema = z.strictObject({
+  reviewedAt: Timestamp,
+  sourceReportCodes: z.array(z.string().min(1).max(32)).min(1).max(100),
+});
+
+const EventRuleMatchSchema = z.strictObject({
+  eventTypes: z.array(ObservedEventSchema.shape.type).min(1).max(20),
+  abilityGameIds: z.array(z.number().int().positive()).min(1).max(500),
+  sourceNpcGameIds: z.array(z.number().int().positive()).max(500).optional(),
+  sourceActorType: z.enum(["player", "pet", "npc"]).optional(),
+});
+
+const EventDeduplicationSchema = z.strictObject({
+  windowMs: Timestamp,
+  groupBy: z.array(z.enum(["source", "target", "ability"])).min(1).max(3),
+});
+
+const OccurrenceDisplaySchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    kind: z.literal("stack"),
+    prefix: z.string().max(40),
+    missingValue: z.number().int().nonnegative().optional(),
+  }),
+]);
 
 export const EventConversionRuleSchema = z.strictObject({
   id: Id,
   enabled: z.boolean(),
-  match: z.strictObject({
-    eventTypes: z.array(ObservedEventSchema.shape.type).min(1).max(20),
-    abilityGameIds: z.array(z.number().int().positive()).min(1).max(500),
-    sourceNpcGameIds: z.array(z.number().int().positive()).max(500).optional(),
-    sourceActorType: z.enum(["player", "pet", "npc"]).optional(),
-  }),
+  match: EventRuleMatchSchema,
   convertTo: z.discriminatedUnion("kind", [
     z.strictObject({ kind: z.literal("phase"), definitionId: Id }),
-    z.strictObject({ kind: z.literal("mechanic"), definitionId: Id, timingPoint: z.enum(["cast-start", "impact", "end"]) }),
-    z.strictObject({ kind: z.literal("player-skill"), definitionId: Id, timingPoint: z.enum(["cast-start", "impact", "end"]) }),
+    z.strictObject({
+      kind: z.literal("mechanic"),
+      definitionId: Id,
+      timingPoint: z.enum(["cast-start", "impact", "end"]),
+      display: OccurrenceDisplaySchema.optional(),
+    }),
   ]),
-  deduplication: z.strictObject({ windowMs: Timestamp, groupBy: z.array(z.enum(["source", "target", "ability"])).min(1).max(3) }).optional(),
+  deduplication: EventDeduplicationSchema.optional(),
   notes: LongText,
-  verification: z.strictObject({ reviewedAt: Timestamp, sourceReportCodes: z.array(z.string().min(1).max(32)).min(1).max(100) }),
+  verification: RuleVerificationSchema,
 });
 
 export const EncounterConversionProfileSchema = z.strictObject({
@@ -417,10 +489,33 @@ export const EncounterConversionProfileSchema = z.strictObject({
   id: Id,
   encounterId: z.number().int().positive(),
   gameVersion: z.string().min(1).max(80),
-  revision: z.number().int().positive(),
+  profileVersion: z.number().int().positive(),
   status: z.enum(["draft", "published", "retired"]),
+  mechanicDefinitions: z.array(MechanicDefinitionSnapshotSchema).max(500),
   collectionRules: z.array(EventCollectionRuleSchema).max(1000),
   conversionRules: z.array(EventConversionRuleSchema).max(1000),
+  notes: LongText,
+});
+
+export const PlayerSkillExtractionRuleSchema = z.strictObject({
+  id: Id,
+  enabled: z.boolean(),
+  definitionId: Id,
+  match: EventRuleMatchSchema.extend({ sourceActorType: z.enum(["player", "pet"]) }).strict(),
+  timingPoint: z.enum(["cast-start", "impact", "end"]),
+  deduplication: EventDeduplicationSchema.optional(),
+  notes: LongText,
+  verification: RuleVerificationSchema,
+});
+
+export const PlayerSkillExtractionProfileSchema = z.strictObject({
+  schemaVersion: z.literal(CONVERSION_PROFILE_SCHEMA_VERSION),
+  id: Id,
+  gameVersion: z.string().min(1).max(80),
+  profileVersion: z.number().int().positive(),
+  status: z.enum(["draft", "published", "retired"]),
+  collectionRules: z.array(EventCollectionRuleSchema).max(1000),
+  extractionRules: z.array(PlayerSkillExtractionRuleSchema).max(1000),
   notes: LongText,
 });
 
@@ -435,10 +530,20 @@ export const PlanImportDraftSchema = z.strictObject({
   id: Id,
   snapshotId: Id,
   conversionProfileId: Id,
-  conversionProfileRevision: z.number().int().positive(),
+  conversionProfileVersion: z.number().int().positive(),
   rosterCandidates: z.array(ImportCandidateBaseSchema.extend({ actorKey: z.string().min(1).max(100), slot: RosterSlotSchema }).strict()).max(100),
   phaseCandidates: z.array(ImportCandidateBaseSchema.extend({ phase: RaidPhaseSchema }).strict()).max(100),
-  mechanicCandidates: z.array(ImportCandidateBaseSchema.extend({ definition: MechanicDefinitionSnapshotSchema, occurrence: MechanicOccurrenceSchema }).strict()).max(1000),
+  mechanicCandidates: z.array(ImportCandidateBaseSchema.extend({
+    definition: MechanicDefinitionSnapshotSchema,
+    observed: z.strictObject({
+      startMs: Timestamp,
+      impactMs: Timestamp,
+      endMs: Timestamp,
+      displayLabel: ShortText.optional(),
+    }),
+    targets: MemberSelectorSchema.optional(),
+    runtimeTrigger: RuntimeTriggerSchema.optional(),
+  }).strict()).max(1000),
   skillAssignmentCandidates: z.array(ImportCandidateBaseSchema.extend({ definition: PlayerSkillDefinitionSnapshotSchema, assignment: SkillAssignmentSchema }).strict()).max(5000),
   unresolvedEvents: z.array(z.strictObject({ eventKey: z.string().min(1).max(200), reason: LongText })).max(10_000),
   warnings: z.array(z.strictObject({ code: z.string().min(1).max(80), message: LongText, objectId: Id.optional() })).max(10_000),
@@ -451,7 +556,7 @@ export const ComparisonRunSchema = z.strictObject({
   planRevisionHash: z.string().min(1).max(128),
   snapshotId: Id,
   conversionProfileId: Id,
-  conversionProfileRevision: z.number().int().positive(),
+  conversionProfileVersion: z.number().int().positive(),
   createdAt: Timestamp,
   results: z.array(z.strictObject({
     id: Id,
@@ -483,6 +588,9 @@ export type RaidPhase = z.infer<typeof RaidPhaseSchema>;
 export type MechanicDamageProfile = z.infer<typeof MechanicDamageProfileSchema>;
 export type DefinitionSource = z.infer<typeof DefinitionSourceSchema>;
 export type DefinitionVerification = z.infer<typeof DefinitionVerificationSchema>;
+export type MechanicTimelinePoint = z.infer<typeof MechanicTimelinePointSchema>;
+export type MechanicTimelinePresentationPart = z.infer<typeof MechanicTimelinePresentationPartSchema>;
+export type MechanicTimelinePresentation = z.infer<typeof MechanicTimelinePresentationSchema>;
 export type MechanicDefinitionSnapshot = z.infer<typeof MechanicDefinitionSnapshotSchema>;
 export type MechanicOccurrence = z.infer<typeof MechanicOccurrenceSchema>;
 export type CooldownEffect = z.infer<typeof CooldownEffectSchema>;
@@ -507,6 +615,8 @@ export type CombatLogSnapshot = z.infer<typeof CombatLogSnapshotSchema>;
 export type EventCollectionRule = z.infer<typeof EventCollectionRuleSchema>;
 export type EventConversionRule = z.infer<typeof EventConversionRuleSchema>;
 export type EncounterConversionProfile = z.infer<typeof EncounterConversionProfileSchema>;
+export type PlayerSkillExtractionRule = z.infer<typeof PlayerSkillExtractionRuleSchema>;
+export type PlayerSkillExtractionProfile = z.infer<typeof PlayerSkillExtractionProfileSchema>;
 export type PlanImportDraft = z.infer<typeof PlanImportDraftSchema>;
 export type ComparisonRun = z.infer<typeof ComparisonRunSchema>;
 
@@ -557,8 +667,19 @@ export function parseCombatLogSnapshot(value: unknown): CombatLogSnapshot {
 
 export function parseConversionProfile(value: unknown): EncounterConversionProfile {
   const profile = EncounterConversionProfileSchema.parse(value);
-  const ids = [...profile.collectionRules.map((item) => item.id), ...profile.conversionRules.map((item) => item.id)];
+  const ids = [...profile.mechanicDefinitions.map((item) => item.id), ...profile.collectionRules.map((item) => item.id), ...profile.conversionRules.map((item) => item.id)];
   if (new Set(ids).size !== ids.length) throw new Error("转换规则包含重复的实体 ID");
+  const definitionIds = new Set(profile.mechanicDefinitions.map((item) => item.id));
+  for (const rule of profile.conversionRules) {
+    if (rule.convertTo.kind === "mechanic" && !definitionIds.has(rule.convertTo.definitionId)) throw new Error("转换规则引用了不存在的机制定义");
+  }
+  return profile;
+}
+
+export function parsePlayerSkillExtractionProfile(value: unknown): PlayerSkillExtractionProfile {
+  const profile = PlayerSkillExtractionProfileSchema.parse(value);
+  const ids = [...profile.collectionRules.map((item) => item.id), ...profile.extractionRules.map((item) => item.id)];
+  if (new Set(ids).size !== ids.length) throw new Error("玩家技能提取规则包含重复的实体 ID");
   return profile;
 }
 

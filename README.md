@@ -1,6 +1,6 @@
 # 团轴 Raidline
 
-面向《魔兽世界》团本的本地优先排轴工具。工作副本保存在浏览器 IndexedDB；只有玩家明确发布时，才会把点击瞬间冻结的计划快照写入对象存储。
+面向《魔兽世界》团本的本地优先排轴工具。工作副本保存在浏览器 IndexedDB；只有玩家明确发布时，才会把点击瞬间冻结的计划快照写入服务端数据目录。
 
 ![团轴 Raidline 预览](public/og.png)
 
@@ -12,7 +12,8 @@ Raidline 当前采用全新的严格 v1 格式，不读取或迁移旧 plan v5�
 - 技能与机制定义保存在 `definitions`；计划内实例只引用稳定 UUID。目录或 WCL 来源失效后，完整快照仍可使用。
 - `roster` 保存稳定成员槽位、多策略组、可选 1–8 小队和成员级技能变体；计划正文不保存服务器或 WCL actor ID。
 - `timeline` 分开保存阶段、机制实例、战术任务/说明和技能安排。
-- 所有计划时间只持久化为 `TimelineAnchor`：开怪后、阶段开始后，或机制施法开始/命中/结束后的偏移。拖动只修改当前锚点偏移。
+- 所有计划全局时间只持久化为 `TimelineAnchor`：开怪后、阶段开始后，或机制施法开始/命中/结束后的偏移。WCL 导入的单次机制可以保存整秒的施法/持续时长覆盖，以保留该轮实际判定点；拖动仍只修改当前锚点偏移。
+- BOSS 机制定义用严格的 `timelinePresentation.parts` 保存一个 occurrence 内的多个阶段区间与判定点。紧凑模式将阶段气泡左对齐到准确时间，碰撞时增加说明层并按需省略，条形独立显示；宽松模式按稳定机制定义固定子轨道，时间区域只显示条形。布局和 `4×–16×` 缩放只保存在本机视图偏好中。
 - 计划对象按 1 秒对齐；显示范围由可解析内容结束点加 30 秒后自动计算，范围为 2–120 分钟。
 - 结构解析拒绝旧版本、未知字段、重复实体 ID、非整秒计划时间和超过 1 MB 的计划；引用循环、悬空引用和职业不匹配由独立语义诊断处理。
 
@@ -27,9 +28,9 @@ Raidline 当前采用全新的严格 v1 格式，不读取或迁移旧 plan v5�
 
 ## 内容目录
 
-仓库内置严格 catalog v1 种子目录：[data/catalog-seed.json](data/catalog-seed.json)。它包含 5 个牧师排轴技能、4 个示例机制和 1 个不含名单或执行安排的 Boss 骨架预设。
+仓库内置严格 catalog v1 种子目录：[data/catalog-seed.json](data/catalog-seed.json)，运行时还会组合已经校验的 Vashnik fixture。当前内置 release 共包含 5 个牧师排轴技能、11 个机制和 2 个不含名单或执行安排的 Boss 骨架，其中 Vashnik 示例来自 fight 32 的完整事件转换结果。
 
-应用预设时会把所需机制定义与当前技能定义复制进计划。已发布目录继续按以下对象键保存，并在所有文件写入后更新 current 指针：
+应用预设时会把所需机制定义与当前技能定义复制进计划。已发布目录继续按以下相对路径保存在服务端数据目录，并在所有文件写入后更新 current 指针：
 
 ```text
 catalog/releases/{version}/manifest.json
@@ -50,10 +51,11 @@ ADMIN_SESSION_SECRET=<随机会话签名密钥>
 
 - `CombatLogSnapshot`、`EncounterConversionProfile`、`PlanImportDraft` 和 `ComparisonRun` 都有提供者无关的严格 v1 契约与 fixture。
 - 首页可以粘贴 `cn.warcraftlogs.com` 等允许域名的公开报告链接。服务端使用 client credentials 读取报告、Boss 战斗和 WCL 官方 `phaseTransitions`，浏览器不会接触 client secret 或 access token。
-- 当前探针是只读且不持久化的：它不会创建计划、WCL 快照、导入草稿或服务器数据，也不会读取 Boss/玩家技能事件。首个测试样本是报告 `baxm3wf8MDvF6V7W` 中 Vashnik the Malignant 的史诗击杀（fight 32）。
+- 网站探针是只读且不持久化的：它不会创建计划、WCL 快照、导入草稿或服务器数据，也不会读取 Boss/玩家技能事件。
 - 探针可列出非史诗战斗并标记为不支持；一旦进入快照或导入边界，非史诗战斗以 `UNSUPPORTED_DIFFICULTY` 停止，难度不写入长期结构。
 - 战斗快照保留原始毫秒精度；GraphQL DTO、WCL 缩写和插件语法不会进入计划模型。
-- 当前阶段不读取事件分页、不启动任务队列、不保存规范化快照，也不实现技能转换或真实对比计算。
+- 开发者可以用 `wcl:download` 在被 Git 忽略的 `work/` 中完整缓存指定战斗事件，用 `wcl:review` 生成逐事件族人工审查材料，再用 `wcl:convert` 模拟“fight 元数据 → 精确 profile → 清洗快照 → 导入草稿 → 计划”的本地纵向链路。该流程不属于网站 API；当前兼容测试源也不是生产依赖。
+- 首个完整样本是报告 `baxm3wf8MDvF6V7W` 的 Vashnik fight 26、28、29、31、32，共 1,883,421 条原始事件。fight 32 的 413,842 条完整事件可清洗为 7,896 条 profile 所需事件并生成 53 个机制对象；Plague Froth/Plague Wave 与 Malignant Catalyst/Catalytic Bile 都以单个复合机制表达。网站正式事件导入、数据库、任务队列、快照持久化、玩家技能提取和复盘计算仍未实现。
 - 导出统一使用 `ExportRequest → ExportResult`。首个导出器为 MRT 阅读版；无法可靠表达的阶段触发会产生显式降级警告，阻断错误不会静默输出。
 
 提供者无关的契约 fixture 位于 [data/fixtures](data/fixtures)，WCL GraphQL 边界 fixture 位于 [tests/fixtures](tests/fixtures)。
@@ -82,6 +84,14 @@ pnpm build
 pnpm test
 ```
 
+无自有 WCL API client 时，可以使用当前可替换兼容源完成本地 PTR 研究；缓存与审查材料不会进入 Git：
+
+```bash
+pnpm wcl:download -- --report baxm3wf8MDvF6V7W --fights 26,28,29,31,32
+pnpm wcl:review -- --report baxm3wf8MDvF6V7W --fights 26,28,29,31,32
+pnpm wcl:convert -- --input-root work/wcl
+```
+
 测试覆盖严格读取、锚点解析与循环、自动范围、多策略组与小队、阶段任务与说明、技能充能/施法/引导、目录快照隔离、WCL 链接/OAuth/阶段边界、16+4 发布规则和发布 API。
 
 ## 项目结构与开发入口
@@ -97,8 +107,10 @@ lib/catalog.ts             目录校验、预设应用、快照升级
 lib/publications.ts        发布对象和 16+4 分享规则
 lib/wcl-report.ts          WCL 链接、报告 DTO 校验与阶段规范化
 lib/wcl-client.ts          服务端 OAuth、token 缓存与 GraphQL client
-lib/wcl-server.ts          Worker/本地运行时配置边界
+lib/wcl-server.ts          Node 服务端环境变量配置边界
 lib/wcl-contract.ts        规范化快照和转换 profile 的接收边界
+lib/wcl-conversion.ts      profile 精确选择、聚类/派生、导入草稿与计划落地
+scripts/wcl-convert.ts     Git 忽略完整事件的本地纵向模拟
 app/components/            首页、双栏编辑器、只读页和目录管理
 app/api/                   发布、目录和管理员边界
 data/catalog-seed.json     内置 v1 目录
@@ -118,10 +130,10 @@ tests/                     单元和渲染/API 集成测试
 
 主分支只接受可审阅的功能提交；日常开发请从 `main` 创建 `codex/<topic>` 或 `<topic>` 分支。不要提交 `.env`、WCL 凭据、管理员口令、生产数据、构建产物或临时分享内容。
 
-## 托管边界
+## 运行边界
 
-当前 Sites 项目仍只用于私有交互验证，`.openai/hosting.json` 继续提供 `OBJECTS` R2 绑定；本阶段不向 Sites 配置或部署正式 WCL 密钥，也不接入大陆服务器数据库。真实 WCL 探针仅在开发者本机或之后的自有服务端使用。
+当前仓库不维护任何托管平台部署配置，只支持本地开发、测试和之后明确规划的自有服务端运行。真实 WCL 探针与本地研究工具仅在开发者本机或之后的自有服务端使用。
 
-长期生产目标是中国大陆普通 Linux 服务器。对象存储已经收敛到小型 `ObjectStore` 接口；SQLite、持久数据目录、异步 WCL 事件采集与快照库将在后续阶段按独立契约实现。
+服务端发布数据默认写入被 Git 忽略的 `.raidline-data/`，可用 `RAIDLINE_DATA_DIR` 指定其他本地目录。长期生产目标是中国大陆普通 Linux 服务器；SQLite、内容寻址持久目录、异步 WCL 事件采集与快照库将在后续阶段按独立契约实现。
 
 Raidline 是社区工具，与 Blizzard Entertainment 没有官方关联。

@@ -5,7 +5,7 @@
   "planRevisionHash": "plan-fixture-hash",
   "snapshotId": "10000000-0000-4000-8000-000000000001",
   "conversionProfileId": "10000000-0000-4000-8000-000000000003",
-  "conversionProfileRevision": 1,
+  "conversionProfileVersion": 1,
   "createdAt": 1800000001000,
   "results": [
     {

@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import { applyCatalogPreset, catalogDifference, ensureCatalogSkillSnapshot, SEED_CATALOG, upgradeCatalogSkillSnapshots, validateCatalogRelease } from "../lib/catalog.ts";
@@ -17,13 +20,15 @@ import {
   resolveTimelineAnchor,
   validatePlanSemantics,
 } from "../lib/core.ts";
-import { parseCombatLogSnapshot, parseComparisonRun, parseConversionProfile, parsePlanImportDraft } from "../lib/domain/schema.ts";
+import { MechanicTimelinePresentationSchema, parseCombatLogSnapshot, parseComparisonRun, parseConversionProfile, parsePlanImportDraft } from "../lib/domain/schema.ts";
 import { isExpectedRevision, snapshotIdsToDelete } from "../lib/local-policy.ts";
+import { createFileObjectStore } from "../lib/object-store.ts";
 import { assertEditId, assertShareId, randomBase62 } from "../lib/publication-ids.ts";
 import { memberSkillVariantId, resolveSkillForMember, setMemberSkillVariant, skillBusyEndMs, skillEffectStartMs } from "../lib/skills.ts";
 import type { CombatLogSnapshot, EncounterConversionProfile, MechanicDefinitionSnapshot, PlayerSkillDefinitionSnapshot, RaidPlanDocument } from "../lib/types.ts";
 import { acceptNormalizedWclSnapshot, UnsupportedDifficultyError } from "../lib/wcl-contract.ts";
-import { adaptiveTickMs, anchoredScroll, defaultOrientation, timelineContentEnd, timelineRangeMs, timelineTimeFromDrag, zoomFromWheel } from "../lib/view.ts";
+import { adaptiveTickMs, anchoredScroll, clampZoom, defaultOrientation, layoutMechanicLanes, mechanicPresentationPartKey, timelineContentEnd, timelineRangeMs, timelineTimeFromDrag, zoomFromWheel } from "../lib/view.ts";
+import type { TimelineSceneMechanic } from "../lib/domain/view-model.ts";
 
 const uuid = () => crypto.randomUUID();
 
@@ -62,6 +67,11 @@ function mechanicSnapshot(id = uuid()): MechanicDefinitionSnapshot {
     abilityGameIds: [2001],
     castTimeMs: 3000,
     durationMs: 5000,
+    timelinePresentation: { parts: [
+      { kind: "interval", from: "cast-start", to: "impact", tone: "warning", text: "毁灭冲击" },
+      { kind: "marker", at: "impact", tone: "judgment", text: "伤害判定" },
+      { kind: "interval", from: "impact", to: "end", tone: "active", text: "余波" },
+    ] },
     damage: { school: "magic", directAmount: 100, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false },
     defaultTargets: { kind: "all" },
     severity: "danger",
@@ -254,7 +264,7 @@ test("cast overlap and GCD conflicts are reported independently", () => {
 test("catalog v1 seed is strict and presets copy snapshot definitions into an isolated plan", () => {
   const release = validateCatalogRelease(SEED_CATALOG);
   assert.equal(release.manifest.schemaVersion, 1);
-  assert.equal(release.manifest.version, "builtin-seed-v1");
+  assert.equal(release.manifest.version, "builtin-seed-v2");
   const preset = release.timelinePresets[0];
   const plan = applyCatalogPreset(createBlankPlan(), release, preset);
   assert.equal(plan.schemaVersion, 1);
@@ -269,6 +279,120 @@ test("catalog v1 seed is strict and presets copy snapshot definitions into an is
   const legacy = structuredClone(release) as unknown as { manifest: { schemaVersion: number } };
   legacy.manifest.schemaVersion = 3;
   assert.throws(() => validateCatalogRelease(legacy));
+});
+
+test("mechanic timeline presentation is strict and rejects invalid or duplicate parts", () => {
+  const valid = { parts: [
+    { kind: "interval", from: "cast-start", to: "impact", tone: "warning", text: "读条" },
+    { kind: "marker", at: "impact", tone: "judgment", text: "判定" },
+  ] };
+  assert.deepEqual(MechanicTimelinePresentationSchema.parse(valid), valid);
+  assert.throws(() => MechanicTimelinePresentationSchema.parse({ parts: [] }));
+  assert.throws(() => MechanicTimelinePresentationSchema.parse({ parts: [{ kind: "interval", from: "end", to: "impact", tone: "warning", text: "反向" }] }));
+  assert.throws(() => MechanicTimelinePresentationSchema.parse({ parts: [valid.parts[0], valid.parts[0]] }));
+  assert.throws(() => MechanicTimelinePresentationSchema.parse({ parts: [{ kind: "marker", at: "impact", tone: "point", text: "A" }, { kind: "marker", at: "impact", tone: "judgment", text: "B" }] }));
+  assert.throws(() => MechanicTimelinePresentationSchema.parse({ parts: [{ kind: "marker", at: "impact", tone: "point", text: "A", unexpected: true }] }));
+  const plan = structuredClone(populatedPlan()) as unknown as { definitions: { mechanics: Array<Partial<MechanicDefinitionSnapshot>> } };
+  delete plan.definitions.mechanics[0].timelinePresentation;
+  assert.throws(() => parsePlanDocument(plan));
+});
+
+test("Vashnik WCL sample preset exposes the cleaned fight 32 mechanic timeline", () => {
+  const preset = SEED_CATALOG.timelinePresets.find((item) => item.encounter.externalIds?.wclEncounterId === 3134)!;
+  const plan = applyCatalogPreset(createBlankPlan(), SEED_CATALOG, preset);
+  const scene = buildTimelineScene(plan);
+  assert.equal(plan.timeline.mechanics.length, 53);
+  assert.equal(scene.mechanics.filter((item) => item.name === "Dripping Fangs").length, 16);
+  assert.equal(scene.mechanics.filter((item) => item.name === "Plague Froth").length, 11);
+  assert.equal(scene.mechanics.filter((item) => item.name === "Plague Wave").length, 0);
+  assert.equal(scene.mechanics.filter((item) => item.name === "Malignant Catalyst").length, 10);
+  assert.equal(scene.mechanics.filter((item) => item.name === "Siphoning Infection").length, 5);
+  assert.deepEqual(scene.mechanics.filter((item) => item.name === "Toxic Vapor").map((item) => item.presentationParts[0].text), ["Toxic Vapor ×1", "Toxic Vapor ×2", "Toxic Vapor ×3", "Toxic Vapor ×4", "Toxic Vapor ×5", "Toxic Vapor ×6"]);
+  const firstFangs = scene.mechanics.find((item) => item.name === "Dripping Fangs")!;
+  assert.deepEqual({ start: firstFangs.atMs, impact: firstFangs.impactMs, end: firstFangs.endMs }, { start: 8000, impact: 9000, end: 9000 });
+  const firstCatalyst = scene.mechanics.find((item) => item.name === "Malignant Catalyst")!;
+  assert.deepEqual({ start: firstCatalyst.atMs, impact: firstCatalyst.impactMs, end: firstCatalyst.endMs }, { start: 30_000, impact: 35_000, end: 42_000 });
+  assert.deepEqual(firstCatalyst.presentationParts.map((item) => item.text), ["Malignant Catalyst", "全团 AOE", "Catalytic Bile", "接圈判定"]);
+  const firstFroth = scene.mechanics.find((item) => item.name === "Plague Froth")!;
+  assert.deepEqual(firstFroth.presentationParts.map((item) => item.text), ["Plague Froth", "Plague Wave"]);
+  assert.deepEqual(firstFroth.presentationParts, [
+    { index: 0, kind: "interval", tone: "active", text: "Plague Froth", startMs: 13_000, endMs: 21_000 },
+    { index: 1, kind: "marker", tone: "judgment", text: "Plague Wave", atMs: 21_000 },
+  ]);
+  assert.equal(scene.mechanics.find((item) => item.name === "Toxic Vapor")!.presentationParts[0].text, "Toxic Vapor ×1");
+  const firstFrothEnd = resolveMechanicPoint(plan, firstFroth.id, "end");
+  assert.deepEqual(firstFrothEnd, { ok: true, atMs: 21_000 });
+  const fixedLanes = layoutMechanicLanes(scene.mechanics, "by-type", "horizontal", 2);
+  assert.equal(fixedLanes.lanes.length, 6);
+  assert.equal(new Set(scene.mechanics.map((item) => fixedLanes.laneByMechanicId.get(item.id))).size, 6);
+  const compactLanes = layoutMechanicLanes(scene.mechanics, "compact", "horizontal", 1.6);
+  assert.ok(compactLanes.lanes.length > 1);
+  assert.ok(compactLanes.lanes.every((lane) => lane.label === "BOSS 机制"));
+});
+
+test("mechanic lanes support minimal collision stacking and stable definition tracks", () => {
+  const mechanic = (id: string, definitionId: string, typeName: string, atMs: number, endMs = atMs): TimelineSceneMechanic => ({
+    id,
+    definitionId,
+    typeName,
+    name: typeName,
+    displayLabel: undefined,
+    description: "",
+    atMs,
+    impactMs: atMs,
+    endMs,
+    castTimeMs: 0,
+    durationMs: endMs - atMs,
+    color: "#fff",
+    presentationParts: endMs > atMs
+      ? [{ index: 0, kind: "interval", tone: "active", text: typeName, startMs: atMs, endMs }]
+      : [{ index: 0, kind: "marker", tone: "judgment", text: typeName, atMs }],
+  });
+  const mechanics = [
+    mechanic("alpha-1", "alpha", "Alpha", 0, 10_000),
+    mechanic("beta-1", "beta", "Beta", 5_000),
+    mechanic("alpha-2", "alpha", "Alpha", 13_000),
+  ];
+
+  const compact = layoutMechanicLanes(mechanics, "compact", "vertical", 10);
+  assert.equal(compact.lanes.length, 2);
+  assert.equal(compact.laneByMechanicId.get("alpha-1"), 0);
+  assert.equal(compact.laneByMechanicId.get("beta-1"), 1);
+  assert.equal(compact.laneByMechanicId.get("alpha-2"), 0);
+
+  const fixed = layoutMechanicLanes(mechanics, "by-type", "horizontal", 1);
+  assert.deepEqual(fixed.lanes.map((lane) => [lane.key, lane.label, lane.mechanicCount]), [["alpha", "Alpha", 2], ["beta", "Beta", 1]]);
+  assert.equal(fixed.laneByMechanicId.get("alpha-1"), fixed.laneByMechanicId.get("alpha-2"));
+  assert.notEqual(fixed.laneByMechanicId.get("alpha-1"), fixed.laneByMechanicId.get("beta-1"));
+
+  const points = [mechanic("point-1", "point", "Point", 0), mechanic("point-2", "point", "Point", 5_000)];
+  assert.equal(layoutMechanicLanes(points, "compact", "horizontal", 5).lanes.length, 2);
+  assert.equal(layoutMechanicLanes(points, "compact", "horizontal", 20).lanes.length, 1);
+  assert.equal(layoutMechanicLanes([mechanic("empty-name", "", "", 0)], "by-type", "horizontal", 1).lanes[0].key, "");
+
+  const compound = mechanic("compound", "compound", "Compound", 10_000, 20_000);
+  compound.presentationParts = [
+    { index: 0, kind: "interval", tone: "warning", text: "Long first stage", startMs: 10_000, endMs: 18_000 },
+    { index: 1, kind: "marker", tone: "judgment", text: "Long judgment", atMs: 18_000 },
+    { index: 2, kind: "marker", tone: "point", text: "End point", atMs: 20_000 },
+  ];
+  const measurements = new Map([
+    [mechanicPresentationPartKey(compound.id, 0), { axisSizePx: 100, crossSizePx: 22 }],
+    [mechanicPresentationPartKey(compound.id, 1), { axisSizePx: 90, crossSizePx: 22 }],
+    [mechanicPresentationPartKey(compound.id, 2), { axisSizePx: 80, crossSizePx: 22 }],
+  ]);
+  const compactCompound = layoutMechanicLanes([compound], "compact", "horizontal", 10, measurements);
+  const compoundLayout = compactCompound.presentationByMechanicId.get(compound.id)!;
+  assert.deepEqual(compoundLayout.parts.map((part) => [part.labelStartPx, part.targetAxisPx, part.labelRow]), [[100, 100, 0], [180, 180, 1], [200, 200, 0]], "stage bubbles stay left-aligned to their exact time and spill into the next label row");
+  assert.equal(compoundLayout.parts[0].labelMaxAxisSizePx, 94, "a crowded prior bubble is truncated before it can overlap the next exact-time bubble");
+  assert.equal(compactCompound.lanes[0].crossSizePx, 70, "an extra label row increases only the affected compact track");
+  const verticalCompound = structuredClone(compound);
+  verticalCompound.presentationParts = verticalCompound.presentationParts.slice(0, 2);
+  const vertical = layoutMechanicLanes([verticalCompound], "compact", "vertical", 10, new Map([
+    [mechanicPresentationPartKey(compound.id, 0), { axisSizePx: 22, crossSizePx: 220 }],
+    [mechanicPresentationPartKey(compound.id, 1), { axisSizePx: 22, crossSizePx: 120 }],
+  ]));
+  assert.equal(vertical.lanes[0].crossSizePx, 244, "vertical compact tracks reserve the full bubble width with tighter padding");
 });
 
 test("blank plans copy a catalog skill snapshot only when the player first selects it", () => {
@@ -287,7 +411,7 @@ test("blank plans copy a catalog skill snapshot only when the player first selec
   assert.equal(catalogDifference(plan, SEED_CATALOG).versionChanged, false);
 
   const nextRelease = structuredClone(SEED_CATALOG);
-  nextRelease.manifest.version = "builtin-seed-v2";
+  nextRelease.manifest.version = "builtin-seed-v3";
   nextRelease.playerSkills.find((item) => item.id === skill.id)!.cooldownMs = 150_000;
   const difference = catalogDifference(plan, nextRelease);
   assert.equal(difference.versionChanged, true);
@@ -297,7 +421,7 @@ test("blank plans copy a catalog skill snapshot only when the player first selec
   assert.equal(upgraded.definitions.skills[0].cooldownMs, 150_000);
   const latestSource = upgraded.sources.at(-1);
   assert.equal(latestSource?.kind, "catalog");
-  assert.equal(latestSource?.kind === "catalog" ? latestSource.catalogVersion : undefined, "builtin-seed-v2");
+  assert.equal(latestSource?.kind === "catalog" ? latestSource.catalogVersion : undefined, "builtin-seed-v3");
 });
 
 function combatLogFixture(): CombatLogSnapshot {
@@ -307,7 +431,7 @@ function combatLogFixture(): CombatLogSnapshot {
     provider: "wcl",
     normalizerVersion: "fixture-v1",
     importedAt: 1_800_000_000_000,
-    source: { reportCode: "ABC123", fightId: 7, reportRevision: 1, reportStartEpochMs: 1_800_000_000_000, fightStartReportMs: 12_345, fightEndReportMs: 98_765 },
+    source: { reportCode: "ABC123", fightId: 7, reportRevision: 1, reportStartEpochMs: 1_800_000_000_000, fightStartReportMs: 12_345, fightEndReportMs: 98_765, gameVersionKey: "retail-12.1" },
     encounter: { encounterId: 9001, zoneId: 42, name: "测试首领", kill: false, durationMs: 86_420 },
     actors: [{ actorKey: "player:1", reportActorId: 1, type: "player", name: "白牧", classSlug: "Priest", specSlug: "discipline" }],
     phases: [{ id: uuid(), semanticPhaseId: 1, occurrenceIndex: 1, atMs: 33_333 }],
@@ -326,15 +450,17 @@ test("WCL boundary blocks non-mythic fights before accepting a snapshot", () => 
 });
 
 test("provider-independent conversion profiles use semantic event names", () => {
+  const definition = mechanicSnapshot();
   const profile: EncounterConversionProfile = {
     schemaVersion: 1,
     id: uuid(),
     encounterId: 9001,
     gameVersion: "retail-12.1",
-    revision: 1,
+    profileVersion: 1,
     status: "draft",
-    collectionRules: [{ id: uuid(), enabled: true, dataType: "casts", hostility: "enemy", abilityGameIds: [2001], purpose: "记录关键 Boss 施法" }],
-    conversionRules: [{ id: uuid(), enabled: true, match: { eventTypes: ["cast-start"], abilityGameIds: [2001], sourceActorType: "npc" }, convertTo: { kind: "mechanic", definitionId: uuid(), timingPoint: "cast-start" }, notes: "人工核准后发布", verification: { reviewedAt: 1_800_000_000_000, sourceReportCodes: ["ABC123"] } }],
+    mechanicDefinitions: [definition],
+    collectionRules: [{ id: uuid(), enabled: true, dataType: "casts", hostility: "enemy", abilityGameIds: [2001], uses: ["timeline"], purpose: "记录关键 Boss 施法" }],
+    conversionRules: [{ id: uuid(), enabled: true, match: { eventTypes: ["cast-start"], abilityGameIds: [2001], sourceActorType: "npc" }, convertTo: { kind: "mechanic", definitionId: definition.id, timingPoint: "cast-start" }, notes: "人工核准后发布", verification: { reviewedAt: 1_800_000_000_000, sourceReportCodes: ["ABC123"] } }],
     notes: "fixture",
   };
   assert.deepEqual(parseConversionProfile(JSON.parse(JSON.stringify(profile))), profile);
@@ -363,6 +489,26 @@ test("short publication IDs are strict base62", () => {
   assert.throws(() => assertEditId("A9-0"));
 });
 
+test("file object store keeps JSON under its configured root", async () => {
+  const root = await mkdtemp(join(tmpdir(), "raidline-object-store-"));
+  const store = createFileObjectStore(root);
+  const key = "publications/0123456789ABCDEF.json";
+  try {
+    assert.equal(await store.getJson(key), null);
+    assert.equal(await store.exists(key), false);
+    await store.putJson(key, { revision: 1 });
+    assert.deepEqual(await store.getJson(key), { revision: 1 });
+    await store.putJson(key, { revision: 2 });
+    assert.deepEqual(await store.getJson(key), { revision: 2 });
+    assert.equal(await store.exists(key), true);
+    await assert.rejects(() => store.putJson("../escape.json", {}));
+    await store.delete(key);
+    assert.equal(await store.exists(key), false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("snapshot cleanup retains newest 30 per plan and honors total byte cap", () => {
   const snapshots = Array.from({ length: 35 }, (_, index) => ({ id: `a-${index}`, planId: "a", createdAt: index, bytes: 10 }));
   const countPolicy = snapshotIdsToDelete(snapshots, 30, 10_000);
@@ -377,8 +523,11 @@ test("snapshot cleanup retains newest 30 per plan and honors total byte cap", ()
 test("view helpers keep fit zoom, responsive orientation and one-second drag alignment", () => {
   assert.equal(defaultOrientation(1366), "horizontal");
   assert.equal(defaultOrientation(390), "vertical");
-  assert.equal(zoomFromWheel(1, -100), 1.1);
-  assert.equal(zoomFromWheel(1, 100), 1);
+  assert.equal(clampZoom(1), 4);
+  assert.equal(clampZoom(99), 16);
+  assert.equal(zoomFromWheel(4, -100), 4.1);
+  assert.equal(zoomFromWheel(4, 100), 4);
+  assert.equal(zoomFromWheel(16, -100), 16);
   assert.equal(anchoredScroll(100, 200, 1, 2), 400);
   assert.equal(timelineTimeFromDrag(10_000, 15, 10), 12_000);
   assert.ok(adaptiveTickMs(2) >= 30_000);

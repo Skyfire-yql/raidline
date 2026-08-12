@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "id": "20000000-0000-4000-8000-000000000001",
+  "encounterId": 3134,
+  "gameVersion": "retail-12.1",
+  "profileVersion": 1,
+  "status": "published",
+  "mechanicDefinitions": [
+    {
+      "id": "20000000-0000-4000-8000-000000000101",
+      "name": "Toxic Vapor",
+      "description": "贯穿全场的环境伤害；时间轴只显示初始状态和层数变化。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1284563],
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "Toxic Vapor" }] },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "warning",
+      "color": "#6ca83d",
+      "dataStatus": "needs-live-check",
+      "limitations": ["不显示 1284561 周期伤害 Tick"]
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000102",
+      "name": "Dripping Fangs",
+      "description": "坦克机制；读条开始后在伤害判定点命中当前目标。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1280935, 1280934],
+      "castTimeMs": 2000,
+      "durationMs": 0,
+      "timelinePresentation": {
+        "parts": [
+          { "kind": "interval", "from": "cast-start", "to": "impact", "tone": "warning", "text": "Dripping Fangs" },
+          { "kind": "marker", "at": "impact", "tone": "judgment", "text": "伤害判定" }
+        ]
+      },
+      "damage": { "school": "physical", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "roles", "roles": ["tank"] },
+      "severity": "danger",
+      "color": "#cf6644",
+      "dataStatus": "needs-live-check",
+      "limitations": ["1280934 减益、层数和持续伤害仅作关系证据"]
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000103",
+      "name": "Plague Froth",
+      "description": "复合机制：六名玩家获得 Plague Froth 分散圈并持续约八秒；结束时进入 Plague Wave 判定阶段。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1281913, 1281910, 1282078, 1281925, 1295798],
+      "castTimeMs": 0,
+      "durationMs": 8000,
+      "timelinePresentation": {
+        "parts": [
+          { "kind": "interval", "from": "cast-start", "to": "end", "tone": "active", "text": "Plague Froth" },
+          { "kind": "marker", "at": "end", "tone": "judgment", "text": "Plague Wave" }
+        ]
+      },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "warning",
+      "color": "#b979d1",
+      "dataStatus": "needs-live-check",
+      "limitations": ["同轮多目标光环聚类为一个机制区间", "不使用 1295798 damage 判断 Wave 是否生成", "Wave 碰墙消失的终点不可追踪"]
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000105",
+      "name": "Imbibe",
+      "description": "激活两个毒液喷泉；首版只显示 1284663 的读条区间。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1284663, 1284669, 1284670, 1284671],
+      "castTimeMs": 4000,
+      "durationMs": 0,
+      "timelinePresentation": { "parts": [{ "kind": "interval", "from": "cast-start", "to": "impact", "tone": "context", "text": "Imbibe" }] },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "warning",
+      "color": "#d39835",
+      "dataStatus": "needs-live-check",
+      "limitations": ["喷泉组合标签与更长机制区间留待后续确认"]
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000106",
+      "name": "Malignant Catalyst",
+      "description": "复合机制：读条开始、全团 AOE 判定、随后 Catalytic Bile 接圈判定。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1282516, 1282525, 1282602, 1282616],
+      "castTimeMs": 5000,
+      "durationMs": 7000,
+      "timelinePresentation": {
+        "parts": [
+          { "kind": "interval", "from": "cast-start", "to": "impact", "tone": "warning", "text": "Malignant Catalyst" },
+          { "kind": "marker", "at": "impact", "tone": "judgment", "text": "全团 AOE" },
+          { "kind": "interval", "from": "impact", "to": "end", "tone": "warning", "text": "Catalytic Bile" },
+          { "kind": "marker", "at": "end", "tone": "judgment", "text": "接圈判定" }
+        ]
+      },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "danger",
+      "color": "#d04d63",
+      "dataStatus": "needs-live-check",
+      "limitations": ["1282525 与 cast 聚类为 AOE 判定证据", "1282616 只作为漏接后的全团惩罚证据"]
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000107",
+      "name": "Siphoning Infection",
+      "description": "通常同时点名两名玩家；从减益应用开始，同轮目标合并为一个时间轴机制。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1295224, 1295229],
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "Siphoning Infection" }] },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "danger",
+      "color": "#8d58c7",
+      "dataStatus": "needs-live-check",
+      "limitations": ["Siphon Blood 暂不生成独立时间轴机制"]
+    }
+  ],
+  "collectionRules": [
+    { "id": "20000000-0000-4000-8000-000000000201", "enabled": true, "dataType": "casts", "hostility": "enemy", "abilityGameIds": [1280935, 1282516, 1284663], "uses": ["timeline", "relationship"], "purpose": "主机制的读条开始与施法完成" },
+    { "id": "20000000-0000-4000-8000-000000000202", "enabled": true, "dataType": "debuffs", "eventTypes": ["aura-applied", "aura-removed"], "hostility": "enemy", "abilityGameIds": [1281913], "uses": ["timeline", "relationship"], "purpose": "Froth 开始与同一复合机制内的 Wave 判定" },
+    { "id": "20000000-0000-4000-8000-000000000203", "enabled": true, "dataType": "damage", "hostility": "enemy", "abilityGameIds": [1280935, 1282525, 1282602], "uses": ["timeline", "relationship"], "purpose": "Fangs、Catalyst AOE 与接圈的判定时点" },
+    { "id": "20000000-0000-4000-8000-000000000204", "enabled": true, "dataType": "debuffs", "hostility": "enemy", "abilityGameIds": [1280934, 1281910, 1282078, 1284669, 1284670, 1284671], "uses": ["relationship", "validation"], "purpose": "主机制的辅助光环与 Imbibe 喷泉标签证据" },
+    { "id": "20000000-0000-4000-8000-000000000205", "enabled": true, "dataType": "damage", "hostility": "any", "abilityGameIds": [1282616, 1281925, 1295798, 1295224, 1295229, 1284561, 1304459, 1280189, 1286872], "uses": ["validation", "replay"], "purpose": "失败结果、派生关系和周期伤害证据；不生成时间轴" },
+    { "id": "20000000-0000-4000-8000-000000000206", "enabled": true, "dataType": "deaths", "hostility": "any", "uses": ["validation", "replay"], "purpose": "保留死亡事件供未来复盘，不在首版生成机制" },
+    { "id": "20000000-0000-4000-8000-000000000207", "enabled": true, "dataType": "debuffs", "eventTypes": ["aura-applied"], "hostility": "enemy", "abilityGameIds": [1284563, 1295224], "uses": ["timeline", "relationship"], "purpose": "Vapor 初始/层数变化与 Infection 应用波次" }
+  ],
+  "conversionRules": [
+    { "id": "20000000-0000-4000-8000-000000000301", "enabled": true, "match": { "eventTypes": ["aura-applied"], "abilityGameIds": [1284563], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000101", "timingPoint": "cast-start", "display": { "kind": "stack", "prefix": "×", "missingValue": 1 } }, "notes": "初始光环视为一层，之后只记录层数变化", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } },
+    { "id": "20000000-0000-4000-8000-000000000302", "enabled": true, "match": { "eventTypes": ["cast-start"], "abilityGameIds": [1280935], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000102", "timingPoint": "cast-start" }, "notes": "Fangs 读条开始", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } },
+    { "id": "20000000-0000-4000-8000-000000000303", "enabled": true, "match": { "eventTypes": ["cast-success", "damage"], "abilityGameIds": [1280935], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000102", "timingPoint": "impact" }, "deduplication": { "windowMs": 100, "groupBy": ["source"] }, "notes": "施法完成与直接伤害聚为判定点", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } },
+    { "id": "20000000-0000-4000-8000-000000000304", "enabled": true, "match": { "eventTypes": ["aura-applied"], "abilityGameIds": [1281913], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000103", "timingPoint": "cast-start" }, "deduplication": { "windowMs": 100, "groupBy": ["ability"] }, "notes": "同轮六个目标聚为一个 Froth 开始", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } },
+    { "id": "20000000-0000-4000-8000-000000000305", "enabled": true, "match": { "eventTypes": ["aura-removed"], "abilityGameIds": [1281913], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000103", "timingPoint": "end" }, "deduplication": { "windowMs": 100, "groupBy": ["ability"] }, "notes": "同轮多目标移除既是 Froth 结束，也是同一复合机制内的 Wave 判定", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } },
+    { "id": "20000000-0000-4000-8000-000000000307", "enabled": true, "match": { "eventTypes": ["cast-start"], "abilityGameIds": [1284663], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000105", "timingPoint": "cast-start" }, "notes": "Imbibe 读条开始", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } },
+    { "id": "20000000-0000-4000-8000-000000000308", "enabled": true, "match": { "eventTypes": ["cast-success"], "abilityGameIds": [1284663], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000105", "timingPoint": "impact" }, "notes": "Imbibe 首版区间终点", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } },
+    { "id": "20000000-0000-4000-8000-000000000309", "enabled": true, "match": { "eventTypes": ["cast-start"], "abilityGameIds": [1282516], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000106", "timingPoint": "cast-start" }, "notes": "Catalyst 读条开始", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } },
+    { "id": "20000000-0000-4000-8000-00000000030a", "enabled": true, "match": { "eventTypes": ["cast-success", "damage"], "abilityGameIds": [1282516, 1282525], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000106", "timingPoint": "impact" }, "deduplication": { "windowMs": 150, "groupBy": ["source"] }, "notes": "cast 与全团伤害聚为 AOE 判定", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } },
+    { "id": "20000000-0000-4000-8000-00000000030b", "enabled": true, "match": { "eventTypes": ["damage"], "abilityGameIds": [1282602], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000106", "timingPoint": "end" }, "deduplication": { "windowMs": 1000, "groupBy": ["ability"] }, "notes": "正常 Catalytic Bile 命中聚为接圈判定", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } },
+    { "id": "20000000-0000-4000-8000-00000000030c", "enabled": true, "match": { "eventTypes": ["aura-applied"], "abilityGameIds": [1295224], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000107", "timingPoint": "cast-start" }, "deduplication": { "windowMs": 1500, "groupBy": ["ability"] }, "notes": "同轮两个目标合并为一个 Infection 开始", "verification": { "reviewedAt": 1786550400000, "sourceReportCodes": ["baxm3wf8MDvF6V7W"] } }
+  ],
+  "notes": "用于本地完整事件纵向模拟的已发布数据库记录 fixture；它不代表已写入生产数据库。"
+}

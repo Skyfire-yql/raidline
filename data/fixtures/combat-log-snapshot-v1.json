@@ -11,6 +11,7 @@
     "reportStartEpochMs": 1800000000000,
     "fightStartReportMs": 12345,
     "fightEndReportMs": 98765,
+    "gameVersionKey": "retail-12.1",
     "language": "zh-CN"
   },
   "encounter": {

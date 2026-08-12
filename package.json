@@ -9,10 +9,13 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
-    "start": "vinext start",
+    "start": "node scripts/vinext-start.mjs",
     "test": "pnpm run test:unit && pnpm run build && node --test tests/rendered-html.test.mjs",
-    "test:unit": "tsx --test tests/core.test.ts tests/wcl.test.ts",
-    "lint": "eslint app lib tests worker \"*.ts\" \"*.mjs\" --ignore-pattern dist --ignore-pattern .next"
+    "test:unit": "tsx --test tests/core.test.ts tests/wcl.test.ts tests/wcl-event-review.test.ts tests/wcl-conversion.test.ts",
+    "lint": "eslint app lib scripts tests \"*.ts\" \"*.mjs\" --ignore-pattern dist --ignore-pattern .next",
+    "wcl:download": "tsx scripts/wcl-download.ts",
+    "wcl:review": "tsx scripts/wcl-review.ts",
+    "wcl:convert": "tsx scripts/wcl-convert.ts"
   },
   "dependencies": {
     "next": "16.2.6",
@@ -21,8 +24,6 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.37.1",
-    "@cloudflare/workers-types": "4.20260702.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
@@ -36,8 +37,7 @@
     "tsx": "4.23.5",
     "typescript": "5.9.3",
     "vinext": "0.0.50",
-    "vite": "8.0.13",
-    "wrangler": "4.92.0"
+    "vite": "8.0.13"
   },
   "type": "module"
 }

@@ -1,5 +1,5 @@
 import { resolveSkillForMember, skillEffectStartMs } from "../skills";
-import type { RaidPlanDocument, RosterSlot, TacticalDirective } from "./schema";
+import type { MechanicTimelinePoint, RaidPlanDocument, RosterSlot, TacticalDirective } from "./schema";
 import { MAX_TIMELINE_MS, TIMELINE_SNAP_MS } from "./schema";
 import { resolveDirectiveTime, resolveMechanicPoint, resolveTimelineAnchor, validatePlanSemantics, type PlanDiagnostic } from "./timeline";
 
@@ -17,10 +17,29 @@ export interface TimelineSceneDirective {
   durationMs: number;
 }
 
+export type TimelineSceneMechanicPart =
+  | {
+      index: number;
+      kind: "interval";
+      tone: "context" | "warning" | "active";
+      text: string;
+      startMs: number;
+      endMs: number;
+    }
+  | {
+      index: number;
+      kind: "marker";
+      tone: "point" | "judgment";
+      text: string;
+      atMs: number;
+    };
+
 export interface TimelineSceneMechanic {
   id: string;
   definitionId: string;
+  typeName: string;
   name: string;
+  displayLabel?: string;
   description: string;
   atMs: number;
   impactMs: number;
@@ -28,6 +47,7 @@ export interface TimelineSceneMechanic {
   castTimeMs: number;
   durationMs: number;
   color: string;
+  presentationParts: TimelineSceneMechanicPart[];
 }
 
 export interface TimelineSceneAssignment {
@@ -70,17 +90,27 @@ export function buildTimelineScene(plan: RaidPlanDocument): TimelineScene {
     const impact = resolveMechanicPoint(plan, occurrence.id, "impact");
     const end = resolveMechanicPoint(plan, occurrence.id, "end");
     if (!definition || !start.ok || !impact.ok || !end.ok) return [];
+    const pointTimes: Record<MechanicTimelinePoint, number> = { "cast-start": start.atMs, impact: impact.atMs, end: end.atMs };
+    const presentationParts = definition.timelinePresentation.parts.map<TimelineSceneMechanicPart>((part, index) => {
+      const text = index === 0 && occurrence.displayLabel ? `${part.text} ${occurrence.displayLabel}` : part.text;
+      return part.kind === "interval"
+        ? { index, kind: part.kind, tone: part.tone, text, startMs: pointTimes[part.from], endMs: pointTimes[part.to] }
+        : { index, kind: part.kind, tone: part.tone, text, atMs: pointTimes[part.at] };
+    });
     return [{
       id: occurrence.id,
       definitionId: occurrence.definitionId,
+      typeName: definition.name,
       name: definition.name,
+      displayLabel: occurrence.displayLabel,
       description: definition.description,
       atMs: start.atMs,
       impactMs: impact.atMs,
       endMs: end.atMs,
-      castTimeMs: definition.castTimeMs ?? 0,
-      durationMs: definition.durationMs ?? 0,
+      castTimeMs: occurrence.timing?.castTimeMs ?? definition.castTimeMs ?? 0,
+      durationMs: occurrence.timing?.durationMs ?? definition.durationMs ?? 0,
       color: definition.color,
+      presentationParts,
     }];
   });
   const assignments = plan.timeline.skillAssignments.flatMap<TimelineSceneAssignment>((assignment) => {

@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const cli = fileURLToPath(new URL("../node_modules/vinext/dist/cli.js", import.meta.url));
+const productionServer = fileURLToPath(new URL("../scripts/vinext-start.mjs", import.meta.url));
 
 async function waitForServer(url, child, logs) {
   const deadline = Date.now() + 75_000;
@@ -15,6 +18,16 @@ async function waitForServer(url, child, logs) {
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
   throw new Error(`production server did not become ready\n${logs.join("")}`);
+}
+
+async function stopChild(child) {
+  if (child.exitCode !== null) return;
+  child.kill();
+  await new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 2_000);
+    timeout.unref();
+    child.once("exit", () => { clearTimeout(timeout); resolve(); });
+  });
 }
 
 function plan(title = "集成测试排轴") {
@@ -34,16 +47,27 @@ async function json(response) { return { response, payload: await response.json(
 test("Raidline renders and exposes strict v1 publication/catalog APIs", async () => {
   const port = 31800 + Math.floor(Math.random() * 500);
   const logs = [];
-  const childEnv = { ...process.env, PORT: String(port) };
+  const dataDirectory = await mkdtemp(join(tmpdir(), "raidline-rendered-"));
+  const childEnv = { ...process.env, PORT: String(port), RAIDLINE_DATA_DIR: dataDirectory };
   delete childEnv.HTTP_PROXY; delete childEnv.HTTPS_PROXY; delete childEnv.ALL_PROXY;
-  const child = spawn(process.execPath, [cli, "dev", "--port", String(port)], { cwd: root, env: childEnv, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+  const child = spawn(process.execPath, [productionServer, "--hostname", "127.0.0.1", "--port", String(port)], { cwd: root, env: childEnv, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
   child.stdout.on("data", (chunk) => logs.push(chunk.toString())); child.stderr.on("data", (chunk) => logs.push(chunk.toString()));
   try {
     const base = `http://localhost:${port}`;
     const response = await waitForServer(`${base}/`, child, logs);
     assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
     const html = await response.text();
+    const assetPaths = [...new Set([...html.matchAll(/(?:href|src)="(\/assets\/[^"?#]+)[^\"]*"/g)].map((match) => match[1]))];
+    assert.ok(assetPaths.some((path) => path.endsWith(".css")), "rendered HTML should reference a CSS asset");
+    assert.ok(assetPaths.some((path) => path.endsWith(".js")), "rendered HTML should reference a JavaScript asset");
+    for (const assetPath of assetPaths) {
+      const asset = await fetch(`${base}${assetPath}`);
+      assert.equal(asset.status, 200, `${assetPath} should be served by the production server`);
+      if (assetPath.endsWith(".css")) assert.match(asset.headers.get("content-type") ?? "", /^text\/css\b/i);
+      if (assetPath.endsWith(".js")) assert.match(asset.headers.get("content-type") ?? "", /^(?:application|text)\/javascript\b/i);
+    }
     assert.match(html, /团轴/); assert.match(html, /空白计划/); assert.match(html, /我的轴/); assert.match(html, /目录预设/); assert.match(html, /WCL 实战参考/);
+    assert.match(html, /Vashnik · WCL fight 32 示例/);
     assert.doesNotMatch(html, /团本排轴工作台|本地优先|目录管理|IndexedDB|本地版本|仅所有者可见|个人预设|导入 JSON|WCL_CLIENT_SECRET/);
 
     const invalidWcl = await json(await fetch(`${base}/api/wcl/reports/probe`, {
@@ -82,13 +106,16 @@ test("Raidline renders and exposes strict v1 publication/catalog APIs", async ()
     assert.equal((await fetch(`${base}/api/publications`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ document: unknown }) })).status, 422);
 
     const catalog = await json(await fetch(`${base}/api/catalog/current`));
-    assert.equal(catalog.response.status, 200); assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v1"); assert.equal(catalog.payload.data.manifest.schemaVersion, 1);
-    assert.equal(catalog.payload.data.playerSkills.length, 5); assert.equal(catalog.payload.data.bossMechanics.length, 4); assert.equal(catalog.payload.data.timelinePresets.length, 1);
+    assert.equal(catalog.response.status, 200); assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v2"); assert.equal(catalog.payload.data.manifest.schemaVersion, 1);
+    assert.equal(catalog.payload.data.playerSkills.length, 5); assert.equal(catalog.payload.data.bossMechanics.length, 10); assert.equal(catalog.payload.data.timelinePresets.length, 2);
     assert.equal(catalog.payload.data.timelinePresets[0].phases[0].ordinal, 1); assert.deepEqual(catalog.payload.data.timelinePresets[0].notes, []);
 
     assert.equal((await fetch(`${base}/api/plans`, { method: "POST" })).status, 404); assert.equal((await fetch(`${base}/api/shared/${secondShareId}`)).status, 404);
     assert.equal((await fetch(`${base}/api/publications/${shareId}/bad1`, { method: "DELETE" })).status, 403);
     assert.equal((await fetch(`${base}/api/publications/${shareId}/${editId}`, { method: "DELETE" })).status, 200); assert.equal((await fetch(`${base}/api/publications/${shareId}`)).status, 404);
     assert.equal((await fetch(`${base}/api/publications/${secondShareId}/Qw2E`, { method: "DELETE" })).status, 200);
-  } finally { child.kill(); }
+  } finally {
+    await stopChild(child);
+    await rm(dataDirectory, { recursive: true, force: true });
+  }
 });

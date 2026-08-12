@@ -3,8 +3,37 @@
   "id": "10000000-0000-4000-8000-000000000003",
   "encounterId": 9001,
   "gameVersion": "retail-12.1",
-  "revision": 1,
+  "profileVersion": 1,
   "status": "draft",
+  "mechanicDefinitions": [
+    {
+      "id": "10000000-0000-4000-8000-000000000006",
+      "name": "测试机制",
+      "description": "转换规则 fixture 使用的机制定义",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [2001],
+      "castTimeMs": 3000,
+      "durationMs": 0,
+      "timelinePresentation": {
+        "parts": [
+          { "kind": "interval", "from": "cast-start", "to": "impact", "tone": "warning", "text": "测试机制" },
+          { "kind": "marker", "at": "impact", "tone": "judgment", "text": "伤害判定" }
+        ]
+      },
+      "damage": {
+        "school": "magic",
+        "directAmount": null,
+        "periodicAmount": null,
+        "periodicIntervalMs": null,
+        "tickOnStart": false
+      },
+      "defaultTargets": { "kind": "all" },
+      "severity": "warning",
+      "color": "#cf3e3e",
+      "dataStatus": "needs-live-check",
+      "limitations": []
+    }
+  ],
   "collectionRules": [
     {
       "id": "10000000-0000-4000-8000-000000000004",
@@ -12,6 +41,7 @@
       "dataType": "casts",
       "hostility": "enemy",
       "abilityGameIds": [2001],
+      "uses": ["timeline"],
       "purpose": "记录人工选择的 Boss 施法"
     }
   ],

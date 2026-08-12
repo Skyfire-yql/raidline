@@ -1,5 +1,7 @@
 import seedJson from "../data/catalog-seed.json" with { type: "json" };
-import { parseCatalogRelease, parsePlanDocument, type CatalogMechanicDefinition, type CatalogRelease, type CatalogSkillDefinition, type MechanicDefinitionSnapshot, type PlayerSkillDefinitionSnapshot, type RaidPlanDocument, type TimelinePreset } from "./types";
+import vashnikProfileJson from "../data/fixtures/vashnik-encounter-conversion-profile-v1.json" with { type: "json" };
+import vashnikPresetJson from "../data/fixtures/vashnik-fight-32-timeline-preset-v1.json" with { type: "json" };
+import { TimelinePresetSchema, parseCatalogRelease, parseConversionProfile, parsePlanDocument, type CatalogMechanicDefinition, type CatalogRelease, type CatalogSkillDefinition, type MechanicDefinitionSnapshot, type PlayerSkillDefinitionSnapshot, type RaidPlanDocument, type TimelinePreset } from "./types";
 
 const VERSION_PATTERN = /^[0-9A-Za-z][0-9A-Za-z._-]{0,79}$/;
 
@@ -47,7 +49,32 @@ export function validateCatalogRelease(value: unknown): CatalogRelease {
   return release;
 }
 
-export const SEED_CATALOG = validateCatalogRelease(seedJson);
+const BASE_SEED_CATALOG = validateCatalogRelease(seedJson);
+const VASHNIK_PROFILE = parseConversionProfile(vashnikProfileJson);
+const VASHNIK_PRESET = TimelinePresetSchema.parse(vashnikPresetJson);
+
+function builtInCatalog() {
+  if (VASHNIK_PROFILE.status !== "published" || VASHNIK_PROFILE.encounterId !== VASHNIK_PRESET.encounter.externalIds?.wclEncounterId || VASHNIK_PROFILE.gameVersion !== VASHNIK_PRESET.encounter.gameVersion) {
+    throw new Error("Vashnik 示例预设与已发布转换 profile 不一致");
+  }
+  const release = structuredClone(BASE_SEED_CATALOG);
+  release.manifest.version = "builtin-seed-v2";
+  release.manifest.title = "Raidline vNext 内置种子目录（含 Vashnik WCL 示例）";
+  release.bossMechanics.push(...VASHNIK_PROFILE.mechanicDefinitions.map((definition) => ({
+    ...structuredClone(definition),
+    encounterId: VASHNIK_PRESET.encounter.id,
+    enabled: true,
+  })));
+  release.timelinePresets.push(structuredClone(VASHNIK_PRESET));
+  release.manifest.counts = {
+    playerSkills: release.playerSkills.length,
+    bossMechanics: release.bossMechanics.length,
+    timelinePresets: release.timelinePresets.length,
+  };
+  return validateCatalogRelease(release);
+}
+
+export const SEED_CATALOG = builtInCatalog();
 
 export function catalogReleaseKeys(version: string) {
   if (!VERSION_PATTERN.test(version)) throw new Error("目录版本标识无效");

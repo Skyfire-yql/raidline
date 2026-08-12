@@ -20,8 +20,9 @@ function mechanicPointOffset(plan: RaidPlanDocument, occurrence: MechanicOccurre
   const definition = plan.definitions.mechanics.find((item) => item.id === occurrence.definitionId);
   if (!definition) return null;
   if (point === "cast-start") return 0;
-  const impactOffset = definition.castTimeMs ?? 0;
-  return point === "impact" ? impactOffset : impactOffset + (definition.durationMs ?? 0);
+  const impactOffset = occurrence.timing?.castTimeMs ?? definition.castTimeMs ?? 0;
+  const duration = occurrence.timing?.durationMs ?? definition.durationMs ?? 0;
+  return point === "impact" ? impactOffset : impactOffset + duration;
 }
 
 function resolveAnchorInternal(plan: RaidPlanDocument, anchor: TimelineAnchor, visiting: Set<string>): ResolvedTime {

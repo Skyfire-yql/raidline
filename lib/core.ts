@@ -205,6 +205,7 @@ export function createMechanicDefinition(name = "新机制"): MechanicDefinition
     abilityGameIds: [],
     castTimeMs: 0,
     durationMs: 0,
+    timelinePresentation: { parts: [{ kind: "marker", at: "cast-start", tone: "judgment", text: name }] },
     damage: { school: "magic", directAmount: null, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false },
     defaultTargets: { kind: "all" },
     severity: "warning",

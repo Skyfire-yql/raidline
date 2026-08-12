@@ -39,6 +39,6 @@ yarn-error.log*
 next-env.d.ts
 *.tsbuildinfo
 /dist/
-/.wrangler/
+/.raidline-data/
 /outputs/
 /work/

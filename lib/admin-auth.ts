@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers";
 import { sha256 } from "./hashing";
 import { readCookie, safeEqual } from "./server";
 
@@ -6,9 +5,10 @@ const COOKIE_NAME = "raidline_admin";
 const SESSION_MS = 12 * 60 * 60 * 1000;
 
 function configuration() {
-  const bindings = env as unknown as { ADMIN_PASSWORD_HASH?: string; ADMIN_SESSION_SECRET?: string };
-  if (!bindings.ADMIN_PASSWORD_HASH || !bindings.ADMIN_SESSION_SECRET) throw new Error("管理后台尚未配置");
-  return { passwordHash: bindings.ADMIN_PASSWORD_HASH, sessionSecret: bindings.ADMIN_SESSION_SECRET };
+  const passwordHash = process.env.ADMIN_PASSWORD_HASH;
+  const sessionSecret = process.env.ADMIN_SESSION_SECRET;
+  if (!passwordHash || !sessionSecret) throw new Error("管理后台尚未配置");
+  return { passwordHash, sessionSecret };
 }
 
 function base64Url(bytes: Uint8Array) {

@@ -182,6 +182,9 @@ small { color: var(--text-2); }
 .axis-toolbar > div { display: flex; align-items: center; gap: 6px; }
 .axis-toolbar span { color: var(--text-2); font-size: 11px; }
 .axis-toolbar label { display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); font-size: 11px; }
+.mechanic-lane-mode-control { display: inline-flex; gap: 0; padding: 2px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
+.mechanic-lane-mode-control > button { min-height: 24px; padding: 2px 7px; border: 0; background: transparent; color: var(--text-2); font-size: 10px; }
+.mechanic-lane-mode-control > button.active { color: var(--accent-text); background: var(--accent-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 38%, transparent); }
 .zoom-control { display: inline-flex; align-items: center; gap: 4px; }
 .zoom-control > button { min-width: 28px; padding-inline: 5px; }
 .axis-scroll { min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; background: var(--surface-2); }
@@ -190,9 +193,9 @@ small { color: var(--text-2); }
 .axis-statusbar .warn { color: var(--warning); }
 .axis-statusbar .ok { color: var(--success); }
 .axis-canvas { position: relative; overflow: hidden; background-color: var(--surface-2); user-select: none; }
-.axis-canvas::before { position: absolute; inset: 0; content: ""; pointer-events: none; }
-.axis-horizontal::before { background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 61px, var(--line) 61px, var(--line) 62px); background-position: 0 52px; }
-.axis-vertical::before { background-image: repeating-linear-gradient(to right, transparent 0, transparent 149px, var(--line) 149px, var(--line) 150px); background-position: 148px 0; }
+.axis-lane-boundary { position: absolute; z-index: 1; display: block; pointer-events: none; border-color: var(--line); }
+.axis-horizontal .axis-lane-boundary { right: 0; left: 0; border-top: 1px solid var(--line); }
+.axis-vertical .axis-lane-boundary { top: 0; bottom: 0; border-left: 1px solid var(--line); }
 .axis-corner { position: sticky; z-index: 8; top: 0; left: 0; display: grid; width: 148px; height: 52px; place-items: center; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--text-3); background: var(--surface); font-size: 10px; }
 .axis-tick { position: absolute; z-index: 1; pointer-events: none; color: var(--text-3); font: 10px ui-monospace, SFMono-Regular, Consolas, monospace; }
 .axis-horizontal .axis-tick { top: 0; bottom: 0; border-left: 1px solid var(--line); }
@@ -228,9 +231,26 @@ small { color: var(--text-2); }
 .add-member-label { padding: 0 !important; }
 .add-member-label button { width: 100%; height: 100%; border: 0; border-radius: 0; color: var(--accent-text); background: var(--accent-soft); text-align: left; }
 .mechanic-label { color: var(--danger); font-size: 10px; font-weight: 800; }
+.mechanic-label small { color: var(--text-3); font-weight: 500; }
 .axis-segment { position: absolute; z-index: 2; display: block; min-width: 2px; min-height: 2px; border-radius: 2px; pointer-events: none; opacity: .62; }
 .cast-segment { background: repeating-linear-gradient(135deg, var(--warning) 0, var(--warning) 3px, transparent 3px, transparent 6px); }
 .effect-segment { background: var(--accent); opacity: .32; }
+.mechanic-stage-label { position: absolute; z-index: 5; width: max-content; min-width: 24px; min-height: 22px; overflow: hidden; padding: 1px 5px; border: 1px solid color-mix(in srgb, var(--mechanic-color) 45%, var(--line)); border-radius: 4px; color: var(--mechanic-color); background: color-mix(in srgb, var(--mechanic-color) 10%, var(--surface)); box-shadow: none; font-size: 11px; font-weight: 650; line-height: 18px; text-align: left; text-overflow: ellipsis; white-space: nowrap; touch-action: none; cursor: grab; }
+button.mechanic-stage-label:hover:not(:disabled) { color: var(--mechanic-color); border-color: color-mix(in srgb, var(--mechanic-color) 70%, var(--line)); background: color-mix(in srgb, var(--mechanic-color) 16%, var(--surface)); }
+.mechanic-stage-label:active, .mechanic-part:active { cursor: grabbing; }
+.mechanic-stage-label.selected { color: var(--mechanic-color); border-color: color-mix(in srgb, var(--mechanic-color) 80%, var(--line)); background: color-mix(in srgb, var(--mechanic-color) 22%, var(--surface)); outline: 1px solid color-mix(in srgb, var(--mechanic-color) 55%, transparent); outline-offset: 1px; }
+.mechanic-part { position: absolute; z-index: 4; display: block; min-width: 2px; min-height: 2px; padding: 0; border-radius: 4px; touch-action: none; cursor: grab; }
+.mechanic-interval.tone-context { border: 1px dashed color-mix(in srgb, var(--mechanic-color) 55%, var(--surface)); background: color-mix(in srgb, var(--mechanic-color) 10%, var(--surface)); }
+.mechanic-interval.tone-warning { border: 1px solid color-mix(in srgb, var(--mechanic-color) 50%, var(--surface)); background: color-mix(in srgb, var(--mechanic-color) 22%, var(--surface)); }
+.mechanic-interval.tone-active { border: 1px solid var(--mechanic-color); background: var(--mechanic-color); }
+.mechanic-part.mechanic-marker.tone-point { border: 1px solid color-mix(in srgb, var(--mechanic-color) 80%, var(--surface)); background: var(--mechanic-color); }
+.mechanic-part.mechanic-marker.tone-judgment { border: 2px solid var(--surface); background: var(--mechanic-color); box-shadow: 0 0 0 2px var(--mechanic-color), 0 0 8px color-mix(in srgb, var(--mechanic-color) 50%, transparent); }
+button.mechanic-part:hover:not(:disabled) { filter: brightness(1.05); }
+button.mechanic-interval.tone-context:hover:not(:disabled) { border-color: color-mix(in srgb, var(--mechanic-color) 70%, var(--surface)); background: color-mix(in srgb, var(--mechanic-color) 14%, var(--surface)); }
+button.mechanic-interval.tone-warning:hover:not(:disabled) { border-color: color-mix(in srgb, var(--mechanic-color) 65%, var(--surface)); background: color-mix(in srgb, var(--mechanic-color) 28%, var(--surface)); }
+button.mechanic-interval.tone-active:hover:not(:disabled), button.mechanic-marker:hover:not(:disabled) { border-color: var(--mechanic-color); background: var(--mechanic-color); }
+.mechanic-part.selected { outline: 2px solid var(--accent); outline-offset: 3px; }
+.mechanic-lanes-by-type .mechanic-stage-label { display: none; }
 .axis-event { position: absolute; z-index: 4; display: flex; align-items: center; gap: 5px; max-width: 142px; min-height: 27px; padding: 3px 6px; transform: translate(-2px, -50%); border-left-width: 3px; background: var(--surface); box-shadow: 0 2px 7px rgb(0 0 0 / 10%); white-space: nowrap; touch-action: none; cursor: grab; }
 .axis-event:active { cursor: grabbing; }
 .axis-vertical .axis-event { max-width: 140px; transform: translate(-50%, -2px); }
@@ -241,8 +261,6 @@ small { color: var(--text-2); }
 .phase-event { color: var(--accent-text); border-color: var(--accent); background: var(--accent-soft); }
 .note-event { max-width: 220px; color: var(--text); border-color: var(--warning); background: var(--warning-soft); }
 .task-event { max-width: 220px; color: var(--accent-text); border-color: var(--accent); background: var(--accent-soft); }
-.mechanic-event { max-width: 220px; border-color: var(--danger); }
-.mechanic-event.lethal { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
 .assignment-event.warning { box-shadow: 0 0 0 2px var(--warning); }
 .assignment-event > b { color: var(--warning); }
 
@@ -263,6 +281,16 @@ small { color: var(--text-2); }
 .inline-group-editor { display: grid; gap: 8px; margin: 10px 0; padding: 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
 .inline-group-editor > label { display: grid; gap: 4px; color: var(--text-2); font-size: 11px; }
 .inline-group-editor > button { justify-self: start; }
+.mechanic-presentation-editor { display: grid; gap: 8px; margin: 10px 0; padding: 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
+.mechanic-presentation-editor > legend { padding: 0 4px; color: var(--text); font-size: 11px; font-weight: 700; }
+.mechanic-presentation-editor > p { margin: 0; color: var(--text-2); font-size: 10px; line-height: 1.5; }
+.mechanic-presentation-editor > footer { display: flex; align-items: center; gap: 6px; }
+.mechanic-presentation-editor > footer small { margin-left: auto; color: var(--text-3); }
+.mechanic-presentation-part { display: grid; gap: 7px; padding: 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+.mechanic-presentation-part > header { display: flex; align-items: center; justify-content: space-between; }
+.mechanic-presentation-part > header span { display: flex; gap: 4px; }
+.mechanic-presentation-part > header button { min-width: 25px; min-height: 25px; padding: 2px 5px; }
+.mechanic-presentation-part > label, .mechanic-presentation-part .field-grid > label { display: grid; gap: 4px; color: var(--text-2); font-size: 10px; }
 .danger-button { width: 100%; margin-top: 8px; color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); background: var(--danger-soft); }
 .warning-box { margin: 6px 0; padding: 7px; color: var(--warning); border: 1px solid var(--warning); border-radius: 4px; background: var(--warning-soft); font-size: 11px; line-height: 1.45; }
 .skill-detail-section { display: grid; gap: 6px; margin: 10px 0; padding: 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); }
