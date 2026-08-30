@@ -258,7 +258,7 @@ function overviewMarkdown(catalog: WclReviewCatalog) {
     "## 当前资料差异",
     "",
     "- 这五场 WCL 元数据均未返回官方 `phaseTransitions`；PTR 当前不能直接依赖 WCL 阶段划分。",
-    "- 当前 Wowhead 指南把整场描述为单阶段循环，并把 Living Venom 抵达中央后的爆发称为 `Malignant Burst`；本地说明使用了 `Malignance`，需要人工确认最终命名和事件 ID。",
+    "- 正式服名称已按 spell ID 区分：Living Venom 抵达中央后的 `Malignant Burst` 为“恶性爆发”，Malignant Tumor 的 `Malignance` 为“恶念”；两者是独立机制。",
     "- `absorbed` 与 `aurabroken` 的字段语义并不统一，只能作为关联证据，不能单独据此认定机制来源。",
     "",
     "## 数据量",

@@ -116,7 +116,29 @@ small { color: var(--text-2); }
 .wcl-phase-strip > span { display: grid; min-width: 76px; gap: 2px; padding: 7px 8px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 3px; background: var(--surface-2); }
 .wcl-phase-strip > span strong { margin: 0; font-size: 11px; }
 .wcl-phase-strip > span small { font-variant-numeric: tabular-nums; }
-.wcl-fight-preview > p { margin: 10px 0 0; color: var(--text-3); font-size: 11px; line-height: 1.55; }
+.wcl-import-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.wcl-import-actions p { margin: 0; color: var(--text-3); font-size: 11px; line-height: 1.55; }
+.wcl-import-actions button { flex: 0 0 auto; }
+.wcl-import-preview { display: grid; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.wcl-import-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.wcl-import-stats span { padding: 7px 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-2); }
+.wcl-import-stats strong, .wcl-import-stats small { display: block; }
+.wcl-import-stats strong { margin: 0 0 2px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.wcl-import-diagnostics, .wcl-import-footnote { margin: 0; color: var(--warning); font-size: 11px; line-height: 1.5; }
+.wcl-mechanic-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.wcl-mechanic-toolbar strong { margin: 0; font-size: 11px; }
+.wcl-mechanic-toolbar button { min-height: 26px; padding: 3px 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text-2); }
+.wcl-mechanic-list { display: grid; max-height: 250px; overflow-y: auto; border: 1px solid var(--line); border-radius: 3px; }
+.wcl-mechanic-list label { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 8px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.wcl-mechanic-list label:last-child { border-bottom: 0; }
+.wcl-mechanic-list label:hover { background: var(--surface-2); }
+.wcl-mechanic-list label > span { min-width: 0; }
+.wcl-mechanic-list label strong, .wcl-mechanic-list label small { display: block; }
+.wcl-mechanic-list label strong { margin: 0 0 2px; font-size: 11px; }
+.wcl-mechanic-list label small { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.wcl-mechanic-list > p { margin: 0; padding: 12px; color: var(--text-3); }
+.wcl-create-plan { justify-self: start; }
+.wcl-import-footnote { color: var(--text-3); }
 
 /* 编辑器框架 */
 .editor-workspace, .shared-workspace { display: flex; height: 100vh; min-height: 540px; flex-direction: column; overflow: hidden; background: var(--bg); }
@@ -400,6 +422,8 @@ button.mechanic-interval.tone-active:hover:not(:disabled), button.mechanic-marke
   .home-workbench { width: calc(100% - 20px); grid-template-columns: 1fr; margin-top: 16px; }
   .wcl-probe-form, .wcl-probe-result { grid-template-columns: 1fr; }
   .wcl-report-summary { border-right: 0; border-bottom: 1px solid var(--line); }
+  .wcl-import-actions { align-items: stretch; flex-direction: column; }
+  .wcl-import-stats { grid-template-columns: 1fr 1fr; }
   .editor-workspace, .shared-workspace { min-height: 480px; }
   .editor-utility-header { grid-template-columns: auto minmax(110px, 1fr); gap: 7px; }
   .editor-utility-header .utility-brand strong { display: none; }

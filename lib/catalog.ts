@@ -1,5 +1,5 @@
 import seedJson from "../data/catalog-seed.json" with { type: "json" };
-import vashnikProfileJson from "../data/fixtures/vashnik-encounter-conversion-profile-v1.json" with { type: "json" };
+import vashnikProfileJson from "../data/fixtures/vashnik-encounter-conversion-profile-v2.json" with { type: "json" };
 import vashnikPresetJson from "../data/fixtures/vashnik-fight-32-timeline-preset-v1.json" with { type: "json" };
 import { TimelinePresetSchema, parseCatalogRelease, parseConversionProfile, parsePlanDocument, type CatalogMechanicDefinition, type CatalogRelease, type CatalogSkillDefinition, type MechanicDefinitionSnapshot, type PlayerSkillDefinitionSnapshot, type RaidPlanDocument, type TimelinePreset } from "./types";
 
@@ -58,7 +58,7 @@ function builtInCatalog() {
     throw new Error("Vashnik 示例预设与已发布转换 profile 不一致");
   }
   const release = structuredClone(BASE_SEED_CATALOG);
-  release.manifest.version = "builtin-seed-v2";
+  release.manifest.version = "builtin-seed-v3";
   release.manifest.title = "Raidline vNext 内置种子目录（含 Vashnik WCL 示例）";
   release.bossMechanics.push(...VASHNIK_PROFILE.mechanicDefinitions.map((definition) => ({
     ...structuredClone(definition),

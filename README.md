@@ -50,12 +50,12 @@ ADMIN_SESSION_SECRET=<随机会话签名密钥>
 ## WCL 与导出边界
 
 - `CombatLogSnapshot`、`EncounterConversionProfile`、`PlanImportDraft` 和 `ComparisonRun` 都有提供者无关的严格 v1 契约与 fixture。
-- 首页可以粘贴 `cn.warcraftlogs.com` 等允许域名的公开报告链接。服务端使用 client credentials 读取报告、Boss 战斗和 WCL 官方 `phaseTransitions`，浏览器不会接触 client secret 或 access token。
-- 网站探针是只读且不持久化的：它不会创建计划、WCL 快照、导入草稿或服务器数据，也不会读取 Boss/玩家技能事件。
+- 首页可以粘贴 `cn.warcraftlogs.com` 等允许域名的公开报告链接。服务端使用 client credentials 读取报告、Boss 战斗和 WCL 官方 `phaseTransitions`；史诗战斗还可在精确匹配 encounter profile 后分页读取转换所需事件。浏览器不会接触 client secret 或 access token。
+- 网站 WCL 边界只读且不做服务器持久化：导入预览会匿名化事件、丢弃玩家姓名与无关字段，只返回机制候选和严格 plan。用户显式确认后，所选机制才保存为浏览器本地计划；不会写 WCL 快照、数据库、队列或分享。
 - 探针可列出非史诗战斗并标记为不支持；一旦进入快照或导入边界，非史诗战斗以 `UNSUPPORTED_DIFFICULTY` 停止，难度不写入长期结构。
 - 战斗快照保留原始毫秒精度；GraphQL DTO、WCL 缩写和插件语法不会进入计划模型。
 - 开发者可以用 `wcl:download` 在被 Git 忽略的 `work/` 中完整缓存指定战斗事件，用 `wcl:review` 生成逐事件族人工审查材料，再用 `wcl:convert` 模拟“fight 元数据 → 精确 profile → 清洗快照 → 导入草稿 → 计划”的本地纵向链路。该流程不属于网站 API；当前兼容测试源也不是生产依赖。
-- 首个完整样本是报告 `baxm3wf8MDvF6V7W` 的 Vashnik fight 26、28、29、31、32，共 1,883,421 条原始事件。fight 32 的 413,842 条完整事件可清洗为 7,896 条 profile 所需事件并生成 53 个机制对象；Plague Froth/Plague Wave 与 Malignant Catalyst/Catalytic Bile 都以单个复合机制表达。网站正式事件导入、数据库、任务队列、快照持久化、玩家技能提取和复盘计算仍未实现。
+- 当前真实网站回归使用正式服公开报告 `LgdFn8NyAGRqWT3V` 的 fight 64（encounter `3455`）：分页读取 150,497 条事件，匿名清洗保留 5,730 条，按中文 profile v2 生成 50 个机制候选，转换警告与未解析事件均为 0。历史 encounter `3134` fixture 只保留为既有目录示例和 profile revision 依据，不是当前真实请求依赖。
 - 导出统一使用 `ExportRequest → ExportResult`。首个导出器为 MRT 阅读版；无法可靠表达的阶段触发会产生显式降级警告，阻断错误不会静默输出。
 
 提供者无关的契约 fixture 位于 [data/fixtures](data/fixtures)，WCL GraphQL 边界 fixture 位于 [tests/fixtures](tests/fixtures)。

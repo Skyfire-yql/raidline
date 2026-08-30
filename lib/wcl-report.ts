@@ -40,6 +40,9 @@ export interface WclFightSummary {
   startReportMs: number;
   endReportMs: number;
   durationMs: number;
+  bossPercentage: number | null;
+  fightPercentage: number | null;
+  hasOfficialPhases: boolean;
   phases: WclPhaseProbe[];
 }
 
@@ -202,6 +205,9 @@ export function normalizeWclReportProbe(value: unknown, link: WclReportLink): Wc
       startReportMs,
       endReportMs,
       durationMs: endReportMs - startReportMs,
+      bossPercentage: fight.bossPercentage,
+      fightPercentage: fight.fightPercentage,
+      hasOfficialPhases: Boolean(fight.phaseTransitions?.length),
       phases: normalizedPhases(startReportMs, endReportMs, fight.phaseTransitions),
     } satisfies WclFightSummary;
   });

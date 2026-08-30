@@ -66,7 +66,7 @@ test("Raidline renders and exposes strict v1 publication/catalog APIs", async ()
       if (assetPath.endsWith(".css")) assert.match(asset.headers.get("content-type") ?? "", /^text\/css\b/i);
       if (assetPath.endsWith(".js")) assert.match(asset.headers.get("content-type") ?? "", /^(?:application|text)\/javascript\b/i);
     }
-    assert.match(html, /团轴/); assert.match(html, /空白计划/); assert.match(html, /我的轴/); assert.match(html, /目录预设/); assert.match(html, /WCL 实战参考/);
+    assert.match(html, /团轴/); assert.match(html, /空白计划/); assert.match(html, /我的轴/); assert.match(html, /目录预设/); assert.match(html, /从 WCL 导入/);
     assert.match(html, /Vashnik · WCL fight 32 示例/);
     assert.doesNotMatch(html, /团本排轴工作台|本地优先|目录管理|IndexedDB|本地版本|仅所有者可见|个人预设|导入 JSON|WCL_CLIENT_SECRET/);
 
@@ -76,6 +76,13 @@ test("Raidline renders and exposes strict v1 publication/catalog APIs", async ()
       body: JSON.stringify({ url: "https://example.com/reports/baxm3wf8MDvF6V7W" }),
     }));
     assert.equal(invalidWcl.response.status, 422); assert.equal(invalidWcl.payload.error.code, "INVALID_WCL_LINK");
+
+    const invalidWclImport = await json(await fetch(`${base}/api/wcl/reports/import-preview`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: "https://example.com/reports/baxm3wf8MDvF6V7W", fightId: 32 }),
+    }));
+    assert.equal(invalidWclImport.response.status, 422); assert.equal(invalidWclImport.payload.error.code, "INVALID_WCL_IMPORT");
 
     const shareId = randomBytes(8).toString("hex"); const editId = "A9z0"; const original = plan();
     const created = await json(await fetch(`${base}/api/publications`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ shareId, editId, document: original }) }));
@@ -106,7 +113,7 @@ test("Raidline renders and exposes strict v1 publication/catalog APIs", async ()
     assert.equal((await fetch(`${base}/api/publications`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ document: unknown }) })).status, 422);
 
     const catalog = await json(await fetch(`${base}/api/catalog/current`));
-    assert.equal(catalog.response.status, 200); assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v2"); assert.equal(catalog.payload.data.manifest.schemaVersion, 1);
+    assert.equal(catalog.response.status, 200); assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v3"); assert.equal(catalog.payload.data.manifest.schemaVersion, 1);
     assert.equal(catalog.payload.data.playerSkills.length, 5); assert.equal(catalog.payload.data.bossMechanics.length, 10); assert.equal(catalog.payload.data.timelinePresets.length, 2);
     assert.equal(catalog.payload.data.timelinePresets[0].phases[0].ordinal, 1); assert.deepEqual(catalog.payload.data.timelinePresets[0].notes, []);
 

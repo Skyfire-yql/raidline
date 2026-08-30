@@ -44,6 +44,9 @@ test("WCL report probe keeps provider data transient and normalizes official pha
   assert.equal(kill.difficulty, "mythic");
   assert.equal(kill.supported, true);
   assert.equal(kill.durationMs, 434_000);
+  assert.equal(kill.bossPercentage, 0);
+  assert.equal(kill.fightPercentage, 0);
+  assert.equal(kill.hasOfficialPhases, true);
   assert.deepEqual(kill.phases, [
     { semanticPhaseId: 1, occurrenceIndex: 1, atMs: 0 },
     { semanticPhaseId: 2, occurrenceIndex: 1, atMs: 90_250 },
@@ -54,6 +57,8 @@ test("WCL report probe keeps provider data transient and normalizes official pha
 
   const heroic = probe.fights[1];
   assert.equal(heroic.supported, false);
+  assert.equal(heroic.bossPercentage, 62.5);
+  assert.equal(heroic.fightPercentage, 62.5);
   assert.deepEqual(heroic.phases, [
     { semanticPhaseId: 1, occurrenceIndex: 1, atMs: 0 },
     { semanticPhaseId: 2, occurrenceIndex: 1, atMs: 30_000 },
@@ -126,6 +131,73 @@ test("WCL client reports authentication and GraphQL failures without leaking sec
   });
   await assert.rejects(
     () => graphQlClient.probeReport({ reportCode: "baxm3wf8MDvF6V7W", fight: null }),
-    (error) => error instanceof WclClientError && error.code === "WCL_GRAPHQL_FAILED" && error.message === "WCL 暂时无法读取这份报告",
+    (error) => error instanceof WclClientError && error.code === "WCL_GRAPHQL_FAILED" && error.message === "WCL 无法按当前查询读取这份报告",
   );
+});
+
+test("WCL client reads anonymous fight metadata and follows event pagination", async () => {
+  let apiCalls = 0;
+  const fetchImpl: typeof fetch = async (input, init) => {
+    if (String(input).endsWith("/oauth/token")) return Response.json({ access_token: "event-token", expires_in: 3600 });
+    apiCalls += 1;
+    const body = JSON.parse(String(init?.body)) as { query: string; variables: Record<string, unknown> };
+    if (body.query.includes("RaidlineFightMetadata")) {
+      return Response.json({ data: { reportData: { report: {
+        code: "baxm3wf8MDvF6V7W",
+        visibility: "public",
+        revision: 3,
+        startTime: 1_800_000_000_000,
+        zone: { id: 42 },
+        masterData: {
+          gameVersion: 1,
+          logVersion: 17,
+          lang: "en",
+          actors: [
+            { id: -1, gameID: 0, type: "NPC", subType: "Boss", petOwner: null },
+            { id: 10, gameID: 259181, type: "NPC", subType: "Boss", petOwner: null },
+          ],
+        },
+        fights: [{
+          id: 32,
+          encounterID: 3134,
+          name: "Vashnik the Malignant",
+          difficulty: 5,
+          kill: true,
+          startTime: 100_000,
+          endTime: 534_000,
+          phaseTransitions: null,
+          friendlyPlayers: [1],
+          enemyPlayers: [],
+          friendlyNPCs: [],
+          enemyNPCs: [{ id: 10, gameID: 259181, petOwner: null }],
+          friendlyPets: [],
+          enemyPets: [],
+        }],
+      } } } });
+    }
+    assert.match(body.query, /RaidlineFightEvents/);
+    if (body.variables.startTime === 100_000) {
+      return Response.json({ data: { reportData: { report: { events: {
+        data: [{ timestamp: 110_000, type: "begincast", sourceID: 10, targetID: -1, abilityGameID: 1280935 }],
+        nextPageTimestamp: 200_000,
+      } } } } });
+    }
+    return Response.json({ data: { reportData: { report: { events: { data: [], nextPageTimestamp: null } } } } });
+  };
+  const client = createWclClient({
+    clientId: "fixture-client",
+    clientSecret: "fixture-secret",
+    tokenUrl: "https://www.warcraftlogs.com/oauth/token",
+    apiUrl: "https://www.warcraftlogs.com/api/v2/client",
+    fetchImpl,
+    sleep: async () => {},
+  });
+  const bundle = await client.readFightEvents("baxm3wf8MDvF6V7W", 32, [{ dataType: "Casts", hostilityType: "Enemies" }]);
+  assert.equal(bundle.fight.encounterID, 3134);
+  assert.equal(bundle.masterData.actors[0].id, -1, "provider sentinel actors remain transient metadata");
+  assert.equal(bundle.fetchedEventCount, 1);
+  assert.equal(bundle.pageCount, 2);
+  assert.equal(bundle.series[0].events.length, 1);
+  assert.equal(apiCalls, 3);
+  assert.doesNotMatch(JSON.stringify(bundle), /event-token|fixture-secret|authorization/i);
 });
