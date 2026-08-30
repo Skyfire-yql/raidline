@@ -1,4 +1,5 @@
 import seedJson from "../data/catalog-seed.json" with { type: "json" };
+import vashnikCatalogJson from "../data/catalog-vashnik.json" with { type: "json" };
 import { parseCatalogRelease, parsePlanDocument, type CatalogMechanicDefinition, type CatalogRelease, type CatalogSkillDefinition, type MechanicDefinitionSnapshot, type PlayerSkillDefinitionSnapshot, type RaidPlanDocument, type TimelinePreset } from "./types";
 
 const VERSION_PATTERN = /^[0-9A-Za-z][0-9A-Za-z._-]{0,79}$/;
@@ -48,10 +49,20 @@ export function validateCatalogRelease(value: unknown): CatalogRelease {
 }
 
 const BASE_SEED_CATALOG = validateCatalogRelease(seedJson);
+const VASHNIK_SEED_CATALOG = validateCatalogRelease(vashnikCatalogJson);
 
 function builtInCatalog() {
   const release = structuredClone(BASE_SEED_CATALOG);
-  release.manifest.version = "builtin-seed-v4";
+  release.manifest.version = "builtin-seed-v5";
+  release.manifest.title = "Raidline vNext 内置种子目录（含 Vashnik 正式服史诗）";
+  release.manifest.publishedAt = Math.max(release.manifest.publishedAt, VASHNIK_SEED_CATALOG.manifest.publishedAt);
+  release.bossMechanics.push(...structuredClone(VASHNIK_SEED_CATALOG.bossMechanics));
+  release.timelinePresets.push(...structuredClone(VASHNIK_SEED_CATALOG.timelinePresets));
+  release.manifest.counts = {
+    playerSkills: release.playerSkills.length,
+    bossMechanics: release.bossMechanics.length,
+    timelinePresets: release.timelinePresets.length,
+  };
   return validateCatalogRelease(release);
 }
 

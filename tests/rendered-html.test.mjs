@@ -112,9 +112,11 @@ test("Raidline renders and exposes strict v1 publication/catalog APIs", async ()
     assert.equal((await fetch(`${base}/api/publications`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ document: unknown }) })).status, 422);
 
     const catalog = await json(await fetch(`${base}/api/catalog/current`));
-    assert.equal(catalog.response.status, 200); assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v4"); assert.equal(catalog.payload.data.manifest.schemaVersion, 1);
-    assert.equal(catalog.payload.data.playerSkills.length, 5); assert.equal(catalog.payload.data.bossMechanics.length, 4); assert.equal(catalog.payload.data.timelinePresets.length, 1);
+    assert.equal(catalog.response.status, 200); assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v5"); assert.equal(catalog.payload.data.manifest.schemaVersion, 1);
+    assert.equal(catalog.payload.data.playerSkills.length, 5); assert.equal(catalog.payload.data.bossMechanics.length, 13); assert.equal(catalog.payload.data.timelinePresets.length, 2);
     assert.equal(catalog.payload.data.timelinePresets[0].phases[0].ordinal, 1); assert.deepEqual(catalog.payload.data.timelinePresets[0].notes, []);
+    const vashnikPreset = catalog.payload.data.timelinePresets.find((preset) => preset.encounter.externalIds?.wclEncounterId === 3455);
+    assert.equal(vashnikPreset.enabled, true); assert.equal(vashnikPreset.mechanics.length, 76); assert.equal(vashnikPreset.notes.length, 1);
 
     assert.equal((await fetch(`${base}/api/plans`, { method: "POST" })).status, 404); assert.equal((await fetch(`${base}/api/shared/${secondShareId}`)).status, 404);
     assert.equal((await fetch(`${base}/api/publications/${shareId}/bad1`, { method: "DELETE" })).status, 403);

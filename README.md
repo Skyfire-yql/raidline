@@ -28,7 +28,7 @@ Raidline 当前采用全新的严格 v1 格式，不读取或迁移旧 plan v5�
 
 ## 内容目录
 
-仓库内置严格 catalog v1 种子目录：[data/catalog-seed.json](data/catalog-seed.json)。当前内置 release 包含 5 个牧师排轴技能、4 个通用示例机制和 1 个不含名单或执行安排的基础骨架；正式服 WCL encounter profile 独立维护，不把研究样本伪装成目录预设。
+仓库内置严格 catalog v1 由通用种子 [data/catalog-seed.json](data/catalog-seed.json) 和正式服 Vashnik 目录 [data/catalog-vashnik.json](data/catalog-vashnik.json) 组合。当前内置 release 包含 5 个牧师排轴技能、13 个机制和 2 个不含名单或技能安排的 Boss 骨架。Vashnik 骨架使用九场正式服击杀的跨样本中位时间，不复制任何单场日志；关闭 WCL 后仍可从首页直接创建。
 
 应用预设时会把所需机制定义与当前技能定义复制进计划。已发布目录继续按以下相对路径保存在服务端数据目录，并在所有文件写入后更新 current 指针：
 
@@ -85,7 +85,7 @@ pnpm build
 pnpm test
 ```
 
-`wcl:download`、`wcl:review` 与 `wcl:convert` 仍可用于显式指定输入的本地兼容研究，所有缓存与审查材料必须留在被 Git 忽略的 `work/`；这些脚本不是生产 WCL 数据源，仓库也不再附带 PTR Vashnik profile、metadata 或时间轴 preset。
+`wcl:download`、`wcl:review` 与 `wcl:convert` 仍可用于显式指定输入的本地兼容研究，所有缓存与审查材料必须留在被 Git 忽略的 `work/`；这些脚本不是生产 WCL 数据源。仓库不再附带 PTR Vashnik profile、metadata 或单场日志时间轴 preset；正式目录骨架是独立核准的多样本数据。
 
 测试覆盖严格读取、锚点解析与循环、自动范围、多策略组与小队、阶段任务与说明、技能充能/施法/引导、目录快照隔离、WCL 链接/OAuth/阶段边界、16+4 发布规则和发布 API。
 

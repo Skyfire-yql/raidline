@@ -44,6 +44,37 @@
 - WCL 快照和导入草稿保留毫秒；转为当前 plan v1 时沿用既有规则向前吸附到整秒。
 - 失败伤害、周期 Tick、派生爆发、死亡和辅助光环可以用于关系或复盘校验，但不会因此额外生成 Boss 时间轴 occurrence。
 
+## 正式目录骨架
+
+`data/catalog-vashnik.json` 是独立于 WCL 网络的 catalog v1 数据。每个 occurrence 使用九场击杀相同序号事件的中位起点，再按计划规则取整到最近一秒；它不是任何一场日志的副本。九场共同出现的时间点跨样本波动均小于一秒，6:24 后的波次只在战斗仍未结束的样本中出现。预设保留到已观察到的 7:27，不外推未见过的下一轮。
+
+可复核的正式服样本按战斗时长排序如下；只保存公开报告定位和匿名聚合结论，不保存原始事件或玩家信息：
+
+| 报告 / Fight | 时长 |
+| --- | --- |
+| [YpcQJA9jCaXfq6bt / 12](https://cn.warcraftlogs.com/reports/YpcQJA9jCaXfq6bt?fight=12) | 6:24.229 |
+| [PcGQ7mxz6BVD1Jgk / 46](https://cn.warcraftlogs.com/reports/PcGQ7mxz6BVD1Jgk?fight=46) | 6:51.096 |
+| [DMh3wKYNpkQ4FLda / 37](https://cn.warcraftlogs.com/reports/DMh3wKYNpkQ4FLda?fight=37) | 6:59.248 |
+| [BtJyv29VZCAraPWN / 34](https://cn.warcraftlogs.com/reports/BtJyv29VZCAraPWN?fight=34) | 7:02.251 |
+| [fhBFw4RybzqLC19H / 32](https://cn.warcraftlogs.com/reports/fhBFw4RybzqLC19H?fight=32) | 7:08.025 |
+| [grN1chnHWBVDFJK6 / 56](https://cn.warcraftlogs.com/reports/grN1chnHWBVDFJK6?fight=56) | 7:12.943 |
+| [g4jYdTD1qHFZyNc6 / 29](https://cn.warcraftlogs.com/reports/g4jYdTD1qHFZyNc6?fight=29) | 7:17.478 |
+| [LgdFn8NyAGRqWT3V / 64](https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64) | 7:25.448 |
+| [YyW1GgZzxatMjFhq / 58](https://cn.warcraftlogs.com/reports/YyW1GgZzxatMjFhq?fight=58) | 7:28.991 |
+
+| 机制 | 规范起点（分:秒） |
+| --- | --- |
+| 毒性蒸汽 | 0:00、0:24、1:48、3:12、4:36、6:00、7:24 |
+| 滴毒之牙 | 0:08、0:37、1:04、1:32、2:01、2:28、2:56、3:25、3:52、4:20、4:49、5:16、5:44、6:13、6:40、7:08 |
+| 瘟疫泡沫 | 0:13、0:54、1:27、2:18、2:51、3:42、4:15、5:06、5:39、6:30、7:03 |
+| 痛饮 | 0:20、1:44、3:08、4:32、5:56、7:20 |
+| 恶念 | 0:27、1:51、3:15、4:39、6:03、7:27 |
+| 恶性催化剂 | 0:30、1:09、1:54、2:33、3:18、3:57、4:42、5:21、6:06、6:45 |
+| 冥河感染 | 0:42、1:35、2:07、2:58、3:31、4:22、4:54、5:47、6:18、7:11 |
+| 爆炸感染 | 0:43、1:35、2:07、2:59、3:31、4:23、4:55、5:47、6:19、7:11 |
+
+鲜血分支没有进入规范轴：虹吸感染定义仍在目录中并可手动添加，但九场击杀和 102 次灭团都没有提供可用于确定 occurrence 时间的正式服证据。首页从此骨架创建的计划只带 catalog 来源、完整机制定义快照、一个 P1 和通用说明，不带 WCL snapshot、玩家名单或技能安排。
+
 ## 证据边界
 
 WCL 可以证明日志中实际出现的事件类型、来源、目标、次数和相对时间，但不能单独证明未写入日志的内部状态、设计意图、喷泉选择算法或某个未采用分支永远不会出现。虹吸感染/鲜血虹吸是当前唯一经用户明确批准的未观察例外；正式中文名分别由 [Wowhead spell 1295224](https://www.wowhead.com/cn/spell=1295224/siphoning-infection) 与 [Wowhead spell 1295229](https://www.wowhead.com/cn/spell=1295229) 补证。其余 profile 结论均来自上述正式服日志。

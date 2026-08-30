@@ -264,7 +264,11 @@ test("cast overlap and GCD conflicts are reported independently", () => {
 test("catalog v1 seed is strict and presets copy snapshot definitions into an isolated plan", () => {
   const release = validateCatalogRelease(SEED_CATALOG);
   assert.equal(release.manifest.schemaVersion, 1);
-  assert.equal(release.manifest.version, "builtin-seed-v4");
+  assert.equal(release.manifest.version, "builtin-seed-v5");
+  assert.equal(release.playerSkills.length, 5);
+  assert.equal(release.bossMechanics.length, 13);
+  assert.equal(release.timelinePresets.length, 2);
+
   const preset = release.timelinePresets[0];
   const plan = applyCatalogPreset(createBlankPlan(), release, preset);
   assert.equal(plan.schemaVersion, 1);
@@ -279,6 +283,38 @@ test("catalog v1 seed is strict and presets copy snapshot definitions into an is
   const legacy = structuredClone(release) as unknown as { manifest: { schemaVersion: number } };
   legacy.manifest.schemaVersion = 3;
   assert.throws(() => validateCatalogRelease(legacy));
+});
+
+test("live Vashnik preset is an offline catalog snapshot built from the cross-sample canonical timeline", () => {
+  const release = validateCatalogRelease(SEED_CATALOG);
+  const preset = release.timelinePresets.find((item) => item.encounter.externalIds?.wclEncounterId === 3455);
+  assert.ok(preset);
+  assert.equal(preset.enabled, true);
+  assert.equal(preset.encounter.externalIds?.wclZoneId, 53);
+  assert.deepEqual(preset.phases.map((phase) => [phase.name, phase.ordinal, phase.estimatedStartMs]), [["P1", 1, 0]]);
+  assert.equal(preset.mechanics.length, 76);
+  assert.equal(preset.notes.length, 1);
+
+  const plan = applyCatalogPreset(createBlankPlan(), release, preset);
+  assert.equal(plan.sources.length, 1);
+  assert.equal(plan.sources[0].kind, "catalog");
+  assert.equal(plan.sources.some((source) => source.kind === "combat-log"), false);
+  assert.equal(plan.definitions.mechanics.length, 8);
+  assert.equal(plan.timeline.mechanics.length, 76);
+  assert.equal(plan.timeline.directives.length, 1);
+  assert.equal(plan.roster.members.length, 0);
+  assert.equal(plan.timeline.skillAssignments.length, 0);
+  assert.ok(plan.timeline.mechanics.every((occurrence) => occurrence.anchor.offsetMs % 1000 === 0));
+
+  const scene = buildTimelineScene(plan);
+  assert.equal(scene.durationMs, 480_000);
+  assert.equal(scene.mechanics.at(-1)?.atMs, 447_000);
+  assert.deepEqual(
+    scene.mechanics.filter((mechanic) => mechanic.typeName === "毒性蒸汽").map((mechanic) => mechanic.displayLabel),
+    ["×1", "×2", "×3", "×4", "×5", "×6", "×7"],
+  );
+  assert.equal(scene.mechanics.some((mechanic) => mechanic.typeName === "虹吸感染"), false);
+  assert.ok(release.bossMechanics.some((mechanic) => mechanic.name === "虹吸感染" && mechanic.enabled));
 });
 
 test("mechanic timeline presentation is strict and rejects invalid or duplicate parts", () => {
