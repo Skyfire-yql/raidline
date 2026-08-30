@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "reportCode": "LgdFn8NyAGRqWT3V",
+  "fightId": 64,
+  "encounterId": 3455,
+  "encounterName": "Vashnik the Malignant",
+  "difficulty": "mythic",
+  "gameVersion": "retail-12.1",
+  "reportRevision": 45,
+  "reportStartEpochMs": 1787653286382,
+  "fightStartReportMs": 18932777,
+  "fightEndReportMs": 19378225,
+  "zoneId": 53
+}

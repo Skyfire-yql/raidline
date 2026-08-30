@@ -22,8 +22,8 @@ import { wclDifficulty } from "../lib/wcl-report.ts";
 
 const REPORT_CODE = /^[0-9A-Za-z]{16}$/;
 const DEFAULT_INPUT_ROOT = "work/wcl";
-const DEFAULT_METADATA = "data/fixtures/vashnik-fight-32-metadata-v1.json";
-const DEFAULT_ENCOUNTER_PROFILE = "data/fixtures/vashnik-encounter-conversion-profile-v2.json";
+const DEFAULT_METADATA = "data/fixtures/vashnik-live-fight-64-metadata-v1.json";
+const DEFAULT_ENCOUNTER_PROFILE = "data/fixtures/vashnik-encounter-conversion-profile.json";
 const DEFAULT_PLAYER_PROFILE = "data/fixtures/player-skill-extraction-profile-v1.json";
 
 interface StoredPage {
@@ -62,7 +62,7 @@ function usage(message?: string): never {
     "",
     "可选参数：",
     `  --metadata <JSON>                 fight 元数据（默认 ${DEFAULT_METADATA}）`,
-    "  --profile-version <整数>         Encounter profile 版本（默认 2）",
+    "  --profile-version <整数>         Encounter profile 版本（默认 3）",
     "  --player-profile-version <整数>  全局玩家提取 profile 版本（默认 1）",
     `  --input-root <目录>               完整事件缓存根目录（默认 ${DEFAULT_INPUT_ROOT}）`,
     `  --encounter-profile <JSON>        本地数据库记录 fixture（默认 ${DEFAULT_ENCOUNTER_PROFILE}）`,
@@ -93,7 +93,7 @@ function parseOptions(argv: string[]): Options {
   const inputRoot = resolve(values.get("--input-root") ?? DEFAULT_INPUT_ROOT);
   return {
     metadataPath: resolve(values.get("--metadata") ?? DEFAULT_METADATA),
-    profileVersion: positiveInteger(values.get("--profile-version"), "--profile-version", 2),
+    profileVersion: positiveInteger(values.get("--profile-version"), "--profile-version", 3),
     playerProfileVersion: positiveInteger(values.get("--player-profile-version"), "--player-profile-version", 1),
     inputRoot,
     encounterProfilePath: resolve(values.get("--encounter-profile") ?? DEFAULT_ENCOUNTER_PROFILE),

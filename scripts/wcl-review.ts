@@ -85,7 +85,7 @@ const EVENT_TYPE_EXPLANATIONS: Record<string, string> = {
 function usage(message?: string): never {
   if (message) process.stderr.write(`${message}\n\n`);
   process.stderr.write([
-    "用法：pnpm wcl:review -- --report baxm3wf8MDvF6V7W --fights 26,28,29,31,32",
+    "用法：pnpm wcl:review -- --report <16 位报告 ID> --fights <fight ID[,fight ID...>]",
     "",
     "可选参数：",
     `  --input-root <目录>  下载缓存根目录（默认 ${DEFAULT_INPUT_ROOT}）`,
@@ -211,7 +211,7 @@ function compactWaveTimes(family: WclReviewFamily) {
 }
 
 function familySection(family: WclReviewFamily, index: number, decision: DecisionRecord) {
-  const lookup = family.abilityId === null ? "" : `[Wowhead PTR 查询](https://www.wowhead.com/ptr/spell=${family.abilityId})`;
+  const lookup = family.abilityId === null ? "" : `[Wowhead 正式服查询](https://www.wowhead.com/cn/spell=${family.abilityId})`;
   const targets = observedTargetSummary(family, 12);
   const timing = family.crossFightTiming.comparableFightCount < 2
     ? "样本不足"
@@ -248,16 +248,16 @@ function overviewMarkdown(catalog: WclReviewCatalog) {
     "",
     "## 审查口径",
     "",
-    "- 每个稳定事件族只列一次；同技能的不同事件类型和五场出现情况放在同一项下。",
+    "- 每个稳定事件族只列一次；同技能的不同事件类型和所选战斗出现情况放在同一项下。",
     "- 对同一时刻作用于多名玩家的伤害/光环，合并成一波并保留原始条数与目标数。",
     "- 玩家对敌方的伤害、逐次治疗量、宠物噪声等不会进入机制候选，但仍完整列入排除索引。",
     "- 每个候选的完整逐波时间保存在 `event-catalog.json.gz`，完整原始事件仍在各分页中，可随时回查。",
     "- 自动锚点和稳定性只用于辅助审查，不会自动生成正式规则。",
-    "- 简述优先来自 `docs/Vashink.md` 与当前 Wowhead PTR Boss 指南；没有可靠说明的项目保持空白。",
+    "- 简述优先来自 `docs/Vashink.md` 与正式服资料；没有可靠说明的项目保持空白。",
     "",
     "## 当前资料差异",
     "",
-    "- 这五场 WCL 元数据均未返回官方 `phaseTransitions`；PTR 当前不能直接依赖 WCL 阶段划分。",
+    "- 是否存在官方 `phaseTransitions` 必须按所选正式服 fight 元数据逐场确认；缺失时不猜测阶段。",
     "- 正式服名称已按 spell ID 区分：Living Venom 抵达中央后的 `Malignant Burst` 为“恶性爆发”，Malignant Tumor 的 `Malignance` 为“恶念”；两者是独立机制。",
     "- `absorbed` 与 `aurabroken` 的字段语义并不统一，只能作为关联证据，不能单独据此认定机制来源。",
     "",

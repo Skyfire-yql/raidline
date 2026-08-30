@@ -33,7 +33,7 @@ import type {
 
 const GAME_VERSION_KEY = "retail-12.1";
 const WCL_RETAIL_GAME_VERSION = 1;
-const ENCOUNTER_PROFILE_VERSION = 2;
+const ENCOUNTER_PROFILE_VERSION = 3;
 const PLAYER_PROFILE_VERSION = 1;
 
 const RawEventSchema = z.object({
@@ -150,7 +150,11 @@ function anonymizedActor(reference: WclActorReference, type: ObservedActor["type
   };
 }
 
-function actorIndex(bundle: WclFightEventBundle) {
+function actorIndex(
+  bundle: WclFightEventBundle,
+  expectedEnemyNpcGameIds: ReadonlySet<number>,
+  expectedEnemyNpcActorIds: ReadonlySet<number>,
+) {
   const master = new Map(bundle.masterData.actors.filter((actor) => actor.id > 0).map((actor) => [actor.id, actor]));
   const records = new Map<number, ActorRecord>();
   const ensure = (id: number, type: ObservedActor["type"], hostility?: ActorHostility, npc?: WclFightNpcReference) => {
@@ -178,7 +182,16 @@ function actorIndex(bundle: WclFightEventBundle) {
   for (const pet of bundle.fight.enemyPets) ensure(pet.id, "pet", "enemy", pet);
   for (const reference of bundle.masterData.actors) {
     if (reference.id < 1) continue;
-    if (!records.has(reference.id)) records.set(reference.id, { actor: anonymizedActor(reference, inferredActorType(reference)) });
+    if (records.has(reference.id)) continue;
+    const type = inferredActorType(reference);
+    const gameId = positiveGameId(reference.gameID);
+    records.set(reference.id, {
+      actor: anonymizedActor(reference, type),
+      ...(type === "npc" && (
+        expectedEnemyNpcActorIds.has(reference.id)
+        || Boolean(gameId && expectedEnemyNpcGameIds.has(gameId))
+      ) ? { hostility: "enemy" as const } : {}),
+    });
   }
 
   for (const [id, record] of records) {
@@ -205,6 +218,28 @@ function collectionMatches(
     && (rule.hostility === "any" || source?.hostility === rule.hostility)
     && (!rule.abilityGameIds || abilityGameId != null && rule.abilityGameIds.includes(abilityGameId))
   ));
+}
+
+function profileEnemyNpcActorIds(bundle: WclFightEventBundle, rules: EventCollectionRule[]) {
+  const master = new Map(bundle.masterData.actors.map((actor) => [actor.id, actor]));
+  const enemyRules = rules.filter((rule) => rule.enabled && rule.hostility === "enemy");
+  const actorIds = new Set<number>();
+  for (const series of bundle.series) {
+    for (const value of series.events) {
+      const parsed = RawEventSchema.safeParse(value);
+      if (!parsed.success) continue;
+      const raw = parsed.data;
+      if (!raw.sourceID || raw.sourceID < 1) continue;
+      const reference = master.get(raw.sourceID);
+      if (!reference || inferredActorType(reference) !== "npc") continue;
+      const eventType = normalizedEventType(raw.type);
+      if (!eventType) continue;
+      if (collectionMatches(raw.type, eventType, raw.abilityGameID, { actor: anonymizedActor(reference, "npc"), hostility: "enemy" }, enemyRules)) {
+        actorIds.add(raw.sourceID);
+      }
+    }
+  }
+  return actorIds;
 }
 
 function finiteNonnegative(value: number | undefined) {
@@ -285,8 +320,11 @@ export async function normalizeWclFightBundle(
   encounterProfile: EncounterConversionProfile,
   playerProfile: PlayerSkillExtractionProfile,
 ) {
-  const actors = actorIndex(bundle);
   const collectionRules = [...encounterProfile.collectionRules, ...playerProfile.collectionRules];
+  const expectedEnemyNpcGameIds = new Set(encounterProfile.conversionRules
+    .filter((rule) => rule.enabled)
+    .flatMap((rule) => rule.match.sourceNpcGameIds ?? []));
+  const actors = actorIndex(bundle, expectedEnemyNpcGameIds, profileEnemyNpcActorIds(bundle, collectionRules));
   const normalized = normalizeEvents(bundle, collectionRules, actors);
   const retainedActorKeys = new Set(normalized.referencedActors);
   for (const record of actors.values()) {

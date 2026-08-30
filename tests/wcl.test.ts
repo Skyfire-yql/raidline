@@ -12,33 +12,33 @@ import {
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/wcl-report-phases-response.json", import.meta.url), "utf8"));
 
 test("WCL report URLs accept official regional hosts and strict fight selectors", () => {
-  assert.deepEqual(parseWclReportUrl("https://cn.warcraftlogs.com/reports/baxm3wf8MDvF6V7W"), {
-    reportCode: "baxm3wf8MDvF6V7W",
+  assert.deepEqual(parseWclReportUrl("https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V"), {
+    reportCode: "LgdFn8NyAGRqWT3V",
     fight: null,
   });
-  assert.deepEqual(parseWclReportUrl("https://www.warcraftlogs.com/reports/baxm3wf8MDvF6V7W?fight=32&type=damage-done"), {
-    reportCode: "baxm3wf8MDvF6V7W",
-    fight: 32,
+  assert.deepEqual(parseWclReportUrl("https://www.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64&type=damage-done"), {
+    reportCode: "LgdFn8NyAGRqWT3V",
+    fight: 64,
   });
-  assert.deepEqual(parseWclReportUrl("https://tw.warcraftlogs.com/reports/baxm3wf8MDvF6V7W?fight=last"), {
-    reportCode: "baxm3wf8MDvF6V7W",
+  assert.deepEqual(parseWclReportUrl("https://tw.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=last"), {
+    reportCode: "LgdFn8NyAGRqWT3V",
     fight: "last",
   });
   for (const value of [
-    "https://example.com/reports/baxm3wf8MDvF6V7W",
-    "https://evilwarcraftlogs.com/reports/baxm3wf8MDvF6V7W",
-    "http://cn.warcraftlogs.com/reports/baxm3wf8MDvF6V7W",
+    "https://example.com/reports/LgdFn8NyAGRqWT3V",
+    "https://evilwarcraftlogs.com/reports/LgdFn8NyAGRqWT3V",
+    "http://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V",
     "https://cn.warcraftlogs.com/reports/short",
-    "https://cn.warcraftlogs.com/reports/baxm3wf8MDvF6V7W?fight=0",
-    "https://cn.warcraftlogs.com/reports/baxm3wf8MDvF6V7W?fight=1&fight=2",
+    "https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=0",
+    "https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=1&fight=2",
   ]) assert.throws(() => parseWclReportUrl(value), InvalidWclReportUrlError);
 });
 
 test("WCL report probe keeps provider data transient and normalizes official phase transitions", () => {
   const report = fixture.data.reportData.report;
-  const probe = normalizeWclReportProbe(report, { reportCode: report.code, fight: 32 });
-  assert.equal(probe.report.title, "Raid Testing Mythic re-test boss 1,3,4,7");
-  assert.equal(probe.selectedFightId, 32);
+  const probe = normalizeWclReportProbe(report, { reportCode: report.code, fight: 64 });
+  assert.equal(probe.report.title, "Synthetic phase fixture");
+  assert.equal(probe.selectedFightId, 64);
   assert.equal(probe.fights.length, 2, "trash fights are not import candidates");
   const kill = probe.fights[0];
   assert.equal(kill.difficulty, "mythic");
@@ -88,15 +88,15 @@ test("WCL client uses server credentials, caches OAuth tokens and never returns 
     fetchImpl,
     sleep: async () => {},
   });
-  const link = parseWclReportUrl("https://cn.warcraftlogs.com/reports/baxm3wf8MDvF6V7W?fight=32");
+  const link = parseWclReportUrl("https://cn.warcraftlogs.com/reports/AbCdEfGh12345678?fight=64");
   const first = await client.probeReport(link);
   const second = await client.probeReport(link);
-  assert.equal(first.selectedFightId, 32);
+  assert.equal(first.selectedFightId, 64);
   assert.equal(second.fights[0].phases[1].atMs, 90_250);
   assert.equal(requests.filter((item) => item.url.endsWith("/oauth/token")).length, 1);
   assert.equal(requests.filter((item) => item.url.endsWith("/api/v2/client")).length, 2);
   const graphQlBody = JSON.parse(String(requests.find((item) => item.url.endsWith("/api/v2/client"))?.init?.body));
-  assert.equal(graphQlBody.variables.code, "baxm3wf8MDvF6V7W");
+  assert.equal(graphQlBody.variables.code, "AbCdEfGh12345678");
   assert.match(graphQlBody.query, /phaseTransitions/);
   assert.doesNotMatch(JSON.stringify(first), /fixture-access-token|fixture-secret|reportData/);
 });
@@ -111,7 +111,7 @@ test("WCL client reports authentication and GraphQL failures without leaking sec
     sleep: async () => {},
   });
   await assert.rejects(
-    () => authClient.probeReport({ reportCode: "baxm3wf8MDvF6V7W", fight: null }),
+    () => authClient.probeReport({ reportCode: "LgdFn8NyAGRqWT3V", fight: null }),
     (error) => error instanceof WclClientError && error.code === "WCL_AUTH_FAILED" && !error.message.includes("do-not-leak"),
   );
 
@@ -130,7 +130,7 @@ test("WCL client reports authentication and GraphQL failures without leaking sec
     sleep: async () => {},
   });
   await assert.rejects(
-    () => graphQlClient.probeReport({ reportCode: "baxm3wf8MDvF6V7W", fight: null }),
+    () => graphQlClient.probeReport({ reportCode: "LgdFn8NyAGRqWT3V", fight: null }),
     (error) => error instanceof WclClientError && error.code === "WCL_GRAPHQL_FAILED" && error.message === "WCL 无法按当前查询读取这份报告",
   );
 });
@@ -143,28 +143,28 @@ test("WCL client reads anonymous fight metadata and follows event pagination", a
     const body = JSON.parse(String(init?.body)) as { query: string; variables: Record<string, unknown> };
     if (body.query.includes("RaidlineFightMetadata")) {
       return Response.json({ data: { reportData: { report: {
-        code: "baxm3wf8MDvF6V7W",
+        code: "LgdFn8NyAGRqWT3V",
         visibility: "public",
-        revision: 3,
-        startTime: 1_800_000_000_000,
-        zone: { id: 42 },
+        revision: 45,
+        startTime: 1_787_653_286_382,
+        zone: { id: 53 },
         masterData: {
           gameVersion: 1,
           logVersion: 17,
-          lang: "en",
+          lang: "cn",
           actors: [
             { id: -1, gameID: 0, type: "NPC", subType: "Boss", petOwner: null },
             { id: 10, gameID: 259181, type: "NPC", subType: "Boss", petOwner: null },
           ],
         },
         fights: [{
-          id: 32,
-          encounterID: 3134,
-          name: "Vashnik the Malignant",
+          id: 64,
+          encounterID: 3455,
+          name: "万毒邪祟者瓦什尼克",
           difficulty: 5,
           kill: true,
-          startTime: 100_000,
-          endTime: 534_000,
+          startTime: 18_932_777,
+          endTime: 19_378_225,
           phaseTransitions: null,
           friendlyPlayers: [1],
           enemyPlayers: [],
@@ -176,10 +176,10 @@ test("WCL client reads anonymous fight metadata and follows event pagination", a
       } } } });
     }
     assert.match(body.query, /RaidlineFightEvents/);
-    if (body.variables.startTime === 100_000) {
+    if (body.variables.startTime === 18_932_777) {
       return Response.json({ data: { reportData: { report: { events: {
-        data: [{ timestamp: 110_000, type: "begincast", sourceID: 10, targetID: -1, abilityGameID: 1280935 }],
-        nextPageTimestamp: 200_000,
+        data: [{ timestamp: 18_940_797, type: "begincast", sourceID: 10, targetID: -1, abilityGameID: 1280935 }],
+        nextPageTimestamp: 19_000_000,
       } } } } });
     }
     return Response.json({ data: { reportData: { report: { events: { data: [], nextPageTimestamp: null } } } } });
@@ -192,8 +192,8 @@ test("WCL client reads anonymous fight metadata and follows event pagination", a
     fetchImpl,
     sleep: async () => {},
   });
-  const bundle = await client.readFightEvents("baxm3wf8MDvF6V7W", 32, [{ dataType: "Casts", hostilityType: "Enemies" }]);
-  assert.equal(bundle.fight.encounterID, 3134);
+  const bundle = await client.readFightEvents("LgdFn8NyAGRqWT3V", 64, [{ dataType: "Casts", hostilityType: "Enemies" }]);
+  assert.equal(bundle.fight.encounterID, 3455);
   assert.equal(bundle.masterData.actors[0].id, -1, "provider sentinel actors remain transient metadata");
   assert.equal(bundle.fetchedEventCount, 1);
   assert.equal(bundle.pageCount, 2);

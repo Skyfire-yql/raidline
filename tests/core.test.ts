@@ -264,7 +264,7 @@ test("cast overlap and GCD conflicts are reported independently", () => {
 test("catalog v1 seed is strict and presets copy snapshot definitions into an isolated plan", () => {
   const release = validateCatalogRelease(SEED_CATALOG);
   assert.equal(release.manifest.schemaVersion, 1);
-  assert.equal(release.manifest.version, "builtin-seed-v3");
+  assert.equal(release.manifest.version, "builtin-seed-v4");
   const preset = release.timelinePresets[0];
   const plan = applyCatalogPreset(createBlankPlan(), release, preset);
   assert.equal(plan.schemaVersion, 1);
@@ -295,42 +295,6 @@ test("mechanic timeline presentation is strict and rejects invalid or duplicate 
   const plan = structuredClone(populatedPlan()) as unknown as { definitions: { mechanics: Array<Partial<MechanicDefinitionSnapshot>> } };
   delete plan.definitions.mechanics[0].timelinePresentation;
   assert.throws(() => parsePlanDocument(plan));
-});
-
-test("Vashnik WCL sample preset exposes the cleaned fight 32 mechanic timeline", () => {
-  const preset = SEED_CATALOG.timelinePresets.find((item) => item.encounter.externalIds?.wclEncounterId === 3134)!;
-  const plan = applyCatalogPreset(createBlankPlan(), SEED_CATALOG, preset);
-  const scene = buildTimelineScene(plan);
-  assert.equal(plan.timeline.mechanics.length, 53);
-  assert.equal(scene.mechanics.filter((item) => item.name === "滴毒之牙").length, 16);
-  assert.equal(scene.mechanics.filter((item) => item.name === "瘟疫泡沫").length, 11);
-  assert.equal(scene.mechanics.filter((item) => item.name === "瘟疫浪潮").length, 0);
-  assert.equal(scene.mechanics.filter((item) => item.name === "恶性催化剂").length, 10);
-  assert.equal(scene.mechanics.filter((item) => item.name === "虹吸感染").length, 5);
-  assert.deepEqual(scene.mechanics.filter((item) => item.name === "毒性蒸汽").map((item) => item.presentationParts[0].text), ["毒性蒸汽 ×1", "毒性蒸汽 ×2", "毒性蒸汽 ×3", "毒性蒸汽 ×4", "毒性蒸汽 ×5", "毒性蒸汽 ×6"]);
-  const firstFangs = scene.mechanics.find((item) => item.name === "滴毒之牙")!;
-  assert.deepEqual({ start: firstFangs.atMs, impact: firstFangs.impactMs, end: firstFangs.endMs }, { start: 8000, impact: 9000, end: 9000 });
-  const fangsDefinition = plan.definitions.mechanics.find((item) => item.name === "滴毒之牙")!;
-  assert.deepEqual(fangsDefinition.abilityGameIds, [1280935, 1280934]);
-  assert.match(fangsDefinition.description, /Dripping Fangs/);
-  const firstCatalyst = scene.mechanics.find((item) => item.name === "恶性催化剂")!;
-  assert.deepEqual({ start: firstCatalyst.atMs, impact: firstCatalyst.impactMs, end: firstCatalyst.endMs }, { start: 30_000, impact: 35_000, end: 42_000 });
-  assert.deepEqual(firstCatalyst.presentationParts.map((item) => item.text), ["恶性催化剂", "全团伤害判定", "催化胆汁", "接圈判定"]);
-  const firstFroth = scene.mechanics.find((item) => item.name === "瘟疫泡沫")!;
-  assert.deepEqual(firstFroth.presentationParts.map((item) => item.text), ["瘟疫泡沫", "瘟疫浪潮"]);
-  assert.deepEqual(firstFroth.presentationParts, [
-    { index: 0, kind: "interval", tone: "active", text: "瘟疫泡沫", startMs: 13_000, endMs: 21_000 },
-    { index: 1, kind: "marker", tone: "judgment", text: "瘟疫浪潮", atMs: 21_000 },
-  ]);
-  assert.equal(scene.mechanics.find((item) => item.name === "毒性蒸汽")!.presentationParts[0].text, "毒性蒸汽 ×1");
-  const firstFrothEnd = resolveMechanicPoint(plan, firstFroth.id, "end");
-  assert.deepEqual(firstFrothEnd, { ok: true, atMs: 21_000 });
-  const fixedLanes = layoutMechanicLanes(scene.mechanics, "by-type", "horizontal", 2);
-  assert.equal(fixedLanes.lanes.length, 6);
-  assert.equal(new Set(scene.mechanics.map((item) => fixedLanes.laneByMechanicId.get(item.id))).size, 6);
-  const compactLanes = layoutMechanicLanes(scene.mechanics, "compact", "horizontal", 1.6);
-  assert.ok(compactLanes.lanes.length > 1);
-  assert.ok(compactLanes.lanes.every((lane) => lane.label === "BOSS 机制"));
 });
 
 test("mechanic lanes support minimal collision stacking and stable definition tracks", () => {
@@ -414,7 +378,7 @@ test("blank plans copy a catalog skill snapshot only when the player first selec
   assert.equal(catalogDifference(plan, SEED_CATALOG).versionChanged, false);
 
   const nextRelease = structuredClone(SEED_CATALOG);
-  nextRelease.manifest.version = "builtin-seed-v4";
+  nextRelease.manifest.version = "test-next-catalog";
   nextRelease.playerSkills.find((item) => item.id === skill.id)!.cooldownMs = 150_000;
   const difference = catalogDifference(plan, nextRelease);
   assert.equal(difference.versionChanged, true);
@@ -424,7 +388,7 @@ test("blank plans copy a catalog skill snapshot only when the player first selec
   assert.equal(upgraded.definitions.skills[0].cooldownMs, 150_000);
   const latestSource = upgraded.sources.at(-1);
   assert.equal(latestSource?.kind, "catalog");
-  assert.equal(latestSource?.kind === "catalog" ? latestSource.catalogVersion : undefined, "builtin-seed-v4");
+  assert.equal(latestSource?.kind === "catalog" ? latestSource.catalogVersion : undefined, "test-next-catalog");
 });
 
 function combatLogFixture(): CombatLogSnapshot {

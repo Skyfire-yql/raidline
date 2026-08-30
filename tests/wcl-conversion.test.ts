@@ -51,18 +51,18 @@ function snapshot(): CombatLogSnapshot {
     normalizerVersion: "test-v1",
     importedAt: 1_800_000_000_000,
     source: {
-      reportCode: "baxm3wf8MDvF6V7W",
-      fightId: 32,
-      reportRevision: 0,
-      reportStartEpochMs: 1_800_000_000_000,
-      fightStartReportMs: 26_741_869,
-      fightEndReportMs: 27_176_621,
+      reportCode: "LgdFn8NyAGRqWT3V",
+      fightId: 64,
+      reportRevision: 45,
+      reportStartEpochMs: 1_787_653_286_382,
+      fightStartReportMs: 18_932_777,
+      fightEndReportMs: 19_378_225,
       gameVersionKey: "retail-12.1",
       logVersion: 17,
       gameVersion: 1,
       language: "en",
     },
-    encounter: { encounterId: 3_134, zoneId: 54, name: "Vashnik the Malignant", kill: true, durationMs: 434_752 },
+    encounter: { encounterId: 3_455, zoneId: 53, name: "万毒邪祟者瓦什尼克", kill: true, durationMs: 445_448 },
     actors: [
       { actorKey: "npc:173", reportActorId: 173, gameId: 259_181, type: "npc", name: "NPC 259181" },
       { actorKey: "player:1", reportActorId: 1, type: "player", name: "玩家 1" },
@@ -88,44 +88,44 @@ function encounterProfile(): EncounterConversionProfile {
   const fangId = uuid();
   const frothId = uuid();
   const vaporId = uuid();
-  const verification = { reviewedAt: 1_800_000_000_000, sourceReportCodes: ["baxm3wf8MDvF6V7W"] };
+  const verification = { reviewedAt: 1_788_019_200_000, sourceReportCodes: ["LgdFn8NyAGRqWT3V"] };
   return parseConversionProfile({
     schemaVersion: 1,
     id: uuid(),
-    encounterId: 3_134,
+    encounterId: 3_455,
     gameVersion: "retail-12.1",
-    profileVersion: 1,
+    profileVersion: 3,
     status: "published",
     mechanicDefinitions: [
       mechanic(fangId, "Dripping Fangs", [1_280_935], 2_000, 0),
-      { ...mechanic(frothId, "Plague Froth", [1_281_913], 0, 8_000), timelinePresentation: { parts: [{ kind: "interval", from: "cast-start", to: "end", tone: "active", text: "Plague Froth" }, { kind: "marker", at: "end", tone: "judgment", text: "Plague Wave" }] } },
+      { ...mechanic(frothId, "Plague Froth", [1_281_913], 0, 6_000), timelinePresentation: { parts: [{ kind: "interval", from: "cast-start", to: "end", tone: "active", text: "Plague Froth" }, { kind: "marker", at: "end", tone: "judgment", text: "Plague Wave" }] } },
       mechanic(vaporId, "Toxic Vapor", [1_284_563], 0, 0),
     ],
     collectionRules: [
       { id: uuid(), enabled: true, dataType: "casts", hostility: "enemy", abilityGameIds: [1_280_935], uses: ["timeline"], purpose: "Fangs 读条" },
       { id: uuid(), enabled: true, dataType: "damage", hostility: "enemy", abilityGameIds: [1_280_935], uses: ["timeline"], purpose: "Fangs 判定" },
-      { id: uuid(), enabled: true, dataType: "debuffs", hostility: "enemy", abilityGameIds: [1_281_913, 1_284_563], uses: ["timeline", "relationship"], purpose: "Froth 与 Vapor" },
+      { id: uuid(), enabled: true, dataType: "debuffs", eventTypes: ["aura-applied"], hostility: "enemy", abilityGameIds: [1_281_913, 1_284_563], uses: ["timeline", "relationship"], purpose: "Froth 与 Vapor" },
+      { id: uuid(), enabled: true, dataType: "debuffs", eventTypes: ["aura-removed"], hostility: "enemy", abilityGameIds: [1_281_913], uses: ["validation"], purpose: "Froth 移除只作校验" },
       { id: uuid(), enabled: true, dataType: "damage", hostility: "enemy", abilityGameIds: [1_284_561], uses: ["validation"], purpose: "只保留验证 Tick" },
     ],
     conversionRules: [
       { id: uuid(), enabled: true, match: { eventTypes: ["cast-start"], abilityGameIds: [1_280_935], sourceNpcGameIds: [259_181], sourceActorType: "npc" }, convertTo: { kind: "mechanic", definitionId: fangId, timingPoint: "cast-start" }, notes: "读条开始", verification },
       { id: uuid(), enabled: true, match: { eventTypes: ["damage"], abilityGameIds: [1_280_935], sourceNpcGameIds: [259_181], sourceActorType: "npc" }, convertTo: { kind: "mechanic", definitionId: fangId, timingPoint: "impact" }, notes: "伤害判定", verification },
       { id: uuid(), enabled: true, match: { eventTypes: ["aura-applied"], abilityGameIds: [1_281_913], sourceNpcGameIds: [259_181], sourceActorType: "npc" }, convertTo: { kind: "mechanic", definitionId: frothId, timingPoint: "cast-start" }, deduplication: { windowMs: 100, groupBy: ["ability"] }, notes: "同轮多目标聚类", verification },
-      { id: uuid(), enabled: true, match: { eventTypes: ["aura-removed"], abilityGameIds: [1_281_913], sourceNpcGameIds: [259_181], sourceActorType: "npc" }, convertTo: { kind: "mechanic", definitionId: frothId, timingPoint: "end" }, deduplication: { windowMs: 100, groupBy: ["ability"] }, notes: "Froth 结束与 Wave 判定", verification },
       { id: uuid(), enabled: true, match: { eventTypes: ["aura-applied"], abilityGameIds: [1_284_563], sourceNpcGameIds: [259_181], sourceActorType: "npc" }, convertTo: { kind: "mechanic", definitionId: vaporId, timingPoint: "cast-start", display: { kind: "stack", prefix: "×", missingValue: 1 } }, notes: "只显示层数变化", verification },
     ],
-    notes: "Vashnik 测试 profile",
+    notes: "匿名正式服转换行为 fixture",
   });
 }
 
 test("published profiles are selected by exact encounter, game version and profile version", () => {
   const profile = encounterProfile();
-  assert.deepEqual(selectPublishedEncounterProfile([profile], { encounterId: 3_134, gameVersion: "retail-12.1", profileVersion: 1 }), profile);
+  assert.deepEqual(selectPublishedEncounterProfile([profile], { encounterId: 3_455, gameVersion: "retail-12.1", profileVersion: 3 }), profile);
   assert.throws(
-    () => selectPublishedEncounterProfile([profile], { encounterId: 3_135, gameVersion: "retail-12.1", profileVersion: 1 }),
+    () => selectPublishedEncounterProfile([profile], { encounterId: 3_456, gameVersion: "retail-12.1", profileVersion: 3 }),
     (error) => error instanceof EncounterProfileNotConfiguredError && error.code === "ENCOUNTER_NOT_CONFIGURED",
   );
-  assert.throws(() => selectPublishedEncounterProfile([{ ...profile, status: "draft" }], { encounterId: 3_134, gameVersion: "retail-12.1", profileVersion: 1 }), EncounterProfileNotConfiguredError);
+  assert.throws(() => selectPublishedEncounterProfile([{ ...profile, status: "draft" }], { encounterId: 3_455, gameVersion: "retail-12.1", profileVersion: 3 }), EncounterProfileNotConfiguredError);
 });
 
 test("global player extraction profiles stay independent from encounter rules", () => {
@@ -158,31 +158,31 @@ test("formal WCL preparation checks metadata and mythic difficulty before exact 
   });
   const metadata = {
     schemaVersion: 1 as const,
-    reportCode: "baxm3wf8MDvF6V7W",
-    fightId: 32,
-    encounterId: 3134,
-    encounterName: "Vashnik the Malignant",
+    reportCode: "LgdFn8NyAGRqWT3V",
+    fightId: 64,
+    encounterId: 3455,
+    encounterName: "万毒邪祟者瓦什尼克",
     difficulty: "mythic" as const,
     gameVersion: "retail-12.1",
-    reportRevision: 3,
-    reportStartEpochMs: 1_800_000_000_000,
-    fightStartReportMs: 26_741_869,
-    fightEndReportMs: 27_176_621,
+    reportRevision: 45,
+    reportStartEpochMs: 1_787_653_286_382,
+    fightStartReportMs: 18_932_777,
+    fightEndReportMs: 19_378_225,
   };
-  const prepared = preparePublishedWclConversion(metadata, [encounter], 1, [player], 1);
+  const prepared = preparePublishedWclConversion(metadata, [encounter], 3, [player], 1);
   assert.equal(prepared.encounterProfile.id, encounter.id);
   assert.equal(prepared.playerSkillProfile.id, player.id);
   assert.throws(
-    () => preparePublishedWclConversion({ ...metadata, difficulty: "heroic" }, [encounter], 1, [player], 1),
+    () => preparePublishedWclConversion({ ...metadata, difficulty: "heroic" }, [encounter], 3, [player], 1),
     (error) => error instanceof UnsupportedDifficultyError,
   );
   assert.throws(
-    () => preparePublishedWclConversion({ ...metadata, encounterId: 3135 }, [encounter], 1, [player], 1),
+    () => preparePublishedWclConversion({ ...metadata, encounterId: 3456 }, [encounter], 3, [player], 1),
     EncounterProfileNotConfiguredError,
   );
 });
 
-test("conversion clusters Froth and Wave into one compound occurrence, preserves milliseconds and ignores validation-only events", () => {
+test("conversion derives the six-second Froth interval, preserves milliseconds and ignores validation-only events", () => {
   const profile = encounterProfile();
   const draft = convertCombatLogSnapshotToDraft(snapshot(), profile);
   assert.equal(draft.mechanicCandidates.length, 4);
@@ -193,8 +193,8 @@ test("conversion clusters Froth and Wave into one compound occurrence, preserves
   assert.deepEqual(fang.sourceEventKeys, ["fang:start", "fang:impact"]);
 
   const froth = draft.mechanicCandidates.find((item) => item.definition.name === "Plague Froth")!;
-  assert.deepEqual(froth.observed, { startMs: 13_042, impactMs: 13_042, endMs: 21_028 });
-  assert.equal(froth.sourceEventKeys.length, 4);
+  assert.deepEqual(froth.observed, { startMs: 13_042, impactMs: 13_042, endMs: 19_042 });
+  assert.equal(froth.sourceEventKeys.length, 2);
   assert.equal(froth.definition.timelinePresentation.parts.some((part) => part.kind === "marker" && part.at === "end" && part.text === "Plague Wave"), true);
   assert.equal(draft.mechanicCandidates.some((item) => item.definition.name === "Plague Wave"), false);
 
@@ -208,7 +208,7 @@ test("conversion clusters Froth and Wave into one compound occurrence, preserves
 test("writing a draft to plan snaps every observed timing point toward the previous second", () => {
   const source = snapshot();
   const draft = convertCombatLogSnapshotToDraft(source, encounterProfile());
-  const plan = createPlanFromImportDraft(source, draft, { title: "Vashnik fight 32 示例", importedAt: 1_800_000_000_000 });
+  const plan = createPlanFromImportDraft(source, draft, { title: "Vashnik 正式服 fight 64 示例", importedAt: 1_788_019_200_000 });
   const fangDefinition = plan.definitions.mechanics.find((item) => item.name === "Dripping Fangs")!;
   const fang = plan.timeline.mechanics.find((item) => item.definitionId === fangDefinition.id)!;
   assert.deepEqual(fang.anchor, { kind: "pull", offsetMs: 8_000 });

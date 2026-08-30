@@ -52,6 +52,7 @@ pnpm test       # 单元测试 + 构建 + 页面/API 集成测试
 
 ### WCL 与导出
 
+- 正式服调研与回归采用 API-first：公开排行页面只负责发现 report/fight，正式元数据、master data、phaseTransitions 和事件证据优先通过官方 WCL v2 API 获取；兼容研究源不得成为默认或生产数据源。
 - 网站当前只提供只读报告/战斗/阶段探针。`wcl:download`、`wcl:review` 与 `wcl:convert` 只用于开发者本地完整事件研究/转换模拟，原始分页、玩家姓名、清洗快照、导入草稿和本地计划产物必须留在被 Git 忽略的 `work/`。
 - 当前兼容测试源只用于没有自有 WCL 凭据时制作 PTR 研究材料，不能成为生产导入依赖；正式接入必须回到 Raidline 自有服务端凭据和可替换 WCL 边界。
 - WCL 难度只在请求边界判断；非史诗战斗必须在持久化前返回 `UNSUPPORTED_DIFFICULTY`。

@@ -1,54 +1,49 @@
-这份文件作为给ai阅读的机制说明，不是结构化文件，需要二次加工。
+# 正式服 Vashnik（encounter 3455）
 
-详细数据可以参考：https://www.wowhead.com/ptr/guide/midnight/raids/venomous-abyss-vashnik-the-malignant-boss-strategy-abilities#vashnik-the-malignant-2882-details-abilities
+本文只记录当前正式服、史诗难度的 Vashnik 证据和唯一已发布 profile v3。PTR、历史 encounter、旧 profile revision 与旧时间轴 preset 均不作为当前输入，也不在运行时注册。
 
-## 正式服中文名称核对（2026-08-30）
+## 样本
 
-主要证据是 [Warcraft Logs 正式服中文报告 LgdFn8NyAGRqWT3V fight 64](https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64&type=damage-done) 的 `report.masterData`：报告语言为 `cn`，按同一 spell ID 对照 `translate:false` 的日志原始中文与 `translate:true` 的英文。报告未包含的虹吸机制改用 Wowhead 精确 spell ID 页面补证；页面核对时选中“正式服”，并可见 PTR 12.1.0/12.0.7 版本切换。没有可靠 client build 证据，因此不填写 build。
+2026-08-30 通过官方 WCL v2 API 只读复核 9 场公开击杀，覆盖当时速度榜快、中、慢区间及既有回归样本。所有战斗均满足 `encounterID=3455`、`difficulty=5`、`kill=true`、`gameVersion=1`、`logVersion=17`；表中不含玩家或公会名称。
 
-| Spell ID | 英文原名 | 简体中文显示名 | 证据 |
-| --- | --- | --- | --- |
-| `1284563` | Toxic Vapor | 毒性蒸汽 | WCL masterData |
-| `1280934`, `1280935` | Dripping Fangs | 滴毒之牙 | WCL masterData |
-| `1281910`, `1281913`, `1281925` | Plague Froth | 瘟疫泡沫 | WCL masterData |
-| `1295798` | Plague Wave | 瘟疫浪潮 | WCL masterData |
-| `1284663`, `1284670`, `1284671` | Imbibe | 痛饮 | WCL masterData |
-| `1282516`, `1282525` | Malignant Catalyst | 恶性催化剂 | WCL masterData |
-| `1282602`, `1282616` | Catalytic Bile | 催化胆汁 | WCL masterData |
-| `1280189` | Malignant Burst | 恶性爆发 | WCL masterData |
-| `1304459` | Malignance | 恶念 | WCL masterData |
-| `1295224` | Siphoning Infection | 虹吸感染 | [Wowhead 正式服简中页](https://www.wowhead.com/cn/spell=1295224/siphoning-infection) |
-| `1295229` | Siphon Blood | 鲜血虹吸 | [Wowhead 正式服简中页](https://www.wowhead.com/cn/spell=1295229) |
+| 区间 | 公开报告 | Fight | 时长 | Report revision | 官方阶段 |
+| --- | --- | ---: | ---: | ---: | --- |
+| 快 | [YpcQJA9jCaXfq6bt](https://cn.warcraftlogs.com/reports/YpcQJA9jCaXfq6bt?fight=12) | 12 | 6:24.229 | 54 | 无 |
+| 快 | [PcGQ7mxz6BVD1Jgk](https://cn.warcraftlogs.com/reports/PcGQ7mxz6BVD1Jgk?fight=46) | 46 | 6:51.096 | 48 | 无 |
+| 快中 | [DMh3wKYNpkQ4FLda](https://cn.warcraftlogs.com/reports/DMh3wKYNpkQ4FLda?fight=37) | 37 | 6:59.248 | 52 | 无 |
+| 中 | [BtJyv29VZCAraPWN](https://cn.warcraftlogs.com/reports/BtJyv29VZCAraPWN?fight=34) | 34 | 7:02.251 | 47 | 无 |
+| 中 | [fhBFw4RybzqLC19H](https://cn.warcraftlogs.com/reports/fhBFw4RybzqLC19H?fight=32) | 32 | 7:08.025 | 86 | 无 |
+| 中慢 | [grN1chnHWBVDFJK6](https://cn.warcraftlogs.com/reports/grN1chnHWBVDFJK6?fight=56) | 56 | 7:12.943 | 49 | 无 |
+| 慢 | [g4jYdTD1qHFZyNc6](https://cn.warcraftlogs.com/reports/g4jYdTD1qHFZyNc6?fight=29) | 29 | 7:17.478 | 48 | 无 |
+| 慢 | [YyW1GgZzxatMjFhq](https://cn.warcraftlogs.com/reports/YyW1GgZzxatMjFhq?fight=58) | 58 | 7:28.991 | 47 | 无 |
+| 回归 | [LgdFn8NyAGRqWT3V](https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64) | 64 | 7:25.448 | 45 | 无 |
 
-`1282078`、`1284669`、`1286872` 未出现在该 WCL 报告的 masterData，本次也没有足以给这些 ID 单独绑定中英文名的直接页面证据。它们可以继续作为已确认机制内的辅助/验证事件，但不得仅凭所属机制猜译名。
+同一批报告另复核 102 次史诗灭团 Pull，用于确认失败路径。9 场击杀的 `phaseTransitions` 均为空，因此转换稳定生成单一 `P1@0`，不把痛饮或喷泉循环伪装为官方阶段。
 
-场地机制：场地上有三个喷泉，分别是Fountain of Blood（红），Fountain of Shadow（紫），Fountain of Flame（橙）
+## 正式服事件矩阵
 
-恶性爆发（Malignant Burst，`1280189`）- 灭团技，有 Living Venom 进入中央的 Malignant Cavity 时触发
+| Spell ID | 中英文名 | WCL 事件 | 来源 | 目标与样本结论 | Profile 用途 |
+| --- | --- | --- | --- | --- | --- |
+| `1284563` | 毒性蒸汽 / Toxic Vapor | Debuffs：`applydebuff`、`applydebuffstack` | Boss `259181` | 9/9；每场 5–6 次层数变化，首次约 24 秒，后续约 84 秒 | 时间轴显示初始层与层数变化；`1284561 damage` 仅校验 |
+| `1280935` | 滴毒之牙 / Dripping Fangs | Casts：`begincast`、`cast`；Damage：`damage` | Boss `259181` | 9/9；每场 14–16 次；读条约 2 秒，目标为坦克 | `begincast` 为开始，`cast/damage` 聚为命中 |
+| `1281913` | 瘟疫泡沫 / Plague Froth | Debuffs：`applydebuff`、`removedebuff` | Boss `259181` | 9/9；每场 9–11 波，每波 5 名玩家 | 应用聚为一波；规范结束固定为开始后 6 秒，移除只校验；`1281910/1281925/1295798` 不另建轴 |
+| `1284663` | 痛饮 / Imbibe | Casts：`begincast`、`cast` | Boss `259181` | 9/9；每场 5–6 次；4 秒读条，约 84 秒循环 | 一个读条区间；`1284670/1284671` 为火泉/影泉关系事件 |
+| `1282516`, `1282525`, `1282602` | 恶性催化剂、催化胆汁 / Malignant Catalyst, Catalytic Bile | Casts + Damage | Boss `259181` | 9/9；每场 9–10 次；开始至全团伤害约 5 秒，再约 7 秒接圈 | 单一复合 occurrence；`1282616 damage` 为漏接失败校验，不另建轴 |
+| `1294994` | 冥河感染 / Stygian Infection | Debuffs：`applydebuff` | Boss `259181` | 9/9；每场 9–11 波，正常每波 4 名玩家，原始事件可展开近 2 秒 | 2.5 秒窗口合并；`1302489` 冥河爆发仅作关系证据 |
+| `1295173` | 爆炸感染 / Exploding Infection | Debuffs：`applydebuff` | Boss `259181` | 9/9；每场 9–10 波，正常每波 4 名玩家，原始事件可展开近 2 秒 | 2.5 秒窗口合并；`1295209` 腐蚀爆炸仅作关系证据 |
+| `1304459` | 恶念 / Malignance | Casts：`begincast` | 恶念图腾 `269430` | 9/9；每场 5–6 波，每波有多个图腾密集事件 | 3 秒窗口聚为一个机制；不是 Damage 事件 |
+| `1295224`, `1295229` | 虹吸感染、鲜血虹吸 / Siphoning Infection, Siphon Blood | 预期 Debuffs / Damage | Boss `259181` | 9 场击杀与 102 次灭团均未观察；当前打法统一选择火泉+影泉 | 用户明确批准沿用既有 `1295224 applydebuff` 转换；同轮 1.5 秒合并，`1295229` 不另建轴 |
+| `1280189` | 恶性爆发 / Malignant Burst | Casts：`begincast`、`cast`；Damage：`damage` | Shrouded Venom `260895`、Burning Venom `260905` | 31 次灭团出现；击杀为 0 | 失败校验，不生成正常时间轴机制 |
 
-恶念（Malignance，`1304459`）- 由 Malignant Tumor 施放的全团毒波，并附加长时间、可叠加的持续伤害；与恶性爆发是两个不同机制
+`1282616` 在 39 次灭团和 2 场击杀出现，确认它是可能发生的催化胆汁失败伤害；`1286872` 在全部 111 个 Pull 中为 0，当前 profile 不收录。
 
-毒性蒸汽（Toxic Vapor，`1284563`）- 贯穿全场的持续伤害
+## 唯一转换规则
 
-瘟疫泡沫（Plague Froth）- 召唤带有伤害的分散圈，一段时间后射出十字形瘟疫浪潮（Plague Wave）；需要让海浪命中地上的 Malignant Tumor，以移除其 Hardened Tumor 减伤效果
+- 运行时只能在 fight 元数据确认史诗难度且 `encounterID=3455` 后，按 `retail-12.1 + profileVersion=3 + published` 精确加载本 profile；没有 fallback。
+- Profile 含 9 个机制定义、10 条采集规则和 13 条转换规则。Boss profile 不包含玩家个人减伤或治疗技能；它们只属于全局 `PlayerSkillExtractionProfile`。
+- WCL 快照和导入草稿保留毫秒；转为当前 plan v1 时沿用既有规则向前吸附到整秒。
+- 失败伤害、周期 Tick、派生爆发、死亡和辅助光环可以用于关系或复盘校验，但不会因此额外生成 Boss 时间轴 occurrence。
 
-滴毒之牙（Dripping Fangs）- 坦克技能
+## 证据边界
 
-痛饮（Imbibe）- 会同时激活两个喷泉。当前五场 WCL 样本中的顺序固定为：第一次橙色（Burning Venom）+紫色（Shrouded Venom），第二次红色（Clotting Venom）+橙色，第三次红色+紫色，第四次回到橙色+紫色，之后继续循环
-
-恶性催化剂（Malignant Catalyst）- 造成全团伤害并召唤分散圈，接圈者会受到催化胆汁（Catalytic Bile）伤害，如果没人接会灭团
-
-虹吸感染（Siphoning Infection，`1295224`）- 通常点名两名玩家，施加持续伤害、治疗吸收，并使其受到的普通治疗量降低 100%。被点玩家会周期性产生鲜血虹吸（Siphon Blood，`1295229`）圈；其他玩家需要进入圈内承受伤害，鲜血虹吸会根据命中的附近玩家治疗被点者，从而清掉治疗吸收。若没有队友进入，治疗者无法用普通治疗清掉吸收，被点者会被持续伤害击杀
-
-## WCL 首版时间轴转换决定
-
-- 当前优先把 WCL 战斗记录转换为网页机制时间轴；复盘可以后置，但失败结果、伤害证据和关系事件的审查标记继续保留。
-- 五场样本按单阶段处理。痛饮（Imbibe）不决定阶段；首版只显示 `1284663 begincast → cast` 的约 4 秒读条区间，并用 `1284669/1284670/1284671` 标注喷泉组合。更长区间的终点之后再定。
-- 恶性催化剂（Malignant Catalyst）显示为一个复合机制实例：`1282516 begincast` 为开始，`1282516 cast` / 聚类后的 `1282525 damage` 为全团伤害判定，聚类后的 `1282602 damage` 为同一实例内的催化胆汁（Catalytic Bile）接圈判定。`1282616` 只保留为漏接证据。
-- 瘟疫泡沫（Plague Froth）使用同一套“一个机制实例、多个阶段”的通用逻辑：聚类后的 `1281913 applydebuff → removedebuff` 是泡沫持续阶段，结束时点同时是同一实例内的即时瘟疫浪潮（Plague Wave）判定；不通过 Wave damage 判断是否生成。
-- 滴毒之牙（Dripping Fangs）使用 `1280935 begincast → cast/damage`；同机制的减益、层数和持续伤害不单独建轴。
-- 虹吸感染（Siphoning Infection）从 `1295224 applydebuff` 开始，同轮多目标合并；鲜血虹吸（Siphon Blood）暂不稳定追踪。
-- 毒性蒸汽（Toxic Vapor）只显示 `1284563` 初始光环和层数变化，不显示 `1284561` Tick。
-- 恶念（Malignance）独立保留但不进入首版时间轴；其事件可能与 Tumor 死亡或动态状态相关，后续再审。
-- WCL 与导入草稿保留毫秒；写入整秒 plan v1 时向更早方向吸附：`floor(atMs / 1000) * 1000`。
-- 其他敌方事件只有在跨样本时间稳定、机制语义明确且要求玩家处理时才进入时间轴；小怪死亡、随机机制、玩家失误或证据不足的事件保持待审。
+WCL 可以证明日志中实际出现的事件类型、来源、目标、次数和相对时间，但不能单独证明未写入日志的内部状态、设计意图、喷泉选择算法或某个未采用分支永远不会出现。虹吸感染/鲜血虹吸是当前唯一经用户明确批准的未观察例外；正式中文名分别由 [Wowhead spell 1295224](https://www.wowhead.com/cn/spell=1295224/siphoning-infection) 与 [Wowhead spell 1295229](https://www.wowhead.com/cn/spell=1295229) 补证。其余 profile 结论均来自上述正式服日志。

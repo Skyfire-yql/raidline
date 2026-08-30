@@ -28,7 +28,7 @@ Raidline 当前采用全新的严格 v1 格式，不读取或迁移旧 plan v5�
 
 ## 内容目录
 
-仓库内置严格 catalog v1 种子目录：[data/catalog-seed.json](data/catalog-seed.json)，运行时还会组合已经校验的 Vashnik fixture。当前内置 release 共包含 5 个牧师排轴技能、11 个机制和 2 个不含名单或执行安排的 Boss 骨架，其中 Vashnik 示例来自 fight 32 的完整事件转换结果。
+仓库内置严格 catalog v1 种子目录：[data/catalog-seed.json](data/catalog-seed.json)。当前内置 release 包含 5 个牧师排轴技能、4 个通用示例机制和 1 个不含名单或执行安排的基础骨架；正式服 WCL encounter profile 独立维护，不把研究样本伪装成目录预设。
 
 应用预设时会把所需机制定义与当前技能定义复制进计划。已发布目录继续按以下相对路径保存在服务端数据目录，并在所有文件写入后更新 current 指针：
 
@@ -54,8 +54,9 @@ ADMIN_SESSION_SECRET=<随机会话签名密钥>
 - 网站 WCL 边界只读且不做服务器持久化：导入预览会匿名化事件、丢弃玩家姓名与无关字段，只返回机制候选和严格 plan。用户显式确认后，所选机制才保存为浏览器本地计划；不会写 WCL 快照、数据库、队列或分享。
 - 探针可列出非史诗战斗并标记为不支持；一旦进入快照或导入边界，非史诗战斗以 `UNSUPPORTED_DIFFICULTY` 停止，难度不写入长期结构。
 - 战斗快照保留原始毫秒精度；GraphQL DTO、WCL 缩写和插件语法不会进入计划模型。
+- 正式服取证采用 API-first：排行网页只用于发现公开报告，fight 元数据、master data、官方阶段和事件证据优先通过 Raidline 服务端的官方 WCL v2 API 获取；页面与 Wowhead 用于语义复核，兼容源只作为显式备用研究入口。
 - 开发者可以用 `wcl:download` 在被 Git 忽略的 `work/` 中完整缓存指定战斗事件，用 `wcl:review` 生成逐事件族人工审查材料，再用 `wcl:convert` 模拟“fight 元数据 → 精确 profile → 清洗快照 → 导入草稿 → 计划”的本地纵向链路。该流程不属于网站 API；当前兼容测试源也不是生产依赖。
-- 当前真实网站回归使用正式服公开报告 `LgdFn8NyAGRqWT3V` 的 fight 64（encounter `3455`）：分页读取 150,497 条事件，匿名清洗保留 5,730 条，按中文 profile v2 生成 50 个机制候选，转换警告与未解析事件均为 0。历史 encounter `3134` fixture 只保留为既有目录示例和 profile revision 依据，不是当前真实请求依赖。
+- Vashnik 只注册当前正式服 encounter `3455` 的 profile v3。规则以 9 场公开史诗击杀和同报告 102 次灭团 Pull 的官方 WCL v2 API 匿名聚合复核；仓库不注册 PTR encounter、历史 Vashnik profile 或旧时间轴预设。
 - 导出统一使用 `ExportRequest → ExportResult`。首个导出器为 MRT 阅读版；无法可靠表达的阶段触发会产生显式降级警告，阻断错误不会静默输出。
 
 提供者无关的契约 fixture 位于 [data/fixtures](data/fixtures)，WCL GraphQL 边界 fixture 位于 [tests/fixtures](tests/fixtures)。
@@ -84,13 +85,7 @@ pnpm build
 pnpm test
 ```
 
-无自有 WCL API client 时，可以使用当前可替换兼容源完成本地 PTR 研究；缓存与审查材料不会进入 Git：
-
-```bash
-pnpm wcl:download -- --report baxm3wf8MDvF6V7W --fights 26,28,29,31,32
-pnpm wcl:review -- --report baxm3wf8MDvF6V7W --fights 26,28,29,31,32
-pnpm wcl:convert -- --input-root work/wcl
-```
+`wcl:download`、`wcl:review` 与 `wcl:convert` 仍可用于显式指定输入的本地兼容研究，所有缓存与审查材料必须留在被 Git 忽略的 `work/`；这些脚本不是生产 WCL 数据源，仓库也不再附带 PTR Vashnik profile、metadata 或时间轴 preset。
 
 测试覆盖严格读取、锚点解析与循环、自动范围、多策略组与小队、阶段任务与说明、技能充能/施法/引导、目录快照隔离、WCL 链接/OAuth/阶段边界、16+4 发布规则和发布 API。
 

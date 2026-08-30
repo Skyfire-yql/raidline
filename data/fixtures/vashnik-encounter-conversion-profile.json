@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "id": "20000000-0000-4000-8000-00000000000a",
+  "encounterId": 3455,
+  "gameVersion": "retail-12.1",
+  "profileVersion": 3,
+  "status": "published",
+  "mechanicDefinitions": [
+    {
+      "id": "20000000-0000-4000-8000-000000000101",
+      "name": "毒性蒸汽",
+      "description": "WCL 英文原名：Toxic Vapor。贯穿全场的环境伤害；时间轴只显示初始状态和层数变化。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1284563],
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "毒性蒸汽" }] },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "warning",
+      "color": "#6ca83d",
+      "dataStatus": "verified",
+      "limitations": ["不显示 1284561 周期伤害 Tick"],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": 1788019200000,
+        "sources": [{
+          "kind": "in-game",
+          "label": "WCL 正式服史诗 Vashnik 公开报告匿名聚合",
+          "url": "https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64&type=damage-done",
+          "note": "九场正式服击杀均确认 1284563 初始光环和随痛饮完成增长的层数。"
+        }]
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000102",
+      "name": "滴毒之牙",
+      "description": "WCL 英文原名：Dripping Fangs。坦克机制；读条开始后在伤害判定点命中当前目标。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1280935, 1280934],
+      "castTimeMs": 2000,
+      "durationMs": 0,
+      "timelinePresentation": {
+        "parts": [
+          { "kind": "interval", "from": "cast-start", "to": "impact", "tone": "warning", "text": "滴毒之牙" },
+          { "kind": "marker", "at": "impact", "tone": "judgment", "text": "伤害判定" }
+        ]
+      },
+      "damage": { "school": "physical", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "roles", "roles": ["tank"] },
+      "severity": "danger",
+      "color": "#cf6644",
+      "dataStatus": "verified",
+      "limitations": ["1280934 减益、层数和持续伤害仅作关系证据"],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": 1788019200000,
+        "sources": [{
+          "kind": "in-game",
+          "label": "WCL 正式服史诗 Vashnik 公开报告匿名聚合",
+          "url": "https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64&type=damage-done",
+          "note": "九场正式服击杀确认 1280935 的读条开始、施法完成和伤害判定。"
+        }]
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000103",
+      "name": "瘟疫泡沫",
+      "description": "WCL 英文原名：Plague Froth；Plague Wave 的正式中文名为“瘟疫浪潮”。五名玩家获得分散圈，六秒后进入瘟疫浪潮判定。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1281913, 1281910, 1281925, 1295798],
+      "castTimeMs": 0,
+      "durationMs": 6000,
+      "timelinePresentation": {
+        "parts": [
+          { "kind": "interval", "from": "cast-start", "to": "end", "tone": "active", "text": "瘟疫泡沫" },
+          { "kind": "marker", "at": "end", "tone": "judgment", "text": "瘟疫浪潮" }
+        ]
+      },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "warning",
+      "color": "#b979d1",
+      "dataStatus": "verified",
+      "limitations": ["同轮五个目标光环聚类为一个机制区间", "光环移除仅作校验，时间轴固定使用六秒区间", "不使用 1295798 damage 判断瘟疫浪潮是否生成", "瘟疫浪潮碰墙消失的终点不可追踪"],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": 1788019200000,
+        "sources": [{
+          "kind": "in-game",
+          "label": "WCL 正式服史诗 Vashnik 公开报告匿名聚合",
+          "url": "https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64&type=damage-done",
+          "note": "九场正式服击杀确认每波五个 1281913 应用；正常移除约在六秒后，个别提前移除不改变规范区间。"
+        }]
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000105",
+      "name": "痛饮",
+      "description": "WCL 英文原名：Imbibe。激活两个毒液喷泉；时间轴显示 1284663 的四秒读条区间。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1284663, 1284669, 1284670, 1284671],
+      "castTimeMs": 4000,
+      "durationMs": 0,
+      "timelinePresentation": { "parts": [{ "kind": "interval", "from": "cast-start", "to": "impact", "tone": "context", "text": "痛饮" }] },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "warning",
+      "color": "#d39835",
+      "dataStatus": "verified",
+      "limitations": ["当前正式服公开样本均为火泉与影泉组合；1284669 只保留为未出现的喷泉辅助关系 ID"],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": 1788019200000,
+        "sources": [{
+          "kind": "in-game",
+          "label": "WCL 正式服史诗 Vashnik 公开报告匿名聚合",
+          "url": "https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64&type=damage-done",
+          "note": "九场正式服击杀确认 1284663 四秒读条以及约八十四秒周期；1284670/1284671 分别指向火泉/影泉追踪者。"
+        }]
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000106",
+      "name": "恶性催化剂",
+      "description": "WCL 英文原名：Malignant Catalyst；Catalytic Bile 的正式中文名为“催化胆汁”。读条开始后进行全团伤害判定，随后进行催化胆汁接圈判定。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1282516, 1282525, 1282602, 1282616],
+      "castTimeMs": 5000,
+      "durationMs": 7000,
+      "timelinePresentation": {
+        "parts": [
+          { "kind": "interval", "from": "cast-start", "to": "impact", "tone": "warning", "text": "恶性催化剂" },
+          { "kind": "marker", "at": "impact", "tone": "judgment", "text": "全团伤害判定" },
+          { "kind": "interval", "from": "impact", "to": "end", "tone": "warning", "text": "催化胆汁" },
+          { "kind": "marker", "at": "end", "tone": "judgment", "text": "接圈判定" }
+        ]
+      },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "danger",
+      "color": "#d04d63",
+      "dataStatus": "verified",
+      "limitations": ["1282525 与 cast 聚类为全团伤害判定证据", "1282616 只作为漏接后的全团惩罚证据"],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": 1788019200000,
+        "sources": [{
+          "kind": "in-game",
+          "label": "WCL 正式服史诗 Vashnik 公开报告匿名聚合",
+          "url": "https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64&type=damage-done",
+          "note": "九场击杀确认五秒至全团伤害、再七秒至正常胆汁；另以一百零二次灭团确认 1282616 失败伤害。"
+        }]
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000107",
+      "name": "虹吸感染",
+      "description": "Wowhead 英文原名：Siphoning Infection；Siphon Blood 的正式中文名为“鲜血虹吸”。从减益应用开始，同轮目标合并为一个时间轴机制。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1295224, 1295229],
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "虹吸感染" }] },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "danger",
+      "color": "#8d58c7",
+      "dataStatus": "verified",
+      "limitations": ["当前正式服公开样本均采用火泉与影泉组合，未出现鲜血分支", "鲜血虹吸（1295229）不生成独立时间轴机制"],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": 1788019200000,
+        "sources": [
+          { "kind": "community", "label": "Wowhead 正式服简中 spell 1295224", "url": "https://www.wowhead.com/cn/spell=1295224/siphoning-infection", "note": "正式服页面确认虹吸感染名称；事件转换按用户明确决定沿用并核准。" },
+          { "kind": "community", "label": "Wowhead 正式服简中 spell 1295229", "url": "https://www.wowhead.com/cn/spell=1295229", "note": "正式服页面确认鲜血虹吸名称；不单独生成时间轴机制。" }
+        ]
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000108",
+      "name": "冥河感染",
+      "description": "WCL 英文原名：Stygian Infection。影泉分支感染；同轮四个目标合并为一个时间轴机制。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1294994, 1302489],
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "冥河感染" }] },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "danger",
+      "color": "#6651a3",
+      "dataStatus": "verified",
+      "limitations": ["时间轴只使用 1294994 减益应用；1302489 冥河爆发仅作关系证据", "匿名计划不保存四个被点玩家身份"],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": 1788019200000,
+        "sources": [{ "kind": "in-game", "label": "WCL 正式服史诗 Vashnik 公开报告匿名聚合", "url": "https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64&type=damage-done", "note": "九场正式服击杀均确认 1294994，每波四个目标。" }]
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000109",
+      "name": "爆炸感染",
+      "description": "WCL 英文原名：Exploding Infection。火泉分支感染；同轮四个目标合并为一个时间轴机制。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1295173, 1295209],
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "爆炸感染" }] },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "danger",
+      "color": "#e16a3b",
+      "dataStatus": "verified",
+      "limitations": ["时间轴只使用 1295173 减益应用；1295209 腐蚀爆炸仅作关系证据", "匿名计划不保存四个被点玩家身份"],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": 1788019200000,
+        "sources": [{ "kind": "in-game", "label": "WCL 正式服史诗 Vashnik 公开报告匿名聚合", "url": "https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64&type=damage-done", "note": "九场正式服击杀均确认 1295173，每波四个目标。" }]
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-00000000010a",
+      "name": "恶念",
+      "description": "WCL 英文原名：Malignance。痛饮后由恶念图腾密集施放；同轮图腾读条聚合为一个时间轴机制。",
+      "gameVersion": "retail-12.1",
+      "abilityGameIds": [1304459],
+      "castTimeMs": 0,
+      "durationMs": 0,
+      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "恶念" }] },
+      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
+      "defaultTargets": { "kind": "all" },
+      "severity": "warning",
+      "color": "#8a3fa0",
+      "dataStatus": "verified",
+      "limitations": ["原始 begincast 数量不等同真实图腾数量", "1305853/1305854 为玩家来源事件，不属于该 Boss 机制"],
+      "verification": {
+        "gameVersion": "retail-12.1",
+        "checkedAt": 1788019200000,
+        "sources": [{ "kind": "in-game", "label": "WCL 正式服史诗 Vashnik 公开报告匿名聚合", "url": "https://cn.warcraftlogs.com/reports/LgdFn8NyAGRqWT3V?fight=64&type=casts", "note": "九场正式服击杀确认 1304459 仅以恶念图腾 269430 的 begincast 集群出现。" }]
+      }
+    }
+  ],
+  "collectionRules": [
+    { "id": "20000000-0000-4000-8000-000000000201", "enabled": true, "dataType": "casts", "hostility": "enemy", "abilityGameIds": [1280935, 1282516, 1284663], "uses": ["timeline", "relationship"], "purpose": "滴毒之牙、恶性催化剂与痛饮的施法证据" },
+    { "id": "20000000-0000-4000-8000-000000000202", "enabled": true, "dataType": "debuffs", "eventTypes": ["aura-applied"], "hostility": "enemy", "abilityGameIds": [1281913], "uses": ["timeline", "relationship"], "purpose": "瘟疫泡沫开始；结束固定由六秒定义推导" },
+    { "id": "20000000-0000-4000-8000-000000000203", "enabled": true, "dataType": "damage", "hostility": "enemy", "abilityGameIds": [1280935, 1282525, 1282602], "uses": ["timeline", "relationship"], "purpose": "滴毒之牙、恶性催化剂全团伤害与催化胆汁接圈判定" },
+    { "id": "20000000-0000-4000-8000-000000000204", "enabled": true, "dataType": "debuffs", "hostility": "enemy", "abilityGameIds": [1280934, 1281910, 1284669, 1284670, 1284671], "uses": ["relationship", "validation"], "purpose": "主机制辅助光环与痛饮喷泉标签证据" },
+    { "id": "20000000-0000-4000-8000-000000000205", "enabled": true, "dataType": "damage", "hostility": "any", "abilityGameIds": [1282616, 1281925, 1295798, 1295224, 1295229, 1284561, 1295209, 1302489, 1280189], "uses": ["validation", "replay"], "purpose": "正式服已确认的失败结果、派生伤害、周期伤害与感染关系证据；不生成额外时间轴机制" },
+    { "id": "20000000-0000-4000-8000-000000000206", "enabled": true, "dataType": "deaths", "hostility": "any", "uses": ["validation", "replay"], "purpose": "保留死亡事件供复盘，不生成机制" },
+    { "id": "20000000-0000-4000-8000-000000000207", "enabled": true, "dataType": "debuffs", "eventTypes": ["aura-applied"], "hostility": "enemy", "abilityGameIds": [1284563, 1295224, 1294994, 1295173], "uses": ["timeline", "relationship"], "purpose": "毒性蒸汽层数与鲜血、影、火三种感染应用波次" },
+    { "id": "20000000-0000-4000-8000-000000000208", "enabled": true, "dataType": "debuffs", "eventTypes": ["aura-removed"], "hostility": "enemy", "abilityGameIds": [1281913], "uses": ["relationship", "validation"], "purpose": "瘟疫泡沫移除只作校验，不决定规范结束时间" },
+    { "id": "20000000-0000-4000-8000-000000000209", "enabled": true, "dataType": "casts", "hostility": "enemy", "abilityGameIds": [1282509, 1280189, 1304459], "uses": ["relationship", "validation"], "purpose": "恶性催化剂别名、恶性爆发失败读条与恶念完成事件的校验证据" },
+    { "id": "20000000-0000-4000-8000-00000000020a", "enabled": true, "dataType": "casts", "eventTypes": ["cast-start"], "hostility": "enemy", "abilityGameIds": [1304459], "uses": ["timeline", "relationship"], "purpose": "恶念只使用 begincast 集群生成时间轴波次" }
+  ],
+  "conversionRules": [
+    { "id": "20000000-0000-4000-8000-000000000301", "enabled": true, "match": { "eventTypes": ["aura-applied"], "abilityGameIds": [1284563], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000101", "timingPoint": "cast-start", "display": { "kind": "stack", "prefix": "×", "missingValue": 1 } }, "notes": "初始光环视为一层，之后只记录层数变化", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-000000000302", "enabled": true, "match": { "eventTypes": ["cast-start"], "abilityGameIds": [1280935], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000102", "timingPoint": "cast-start" }, "notes": "滴毒之牙读条开始", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-000000000303", "enabled": true, "match": { "eventTypes": ["cast-success", "damage"], "abilityGameIds": [1280935], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000102", "timingPoint": "impact" }, "deduplication": { "windowMs": 100, "groupBy": ["source"] }, "notes": "施法完成与直接伤害聚为滴毒之牙伤害判定点", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-000000000304", "enabled": true, "match": { "eventTypes": ["aura-applied"], "abilityGameIds": [1281913], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000103", "timingPoint": "cast-start" }, "deduplication": { "windowMs": 100, "groupBy": ["ability"] }, "notes": "同轮五个目标聚为一个瘟疫泡沫开始；结束固定为六秒后", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-000000000307", "enabled": true, "match": { "eventTypes": ["cast-start"], "abilityGameIds": [1284663], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000105", "timingPoint": "cast-start" }, "notes": "痛饮读条开始", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-000000000308", "enabled": true, "match": { "eventTypes": ["cast-success"], "abilityGameIds": [1284663], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000105", "timingPoint": "impact" }, "notes": "痛饮读条完成", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-000000000309", "enabled": true, "match": { "eventTypes": ["cast-start"], "abilityGameIds": [1282516], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000106", "timingPoint": "cast-start" }, "notes": "恶性催化剂读条开始", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-00000000030a", "enabled": true, "match": { "eventTypes": ["cast-success", "damage"], "abilityGameIds": [1282516, 1282525], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000106", "timingPoint": "impact" }, "deduplication": { "windowMs": 150, "groupBy": ["source"] }, "notes": "cast 与全团伤害聚为恶性催化剂的全团伤害判定", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-00000000030b", "enabled": true, "match": { "eventTypes": ["damage"], "abilityGameIds": [1282602], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000106", "timingPoint": "end" }, "deduplication": { "windowMs": 1000, "groupBy": ["ability"] }, "notes": "正常催化胆汁命中聚为接圈判定", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-00000000030c", "enabled": true, "match": { "eventTypes": ["aura-applied"], "abilityGameIds": [1295224], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000107", "timingPoint": "cast-start" }, "deduplication": { "windowMs": 1500, "groupBy": ["ability"] }, "notes": "鲜血分支同轮目标合并为一个虹吸感染开始；当前正式服公开样本未采用该分支，按用户确认沿用并核准", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-00000000030d", "enabled": true, "match": { "eventTypes": ["aura-applied"], "abilityGameIds": [1294994], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000108", "timingPoint": "cast-start" }, "deduplication": { "windowMs": 2500, "groupBy": ["ability"] }, "notes": "同轮四个目标及不超过两秒的事件展开合并为一个冥河感染开始", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-00000000030e", "enabled": true, "match": { "eventTypes": ["aura-applied"], "abilityGameIds": [1295173], "sourceNpcGameIds": [259181], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-000000000109", "timingPoint": "cast-start" }, "deduplication": { "windowMs": 2500, "groupBy": ["ability"] }, "notes": "同轮四个目标及不超过两秒的事件展开合并为一个爆炸感染开始", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } },
+    { "id": "20000000-0000-4000-8000-00000000030f", "enabled": true, "match": { "eventTypes": ["cast-start"], "abilityGameIds": [1304459], "sourceNpcGameIds": [269430], "sourceActorType": "npc" }, "convertTo": { "kind": "mechanic", "definitionId": "20000000-0000-4000-8000-00000000010a", "timingPoint": "cast-start" }, "deduplication": { "windowMs": 3000, "groupBy": ["ability"] }, "notes": "同轮多个恶念图腾的密集 begincast 合并为一个恶念开始", "verification": { "reviewedAt": 1788019200000, "sourceReportCodes": ["YpcQJA9jCaXfq6bt", "PcGQ7mxz6BVD1Jgk", "DMh3wKYNpkQ4FLda", "BtJyv29VZCAraPWN", "fhBFw4RybzqLC19H", "grN1chnHWBVDFJK6", "g4jYdTD1qHFZyNc6", "YyW1GgZzxatMjFhq", "LgdFn8NyAGRqWT3V"] } }
+  ],
+  "notes": "唯一正式服 Vashnik profile。基于九场 encounter 3455 史诗击杀和同报告一百零二次灭团 Pull 的官方 WCL v2 API 匿名聚合；不注册或回退到 PTR/历史 Vashnik profile。官方 phaseTransitions 在击杀样本中为空，计划转换统一生成 P1@0。虹吸感染是用户明确批准的例外：当前样本均采用火泉与影泉组合，未观察鲜血分支，但沿用既有事件转换并标记已核准。"
+}
