@@ -109,12 +109,15 @@ export function eventRequestsForProfiles(
   for (const dataType of Object.keys(providerDataTypes) as CollectionDataType[]) {
     const matching = rules.filter((rule) => rule.dataType === dataType);
     if (!matching.length) continue;
+    const abilityGameIds = matching.every((rule) => rule.abilityGameIds?.length)
+      ? [...new Set(matching.flatMap((rule) => rule.abilityGameIds ?? []))].sort((left, right) => left - right)
+      : undefined;
     // WCL event-table hostility is view-dependent (for example, Debuffs is target-facing),
     // while Raidline collection rules describe the source actor. Read both provider views,
     // then apply exact source hostility after actor metadata has been anonymized.
     requests.push(
-      { dataType: providerDataTypes[dataType], hostilityType: "Friendlies" },
-      { dataType: providerDataTypes[dataType], hostilityType: "Enemies" },
+      { dataType: providerDataTypes[dataType], hostilityType: "Friendlies", ...(abilityGameIds ? { abilityGameIds } : {}) },
+      { dataType: providerDataTypes[dataType], hostilityType: "Enemies", ...(abilityGameIds ? { abilityGameIds } : {}) },
     );
   }
   return requests;

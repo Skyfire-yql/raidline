@@ -78,6 +78,7 @@ const FIGHT_EVENTS_QUERY = `
     $fightIDs: [Int]!
     $dataType: EventDataType!
     $hostilityType: HostilityType
+    $filterExpression: String
     $startTime: Float!
     $endTime: Float!
   ) {
@@ -87,6 +88,7 @@ const FIGHT_EVENTS_QUERY = `
           fightIDs: $fightIDs
           dataType: $dataType
           hostilityType: $hostilityType
+          filterExpression: $filterExpression
           startTime: $startTime
           endTime: $endTime
           limit: 10000
@@ -177,6 +179,7 @@ export type WclEventHostility = "Enemies" | "Friendlies";
 export interface WclEventRequest {
   dataType: WclEventDataType;
   hostilityType?: WclEventHostility;
+  abilityGameIds?: number[];
 }
 
 export interface WclActorReference {
@@ -384,6 +387,15 @@ export function createWclClient(configuration: WclClientConfiguration): WclClien
     return report;
   }
 
+  function abilityFilterExpression(abilityGameIds: number[] | undefined) {
+    if (!abilityGameIds?.length) return null;
+    if (abilityGameIds.some((abilityGameId) => !Number.isSafeInteger(abilityGameId) || abilityGameId < 1)) {
+      throw new WclClientError("WCL_RESPONSE_INVALID", "WCL 事件 ability 过滤条件无效", 422);
+    }
+    const uniqueAbilityGameIds = [...new Set(abilityGameIds)].sort((left, right) => left - right);
+    return `ability.id IN (${uniqueAbilityGameIds.join(", ")})`;
+  }
+
   async function probeReport(link: WclReportLink) {
     const report = reportFromRoot(await graphQl(REPORT_PROBE_QUERY, { code: link.reportCode }));
     return normalizeWclReportProbe(report, link);
@@ -408,6 +420,7 @@ export function createWclClient(configuration: WclClientConfiguration): WclClien
     let fetchedEventCount = 0;
     let totalPageCount = 0;
     for (const eventRequest of requests) {
+      const filterExpression = abilityFilterExpression(eventRequest.abilityGameIds);
       let cursor = fight.startTime;
       let pageCount = 0;
       const events: unknown[] = [];
@@ -418,6 +431,7 @@ export function createWclClient(configuration: WclClientConfiguration): WclClien
           fightIDs: [fightId],
           dataType: eventRequest.dataType,
           hostilityType: eventRequest.hostilityType ?? null,
+          filterExpression,
           startTime: cursor,
           endTime: fight.endTime,
         }));

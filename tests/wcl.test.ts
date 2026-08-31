@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { createWclClient, WclClientError } from "../lib/wcl-client.ts";
+import { createWclClient, WclClientError, type WclEventRequest } from "../lib/wcl-client.ts";
 import {
   InvalidWclReportUrlError,
   normalizeWclReportProbe,
@@ -176,6 +176,8 @@ test("WCL client reads anonymous fight metadata and follows event pagination", a
       } } } });
     }
     assert.match(body.query, /RaidlineFightEvents/);
+    assert.match(body.query, /filterExpression/);
+    assert.equal(body.variables.filterExpression, "ability.id IN (1280935, 1284563)");
     if (body.variables.startTime === 18_932_777) {
       return Response.json({ data: { reportData: { report: { events: {
         data: [{ timestamp: 18_940_797, type: "begincast", sourceID: 10, targetID: -1, abilityGameID: 1280935 }],
@@ -192,7 +194,12 @@ test("WCL client reads anonymous fight metadata and follows event pagination", a
     fetchImpl,
     sleep: async () => {},
   });
-  const bundle = await client.readFightEvents("LgdFn8NyAGRqWT3V", 64, [{ dataType: "Casts", hostilityType: "Enemies" }]);
+  const filteredRequest: WclEventRequest & { abilityGameIds: number[] } = {
+    dataType: "Casts",
+    hostilityType: "Enemies",
+    abilityGameIds: [1_284_563, 1_280_935, 1_280_935],
+  };
+  const bundle = await client.readFightEvents("LgdFn8NyAGRqWT3V", 64, [filteredRequest]);
   assert.equal(bundle.fight.encounterID, 3455);
   assert.equal(bundle.masterData.actors[0].id, -1, "provider sentinel actors remain transient metadata");
   assert.equal(bundle.fetchedEventCount, 1);

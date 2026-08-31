@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { WclFightEventBundle } from "../lib/wcl-client.ts";
+import type { WclClient, WclFightEventBundle } from "../lib/wcl-client.ts";
 import {
   convertCombatLogSnapshotToDraft,
   createPlanFromImportDraft,
@@ -10,6 +10,7 @@ import {
 import type { WclFightConversionMetadata } from "../lib/wcl-contract.ts";
 import {
   eventRequestsForProfiles,
+  createWclImportPreview,
   normalizeWclFightBundle,
 } from "../lib/wcl-import-server.ts";
 import { selectWclImportMechanics } from "../lib/wcl-import.ts";
@@ -158,9 +159,31 @@ test("encounter 3455 exposes only the current live profile", () => {
   }));
 });
 
-test("event query planning reads both provider views and leaves source hostility to normalization", () => {
+test("event query planning reads both provider views and pushes complete ability allowlists to WCL", () => {
   const requests = eventRequestsForProfiles(liveVashnikProfile, playerSkillExtractionProfiles[0]);
   assert.equal(requests.length, 8);
+  const profileRules = [...liveVashnikProfile.collectionRules, ...playerSkillExtractionProfiles[0].collectionRules];
+  const collectionDataTypes = {
+    Buffs: "buffs",
+    Casts: "casts",
+    DamageDone: "damage",
+    Deaths: "deaths",
+    Debuffs: "debuffs",
+    Dispels: "dispels",
+    Healing: "healing",
+    Interrupts: "interrupts",
+  } as const;
+  for (const request of requests) {
+    const rules = profileRules.filter((rule) => rule.enabled && rule.dataType === collectionDataTypes[request.dataType]);
+    const expectedAbilityGameIds = rules.every((rule) => rule.abilityGameIds?.length)
+      ? [...new Set(rules.flatMap((rule) => rule.abilityGameIds ?? []))].sort((left, right) => left - right)
+      : undefined;
+    assert.deepEqual(
+      (request as typeof request & { abilityGameIds?: number[] }).abilityGameIds,
+      expectedAbilityGameIds,
+      `${request.dataType} should push the published profile ability allowlist into the WCL request`,
+    );
+  }
   for (const dataType of ["Casts", "DamageDone", "Deaths", "Debuffs"] as const) {
     assert.deepEqual(
       requests.filter((request) => request.dataType === dataType).map((request) => request.hostilityType).sort(),
@@ -204,4 +227,100 @@ test("anonymous live events infer profile-scoped unlisted enemy NPCs, convert an
   assert.equal(selected.definitions.mechanics.length, 1);
   assert.equal(selected.roster.members.length, 0);
   assert.equal(selected.encounter.externalIds?.wclEncounterId, 3455);
+});
+
+test("fight-end truncation keeps only observed waves without missing warnings or catalog padding", async () => {
+  const fullSnapshot = await normalizeWclFightBundle(bundle(), metadata, liveVashnikProfile, playerSkillExtractionProfiles[0]);
+  const fullDraft = convertCombatLogSnapshotToDraft(fullSnapshot, liveVashnikProfile);
+  const cutoffMs = 40_000;
+  const shortBundle = structuredClone(bundle());
+  shortBundle.fight.endTime = metadata.fightStartReportMs + cutoffMs;
+  shortBundle.series = shortBundle.series.map((series) => ({
+    ...series,
+    events: series.events.filter((event) => {
+      const timestamp = (event as { timestamp?: unknown }).timestamp;
+      return typeof timestamp === "number" && timestamp <= shortBundle.fight.endTime;
+    }),
+  }));
+  shortBundle.fetchedEventCount = shortBundle.series.reduce((total, series) => total + series.events.length, 0);
+  const shortMetadata = {
+    ...metadata,
+    fightEndReportMs: metadata.fightStartReportMs + cutoffMs,
+  };
+
+  const shortSnapshot = await normalizeWclFightBundle(
+    shortBundle,
+    shortMetadata,
+    liveVashnikProfile,
+    playerSkillExtractionProfiles[0],
+  );
+  const shortDraft = convertCombatLogSnapshotToDraft(shortSnapshot, liveVashnikProfile);
+  const shortPlan = createPlanFromImportDraft(shortSnapshot, shortDraft);
+
+  assert.ok(shortDraft.mechanicCandidates.length < fullDraft.mechanicCandidates.length);
+  assert.equal(shortDraft.warnings.length, 0);
+  assert.equal(shortDraft.unresolvedEvents.length, 0);
+  assert.equal(shortPlan.timeline.mechanics.length, shortDraft.mechanicCandidates.length);
+  assert.ok(shortDraft.mechanicCandidates.every((candidate) => candidate.observed.startMs <= cutoffMs));
+  assert.ok(shortDraft.mechanicCandidates.every((candidate) => (
+    fullDraft.mechanicCandidates.some((fullCandidate) => fullCandidate.definition.id === candidate.definition.id)
+  )));
+});
+
+test("WCL import preview exposes only an anonymous strict plan boundary", async () => {
+  const fakeClient: WclClient = {
+    async probeReport(link) {
+      assert.equal(link.reportCode, metadata.reportCode);
+      assert.equal(link.fight, metadata.fightId);
+      return {
+        report: {
+          code: metadata.reportCode,
+          title: "Anonymous test report",
+          revision: metadata.reportRevision,
+          startEpochMs: metadata.reportStartEpochMs,
+          endEpochMs: metadata.reportStartEpochMs + metadata.fightEndReportMs,
+          zone: { id: 53, name: "Midnight" },
+        },
+        requestedFight: metadata.fightId,
+        selectedFightId: metadata.fightId,
+        fights: [{
+          id: metadata.fightId,
+          encounterId: metadata.encounterId,
+          encounterName: metadata.encounterName,
+          difficulty: "mythic",
+          supported: true,
+          kill: true,
+          startReportMs: metadata.fightStartReportMs,
+          endReportMs: metadata.fightEndReportMs,
+          durationMs: metadata.fightEndReportMs - metadata.fightStartReportMs,
+          bossPercentage: 0,
+          fightPercentage: 0,
+          hasOfficialPhases: false,
+          phases: [{ semanticPhaseId: 1, occurrenceIndex: 1, atMs: 0 }],
+        }],
+      };
+    },
+    async readFightEvents(reportCode, fightId, requests) {
+      assert.equal(reportCode, metadata.reportCode);
+      assert.equal(fightId, metadata.fightId);
+      assert.ok(requests.every((request) => request.dataType === "Deaths" || Boolean(request.abilityGameIds?.length)));
+      return bundle();
+    },
+  };
+
+  const preview = await createWclImportPreview(fakeClient, {
+    reportCode: metadata.reportCode,
+    fight: metadata.fightId,
+  }, metadata.fightId);
+  const serialized = JSON.stringify(preview);
+
+  assert.equal(preview.encounterId, 3455);
+  assert.equal(preview.difficulty, "mythic");
+  assert.equal(preview.encounterProfile.profileVersion, 3);
+  assert.equal(preview.warningCount, 0);
+  assert.equal(preview.unresolvedEventCount, 0);
+  assert.equal(preview.plan.roster.members.length, 0);
+  assert.doesNotMatch(serialized, /"(?:actors|events|headers)":/i);
+  assert.doesNotMatch(serialized, /玩家\s*\d+/);
+  assert.doesNotMatch(serialized, /access[_-]?token|client[_-]?secret|authorization|bearer\s/i);
 });
