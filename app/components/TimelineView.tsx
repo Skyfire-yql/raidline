@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { formatTime, MAX_TIMELINE_MS } from "@/lib/core";
-import { specializationLabel, WOW_CLASS_LABELS } from "@/lib/cooldowns";
+import { RAID_ROLE_BACKGROUNDS, specializationLabel, WOW_CLASS_LABELS } from "@/lib/cooldowns";
 import type { TimelineScene, TimelineSceneMechanic, TimelineSceneMechanicPart } from "@/lib/domain/view-model";
 import { adaptiveTickMs, clampZoom, layoutMechanicLanes, mechanicPresentationPartKey, timeAxisPosition, timelineTimeFromDrag, type MechanicLane, type MechanicLaneMode, type MechanicPartMeasurement, type TimelineOrientation } from "@/lib/view";
 
@@ -298,6 +298,11 @@ export function TimelineView({
       onPointerCancel={(event) => finishDrag(event, true)}
     >
       <div className="axis-corner">{orientation === "horizontal" ? "对象 / 时间" : "时间 / 对象"}</div>
+      {scene.members.map((member, index) => member.role && <span key={`background-${member.id}`} className="axis-role-background" data-role={member.role} style={{
+        background: RAID_ROLE_BACKGROUNDS[member.role],
+        ...(orientation === "horizontal" ? { top: HEADER + memberLaneStart + index * standardCrossSize, left: LABEL, right: 0, height: standardCrossSize } : { left: LABEL + memberLaneStart + index * standardCrossSize, top: HEADER, bottom: 0, width: standardCrossSize }),
+      }} />)}
+      {scene.directives.filter(note => note.backgroundWindow && note.durationMs > 0).map(note => <span key={`buff-${note.id}`} className="axis-team-buff-background" aria-label={`${note.text} ${formatTime(note.atMs)}—${formatTime(note.atMs + note.durationMs)}`} style={orientation === "horizontal" ? { left: LABEL + timeAxisPosition(displayedTime("directive", note.id, note.atMs), pixelsPerSecond), top: HEADER, bottom: 0, width: timeAxisPosition(note.durationMs, pixelsPerSecond) } : { top: HEADER + timeAxisPosition(displayedTime("directive", note.id, note.atMs), pixelsPerSecond), left: LABEL, right: 0, height: timeAxisPosition(note.durationMs, pixelsPerSecond) }} />)}
       {laneBoundaryCrossPositions.map((crossPosition, index) => <span className="axis-lane-boundary" key={`${crossPosition}-${index}`} style={orientation === "horizontal" ? { top: HEADER + crossPosition } : { left: LABEL + crossPosition }} />)}
       {ticks.map((atMs) => {
         const axis = timeAxisPosition(atMs, pixelsPerSecond);
@@ -319,7 +324,7 @@ export function TimelineView({
         <div className="axis-lane-label mechanic-label" data-mechanic-lane-index={index} key={lane.key} style={laneLabelStyle(mechanicLaneCrossStarts[index], lane.crossSizePx)}><span><b>{lane.label}</b></span>{!readOnly && index === 0 && <button className="axis-lane-add" onClick={() => onAddMechanic?.(visibleCenterTime())} aria-label="添加机制">＋</button>}</div>
       ))}
       {scene.members.map((member, index) => (
-        <div className={`axis-lane-label member-lane-label ${readOnly ? "readonly" : ""}`} key={member.id} style={laneLabelStyle(memberLaneStart + index * standardCrossSize)}>
+        <div className={`axis-lane-label member-lane-label ${readOnly ? "readonly" : ""}`} key={member.id} style={{ ...laneLabelStyle(memberLaneStart + index * standardCrossSize), ...(member.role ? { background: RAID_ROLE_BACKGROUNDS[member.role] } : {}) }}>
           {readOnly ? <button className="axis-member-main" onClick={() => onSelectMember?.(member.id)}><i style={{ background: member.color }} /><span><b>{member.name}</b><small>{member.classSlug ? WOW_CLASS_LABELS[member.classSlug] ?? member.classSlug : "待选择职业"} · {specializationLabel(member.classSlug ?? "", member.specSlug ?? "")}</small></span></button> : <>
             <button className="axis-member-main" onClick={() => onSelectMember?.(member.id)} title={`编辑成员：${member.name}`}><i style={{ background: member.color }} /><span><b>{member.name}</b><small>{member.classSlug ? WOW_CLASS_LABELS[member.classSlug] ?? member.classSlug : "待选择职业"} · {specializationLabel(member.classSlug ?? "", member.specSlug ?? "")}</small></span></button>
             <button className="axis-member-skill" onClick={() => onOpenMemberSkills?.(member.id, visibleCenterTime())} title={`为 ${member.name} 安排技能`} aria-label={`为 ${member.name} 安排技能`}>＋</button>

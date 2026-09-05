@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { assertMythicFight } from "./wcl-contract";
 import {
   normalizeWclReportProbe,
+  wclDifficulty,
   WclClientError,
   type WclReportLink,
   type WclReportProbeResult,
@@ -84,6 +86,7 @@ const FIGHT_EVENTS_QUERY = `
   ) {
     reportData {
       report(code: $code, allowUnlisted: false) {
+        revision
         events(
           fightIDs: $fightIDs
           dataType: $dataType
@@ -95,6 +98,7 @@ const FIGHT_EVENTS_QUERY = `
           translate: false
           useAbilityIDs: true
           useActorIDs: true
+          includeResources: false
         ) {
           data
           nextPageTimestamp
@@ -173,13 +177,14 @@ const EventPaginatorSchema = z.object({
 const MAX_EVENT_PAGES_PER_QUERY = 100;
 const MAX_FETCHED_EVENTS = 1_000_000;
 
-export type WclEventDataType = "Buffs" | "Casts" | "DamageDone" | "Deaths" | "Debuffs" | "Dispels" | "Healing" | "Interrupts";
+export type WclEventDataType = "Buffs" | "Casts" | "CombatantInfo" | "DamageDone" | "Deaths" | "Debuffs" | "Dispels" | "Healing" | "Interrupts" | "All";
 export type WclEventHostility = "Enemies" | "Friendlies";
 
 export interface WclEventRequest {
   dataType: WclEventDataType;
   hostilityType?: WclEventHostility;
   abilityGameIds?: number[];
+  lifecycleOnly?: true;
 }
 
 export interface WclActorReference {
@@ -246,7 +251,7 @@ export interface WclClientConfiguration {
 
 export interface WclClient {
   probeReport(link: WclReportLink): Promise<WclReportProbeResult>;
-  readFightEvents(reportCode: string, fightId: number, requests: WclEventRequest[]): Promise<WclFightEventBundle>;
+  readFightEvents(reportCode: string, fightId: number, requests: WclEventRequest[], expected?: { encounterId: number; reportRevision: number; gameVersion: number; startTime: number; endTime: number }): Promise<WclFightEventBundle>;
 }
 
 function encodedBasicCredentials(clientId: string, clientSecret: string) {
@@ -401,7 +406,7 @@ export function createWclClient(configuration: WclClientConfiguration): WclClien
     return normalizeWclReportProbe(report, link);
   }
 
-  async function readFightEvents(reportCode: string, fightId: number, requests: WclEventRequest[]) {
+  async function readFightEvents(reportCode: string, fightId: number, requests: WclEventRequest[], expected?: { encounterId: number; reportRevision: number; gameVersion: number; startTime: number; endTime: number }) {
     if (!Number.isSafeInteger(fightId) || fightId < 1 || requests.length < 1) {
       throw new WclClientError("WCL_RESPONSE_INVALID", "WCL 事件请求无效", 422);
     }
@@ -415,12 +420,17 @@ export function createWclClient(configuration: WclClientConfiguration): WclClien
     if (!fight || fight.id !== fightId) throw new WclClientError("WCL_FIGHT_NOT_FOUND", "WCL 链接指定的战斗不存在", 404);
     if (!metadata.data.masterData) throw new WclClientError("WCL_RESPONSE_INVALID", "WCL 报告缺少 master data");
     if (fight.endTime < fight.startTime) throw new WclClientError("WCL_RESPONSE_INVALID", "WCL 返回了无效的战斗时间");
+    assertMythicFight({ reportCode, fightId, difficulty: wclDifficulty(fight.difficulty) });
+    if (expected && (fight.encounterID !== expected.encounterId || metadata.data.revision !== expected.reportRevision || metadata.data.masterData.gameVersion !== expected.gameVersion || fight.startTime !== expected.startTime || fight.endTime !== expected.endTime)) {
+      throw new WclClientError("WCL_REPORT_CHANGED", "WCL 战斗元数据已变化，请重新读取报告", 409, true);
+    }
 
     const series: WclFightEventBundle["series"] = [];
     let fetchedEventCount = 0;
     let totalPageCount = 0;
     for (const eventRequest of requests) {
-      const filterExpression = abilityFilterExpression(eventRequest.abilityGameIds);
+      if (eventRequest.dataType === "All" && !eventRequest.lifecycleOnly) throw new WclClientError("WCL_RESPONSE_INVALID", "禁止无范围读取全部 WCL 事件", 422);
+      const filterExpression = eventRequest.lifecycleOnly ? 'type IN ("death", "resurrect")' : abilityFilterExpression(eventRequest.abilityGameIds);
       let cursor = fight.startTime;
       let pageCount = 0;
       const events: unknown[] = [];
@@ -435,8 +445,9 @@ export function createWclClient(configuration: WclClientConfiguration): WclClien
           startTime: cursor,
           endTime: fight.endTime,
         }));
-        const pageRoot = z.strictObject({ events: z.unknown().nullable() }).safeParse(pageReport);
+        const pageRoot = z.strictObject({ revision: z.number().int().nonnegative(), events: z.unknown().nullable() }).safeParse(pageReport);
         if (!pageRoot.success || !pageRoot.data.events) throw new WclClientError("WCL_RESPONSE_INVALID", "WCL 返回了无法识别的事件页");
+        if (pageRoot.data.revision !== metadata.data.revision) throw new WclClientError("WCL_REPORT_CHANGED", "WCL 报告在分页期间发生变化，请重新读取报告", 409, true);
         const page = EventPaginatorSchema.safeParse(pageRoot.data.events);
         if (!page.success) throw new WclClientError("WCL_RESPONSE_INVALID", "WCL 返回了无法识别的事件页");
         const pageEvents = page.data.data ?? [];

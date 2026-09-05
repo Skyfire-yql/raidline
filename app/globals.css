@@ -215,6 +215,10 @@ small { color: var(--text-2); }
 .axis-statusbar .warn { color: var(--warning); }
 .axis-statusbar .ok { color: var(--success); }
 .axis-canvas { position: relative; overflow: hidden; background-color: var(--surface-2); user-select: none; }
+.axis-role-background { position: absolute; z-index: 0; pointer-events: none; }
+.axis-team-buff-background { position: absolute; z-index: 1; pointer-events: none; background: rgba(239, 167, 32, .18); border-inline: 1px solid rgba(183, 107, 10, .35); }
+.member-lane-label { color: #24313d; }
+.member-lane-label small { color: #465463; }
 .axis-lane-boundary { position: absolute; z-index: 1; display: block; pointer-events: none; border-color: var(--line); }
 .axis-horizontal .axis-lane-boundary { right: 0; left: 0; border-top: 1px solid var(--line); }
 .axis-vertical .axis-lane-boundary { top: 0; bottom: 0; border-left: 1px solid var(--line); }
@@ -403,6 +407,17 @@ button.mechanic-interval.tone-active:hover:not(:disabled), button.mechanic-marke
 .admin-timeline-row > span { color: var(--text-2); font-size: 10px; font-weight: 700; }
 .admin-timeline-row > code { overflow: hidden; color: var(--text-3); text-overflow: ellipsis; white-space: nowrap; }
 .admin-timeline-preview > div button { min-width: 30px; padding: 0; color: var(--danger); }
+
+.wcl-player-preview { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+.wcl-player-preview > p, .wcl-player-preview details p { color: var(--text-2); font-size: 11px; line-height: 1.7; }
+.wcl-player-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.wcl-player-filters label { display: grid; flex: 1; min-width: 110px; gap: 4px; }
+.wcl-roster-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px; margin-block: 8px; }
+.wcl-roster-list > label { display: flex; align-items: center; gap: 7px; padding: 8px; border-left: 5px solid; color: #24313d; }
+.wcl-roster-list small { display: block; color: #465463; font-size: 10px; margin-top: 3px; }
+.wcl-skill-list { max-height: 380px; }
+.wcl-player-preview details { margin-top: 10px; }
+.wcl-player-preview summary { cursor: pointer; color: var(--text-2); }
 
 /* 提示 */
 .toast { position: fixed; z-index: 120; right: 18px; bottom: 18px; display: flex; max-width: min(420px, calc(100vw - 36px)); align-items: center; gap: 12px; padding: 9px 10px 9px 13px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface); box-shadow: var(--shadow); }

@@ -57,6 +57,7 @@ const CombatLogPlanSourceSchema = z.strictObject({
   fightId: z.number().int().positive(),
   importedAt: Timestamp,
   normalizedDataHash: z.string().min(1).max(128),
+  conversionProfiles: z.array(z.strictObject({ kind: z.enum(["encounter", "player-skill"]), id: Id, profileVersion: z.number().int().positive() })).max(2).optional(),
 });
 
 export const PlanSourceRecordSchema = z.discriminatedUnion("kind", [CatalogPlanSourceSchema, CombatLogPlanSourceSchema]);
@@ -239,6 +240,7 @@ export const SkillVariantOverridesSchema = z.strictObject({
 
 export const SkillVariantSchema = z.strictObject({
   id: Id,
+  spellId: z.number().int().positive().optional(),
   name: ShortText,
   talentSpellId: z.number().int().positive().optional(),
   description: LongText,
@@ -299,6 +301,7 @@ export const TacticalNoteSchema = z.strictObject({
   text: LongText,
   scope: z.union([TimedDirectiveScopeSchema, PhaseDirectiveScopeSchema, PlanDirectiveScopeSchema]),
   durationMs: Duration,
+  timelinePresentation: z.literal("team-buff-window").optional(),
   origin: ObjectOriginSchema.optional(),
 });
 
@@ -311,6 +314,8 @@ export const SkillAssignmentSchema = z.strictObject({
   anchor: TimelineAnchorSchema,
   targets: SkillTargetSelectorSchema,
   note: LongText,
+  variantId: Id.optional(),
+  timing: z.strictObject({ castTimeMs: WholeSecond, durationMs: WholeSecond }).optional(),
   origin: ObjectOriginSchema.optional(),
 });
 
@@ -389,7 +394,7 @@ export const ObservedPhaseSchema = z.strictObject({
 export const ObservedEventSchema = z.strictObject({
   eventKey: z.string().min(1).max(200),
   atMs: Timestamp,
-  type: z.enum(["cast-start", "cast-success", "aura-applied", "aura-removed", "damage", "healing", "interrupt", "dispel", "death"]),
+  type: z.enum(["cast-start", "cast-success", "aura-applied", "aura-removed", "damage", "healing", "absorb", "interrupt", "dispel", "death", "resurrection"]),
   abilityGameId: z.number().int().positive().optional(),
   sourceActorKey: z.string().min(1).max(100).optional(),
   targetActorKey: z.string().min(1).max(100).optional(),
@@ -433,7 +438,7 @@ export const CombatLogSnapshotSchema = z.strictObject({
 export const EventCollectionRuleSchema = z.strictObject({
   id: Id,
   enabled: z.boolean(),
-  dataType: z.enum(["casts", "buffs", "debuffs", "deaths", "damage", "healing", "interrupts", "dispels"]),
+  dataType: z.enum(["casts", "buffs", "debuffs", "deaths", "damage", "healing", "interrupts", "dispels", "combatant-info"]),
   eventTypes: z.array(ObservedEventSchema.shape.type).min(1).max(20).optional(),
   hostility: z.enum(["friendly", "enemy", "any"]),
   abilityGameIds: z.array(z.number().int().positive()).max(500).optional(),
@@ -501,11 +506,24 @@ export const PlayerSkillExtractionRuleSchema = z.strictObject({
   id: Id,
   enabled: z.boolean(),
   definitionId: Id,
+  variantId: Id.optional(),
   match: EventRuleMatchSchema.extend({ sourceActorType: z.enum(["player", "pet"]) }).strict(),
   timingPoint: z.enum(["cast-start", "impact", "end"]),
   deduplication: EventDeduplicationSchema.optional(),
+  confirmation: z.union([z.strictObject({ kind: z.literal("cast-success") }), z.strictObject({
+    eventTypes: z.array(z.enum(["aura-applied", "healing", "absorb", "dispel"])).min(1).max(4),
+    abilityGameIds: z.array(z.number().int().positive()).min(1).max(50),
+    windowMs: Timestamp.max(30000),
+    target: z.enum(["self", "friendly", "cast-target"]),
+    minimumTargets: z.number().int().min(1).max(100),
+  })]),
   notes: LongText,
-  verification: RuleVerificationSchema,
+  verification: z.strictObject({
+    reviewedAt: Timestamp,
+    sourceReportCodes: z.array(z.string().min(1).max(32)).max(100),
+    status: z.enum(["pending", "fixture-verified", "live-verified"]),
+    evidence: z.array(z.string().min(1).max(500)).min(1).max(30),
+  }),
 });
 
 export const PlayerSkillExtractionProfileSchema = z.strictObject({
@@ -516,6 +534,13 @@ export const PlayerSkillExtractionProfileSchema = z.strictObject({
   status: z.enum(["draft", "published", "retired"]),
   collectionRules: z.array(EventCollectionRuleSchema).max(1000),
   extractionRules: z.array(PlayerSkillExtractionRuleSchema).max(1000),
+  backgroundWindowRules: z.array(z.strictObject({
+    id: Id, enabled: z.boolean(), kind: z.literal("bloodlust"),
+    abilityGameIds: z.array(z.number().int().positive()).min(1).max(20),
+    maximumDurationMs: z.number().int().min(1000).max(60000),
+    minimumTargets: z.number().int().min(2).max(40),
+    verification: PlayerSkillExtractionRuleSchema.shape.verification,
+  })).max(10).optional(),
   notes: LongText,
 });
 
@@ -531,6 +556,8 @@ export const PlanImportDraftSchema = z.strictObject({
   snapshotId: Id,
   conversionProfileId: Id,
   conversionProfileVersion: z.number().int().positive(),
+  playerSkillProfile: z.strictObject({ id: Id, profileVersion: z.number().int().positive() }).optional(),
+  noteCandidates: z.array(ImportCandidateBaseSchema.extend({ note: TacticalNoteSchema }).strict()).max(100).optional(),
   rosterCandidates: z.array(ImportCandidateBaseSchema.extend({ actorKey: z.string().min(1).max(100), slot: RosterSlotSchema }).strict()).max(100),
   phaseCandidates: z.array(ImportCandidateBaseSchema.extend({ phase: RaidPhaseSchema }).strict()).max(100),
   mechanicCandidates: z.array(ImportCandidateBaseSchema.extend({
@@ -544,7 +571,9 @@ export const PlanImportDraftSchema = z.strictObject({
     targets: MemberSelectorSchema.optional(),
     runtimeTrigger: RuntimeTriggerSchema.optional(),
   }).strict()).max(1000),
-  skillAssignmentCandidates: z.array(ImportCandidateBaseSchema.extend({ definition: PlayerSkillDefinitionSnapshotSchema, assignment: SkillAssignmentSchema }).strict()).max(5000),
+  skillAssignmentCandidates: z.array(ImportCandidateBaseSchema.extend({ definition: PlayerSkillDefinitionSnapshotSchema, assignment: SkillAssignmentSchema,
+    observed: z.strictObject({ startMs: Timestamp, impactMs: Timestamp, endMs: Timestamp }).optional(),
+  }).strict()).max(5000),
   unresolvedEvents: z.array(z.strictObject({ eventKey: z.string().min(1).max(200), reason: LongText })).max(10_000),
   warnings: z.array(z.strictObject({ code: z.string().min(1).max(80), message: LongText, objectId: Id.optional() })).max(10_000),
 });
@@ -678,7 +707,7 @@ export function parseConversionProfile(value: unknown): EncounterConversionProfi
 
 export function parsePlayerSkillExtractionProfile(value: unknown): PlayerSkillExtractionProfile {
   const profile = PlayerSkillExtractionProfileSchema.parse(value);
-  const ids = [...profile.collectionRules.map((item) => item.id), ...profile.extractionRules.map((item) => item.id)];
+  const ids = [...profile.collectionRules.map((item) => item.id), ...profile.extractionRules.map((item) => item.id), ...(profile.backgroundWindowRules ?? []).map(item => item.id)];
   if (new Set(ids).size !== ids.length) throw new Error("玩家技能提取规则包含重复的实体 ID");
   return profile;
 }

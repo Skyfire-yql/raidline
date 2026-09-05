@@ -11,7 +11,7 @@
     "build": "vinext build",
     "start": "node scripts/vinext-start.mjs",
     "test": "pnpm run test:unit && pnpm run build && node --test tests/rendered-html.test.mjs",
-    "test:unit": "tsx --test tests/core.test.ts tests/wcl.test.ts tests/wcl-event-review.test.ts tests/wcl-conversion.test.ts tests/wcl-import.test.ts",
+    "test:unit": "tsx --test tests/core.test.ts tests/wcl.test.ts tests/wcl-event-review.test.ts tests/wcl-conversion.test.ts tests/wcl-import.test.ts tests/player-skill-import.test.ts",
     "lint": "eslint app lib scripts tests \"*.ts\" \"*.mjs\" --ignore-pattern dist --ignore-pattern .next",
     "wcl:download": "tsx scripts/wcl-download.ts",
     "wcl:review": "tsx scripts/wcl-review.ts",

@@ -1,0 +1,3681 @@
+{
+  "schemaVersion": 1,
+  "id": "30000000-0000-4000-8000-000000000010",
+  "gameVersion": "retail-12.1",
+  "profileVersion": 2,
+  "status": "published",
+  "collectionRules": [
+    {
+      "id": "90000000-0000-4000-8000-000000000001",
+      "enabled": true,
+      "dataType": "casts",
+      "hostility": "friendly",
+      "abilityGameIds": [
+        498,
+        642,
+        740,
+        871,
+        5277,
+        15286,
+        19236,
+        22812,
+        29166,
+        31224,
+        31821,
+        31850,
+        31884,
+        32375,
+        33891,
+        45438,
+        47585,
+        48707,
+        48743,
+        48792,
+        49028,
+        51052,
+        55233,
+        61336,
+        62618,
+        64843,
+        86659,
+        97462,
+        98008,
+        102558,
+        104773,
+        106898,
+        108271,
+        108280,
+        108416,
+        109304,
+        114052,
+        115203,
+        115310,
+        118038,
+        122470,
+        184364,
+        186265,
+        187827,
+        192077,
+        196718,
+        198589,
+        200183,
+        204021,
+        216331,
+        264735,
+        322507,
+        359816,
+        363534,
+        363916,
+        374227,
+        374968,
+        388615,
+        389539,
+        403876,
+        406732,
+        414658
+      ],
+      "uses": [
+        "timeline",
+        "validation"
+      ],
+      "purpose": "仅采集已核准玩家技能的主动施放或生效佐证。"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000002",
+      "enabled": true,
+      "dataType": "buffs",
+      "hostility": "friendly",
+      "abilityGameIds": [
+        498,
+        642,
+        871,
+        5277,
+        15286,
+        19236,
+        22812,
+        29166,
+        31224,
+        31821,
+        31850,
+        31884,
+        33891,
+        45438,
+        47585,
+        48707,
+        48792,
+        55233,
+        61336,
+        77764,
+        81256,
+        81782,
+        86659,
+        97463,
+        102558,
+        104773,
+        106898,
+        108271,
+        108416,
+        114052,
+        115203,
+        118038,
+        120954,
+        122470,
+        145629,
+        184364,
+        186265,
+        187827,
+        192082,
+        198589,
+        200183,
+        204021,
+        209426,
+        212800,
+        216331,
+        264735,
+        322507,
+        325174,
+        363916,
+        374227,
+        375226,
+        375229,
+        375230,
+        375234,
+        375238,
+        375240,
+        375252,
+        375253,
+        375254,
+        375255,
+        375256,
+        375257,
+        375258,
+        388917,
+        389539,
+        403876,
+        406732,
+        406789,
+        414658
+      ],
+      "uses": [
+        "validation"
+      ],
+      "purpose": "仅采集已核准玩家技能的主动施放或生效佐证。"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000003",
+      "enabled": true,
+      "dataType": "debuffs",
+      "hostility": "friendly",
+      "abilityGameIds": [
+        204021
+      ],
+      "uses": [
+        "validation"
+      ],
+      "purpose": "仅采集已核准玩家技能的主动施放或生效佐证。"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000004",
+      "enabled": true,
+      "dataType": "healing",
+      "hostility": "friendly",
+      "abilityGameIds": [
+        740,
+        48743,
+        64844,
+        109304,
+        114942,
+        115310,
+        157982,
+        209426,
+        359816,
+        359817,
+        363534,
+        366155,
+        388615
+      ],
+      "uses": [
+        "validation"
+      ],
+      "purpose": "仅采集已核准玩家技能的主动施放或生效佐证。"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000005",
+      "enabled": true,
+      "dataType": "dispels",
+      "hostility": "friendly",
+      "abilityGameIds": [
+        32375
+      ],
+      "uses": [
+        "validation"
+      ],
+      "purpose": "仅采集已核准玩家技能的主动施放或生效佐证。"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000006",
+      "enabled": true,
+      "dataType": "deaths",
+      "hostility": "friendly",
+      "uses": [
+        "validation"
+      ],
+      "purpose": "死亡与复活仅作为技能成功执行的核验，不生成技能安排。"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000007",
+      "enabled": true,
+      "dataType": "combatant-info",
+      "hostility": "friendly",
+      "uses": [
+        "validation"
+      ],
+      "purpose": "只读取匿名 sourceID / specID，立即丢弃装备、属性及其他信息。"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000008",
+      "enabled": true,
+      "dataType": "buffs",
+      "hostility": "any",
+      "abilityGameIds": [
+        2825,
+        32182,
+        80353,
+        264667,
+        390386
+      ],
+      "eventTypes": [
+        "aura-applied",
+        "aura-removed"
+      ],
+      "uses": [
+        "validation"
+      ],
+      "purpose": "只核验友方实际嗜血类增益背景；不推断施法者、不生成成员技能或 Boss 机制。"
+    }
+  ],
+  "extractionRules": [
+    {
+      "id": "80000000-0000-4000-8000-000000000001",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000001",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          51052
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "kind": "cast-success"
+      },
+      "notes": "用户确认：反魔法领域按成功施法导入，不要求区域光环的施法者归属；持续时长使用所选技能定义，目标为全团安排，不推断实际站位或受益人。",
+      "verification": {
+        "reviewedAt": 1788588417000,
+        "sourceReportCodes": [
+          "fhBFw4RybzqLC19H"
+        ],
+        "status": "live-verified",
+        "evidence": [
+          "2026-09-05 用户明确：反魔法领域正常导入，以施法为准。",
+          "fhBFw4RybzqLC19H fight 32 实测导入 4 次 51052 成功施法：53150、185608、275306、357247 ms；145629 环境光环不作为导入前置条件。",
+          "docs/player-skill-extraction-v1.md"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000002",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000002",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          48707
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          48707
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 002：保留短冷却例外。是明确的前置魔法防护；有护罩应用即可证明生效，不要求随后一定受到伤害。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 002 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000003",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000003",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          48792
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          48792
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 003：保留。基础全减伤 30%；血腥之韧 434136 的额外减伤取决于已损失生命，不能默认人人获得满额。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 003 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000006",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000006",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          55233
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          55233
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 006：保留。动态减冷却可能使实际间隔低于一分钟，不能用 90 秒机械否定真实施放。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 006 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000008",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000008",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          48743
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          48743
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 008：保留。属于长冷却大额应急自疗，不当作前置减伤。修正原稿只列鲜血的限制；生命恢复与后续治疗吸收必须同时说明。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 008 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000010",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000010",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          49028
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          81256
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 010：保留。12.1 官方说明明确将招架提高到 30%，不要倒用 12.0 的 20%。镜像攻击及额外符文武器不生成第二次安排。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 010 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000012",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000012",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          196718
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied",
+          "absorb"
+        ],
+        "abilityGameIds": [
+          209426
+        ],
+        "windowMs": 10000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 012：保留。团队环境基础为 15% 概率避开伤害，不是固定 15% 减伤；非团队加成不用于史诗团本。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [
+          "fhBFw4RybzqLC19H"
+        ],
+        "status": "live-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 012 / 12.1",
+          "2026-09-05：官方 WCL v2 API，encounter 3455，fight 32，revision 287；仅保留匿名聚合与合成测试。"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000013",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000013",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          198589
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          212800,
+          198589
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 013：保留。按专精区分同 ID 效果；不能把 PvP 调整套用到团本。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 013 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000016",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000016",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          204021
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          204021
+        ],
+        "windowMs": 2000,
+        "target": "cast-target",
+        "minimumTargets": 1
+      },
+      "notes": "审批 016：保留短冷却例外。重要纠正：现在是自身通用防御窗口，不能再写成仅被标记敌人对自己的伤害降低。以自身防御生效核验；敌方伤害不入轴。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 016 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000017",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000017",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          187827
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          187827
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 017：保留复仇手动施放。被动变身、最后一搏及其他技能附带短变身不能伪装成一次手动大变身；免费主动施放则不能被固定 CD 误删。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 017 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000020",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000020",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          22812
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          22812
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 020：保留短冷却例外。是通用前置防护；同名的守护天赋“优胜劣汰”不是猎人技能 264735。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 020 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000021",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000021",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          61336
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          61336
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 021：保留。不能沿用旧版本默认双充能，也不能把其他专精自动标为可用。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 021 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000024",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000024",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          740
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          157982,
+          740
+        ],
+        "windowMs": 7000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 024：保留。记录实际开始生效和引导结束，不要求完整引导才承认已发生；繁盛和树妖复制的小宁静不另建主动宁静。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 024 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000025",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000025",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          33891
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          33891
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 025：保留。施加治疗强化形态即可核验，不要求后续治疗量达到人为阈值。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 025 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000026",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000026",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          391528
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          774,
+          8936,
+          33763,
+          48438,
+          18562
+        ],
+        "windowMs": 5000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 026：保留治疗用途。一个万灵窗口只建一次安排，随机产生的多个法术是子效果；不能拿两次施放差直接定义固定冷却。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 026 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000028",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000028",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          102558
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          102558
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 028：保留。只建乌索克化身的防御窗口；不要同时建立狂暴与化身两次安排。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 028 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000030",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000030",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          106898
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          77764,
+          106898
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 030：保留。属于能安排整团转场的团队增益，区别于单人位移。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 030 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000031",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000031",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          29166
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          29166
+        ],
+        "windowMs": 2000,
+        "target": "cast-target",
+        "minimumTargets": 1
+      },
+      "notes": "审批 031：保留。当前效果是恢复目标最大法力值的 20%，不能沿用旧版免法力消耗说明。 本轮排除的是非自身单体减伤／生命治疗；激活仍按已批准的回蓝支援保留，不据此开放其他单体治疗。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 031 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000035",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000035",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          374227
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          374227
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 035：保留。最多自己加 4 名附近盟友；仅范围伤害降低 20%，不能写成全团、全伤害减免。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 035 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000036",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000036",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          363916
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          363916
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 036：保留。新生光焰是其被动附加治疗，不是另一个主动技能；本轮不单独排该附加项。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 036 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000038",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000038",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          363534
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          363534,
+          366155
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 038：保留。治疗事件须归入同一次回溯，不按每位受治疗者建立技能安排。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 038 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000039",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000039",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          359816
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          359816,
+          359817
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 039：保留。飞行、首次治疗和后续持续治疗是不同时间段；无日志证据不得猜路径上全部成员。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 039 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000041",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000041",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          370537
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          370537
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 041：按用户原批注保留“只写释放，不写储存”。必须区分手动释放、自动到期处理及未释放；未证实释放时不自动入轴。 按最新范围，仅保留群体治疗组合的释放；只重放非自身单体治疗／保护的组合不纳入。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 041 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000043",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000043",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          374968
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          375226,
+          375229,
+          375230,
+          375234,
+          375238,
+          375240,
+          375252,
+          375253,
+          375254,
+          375255,
+          375256,
+          375257,
+          375258
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 043：保留。属于团队转场资源；增益生效即可，不能要求全团都使用移动技能。后续位移不另建本技能安排。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [
+          "fhBFw4RybzqLC19H"
+        ],
+        "status": "live-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 043 / 12.1",
+          "2026-09-05：官方 WCL v2 API，encounter 3455，fight 32，revision 287；仅保留匿名聚合与合成测试。"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000044",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000044",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          406732
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          406789,
+          406732
+        ],
+        "windowMs": 2000,
+        "target": "cast-target",
+        "minimumTargets": 1
+      },
+      "notes": "审批 044：保留。修正原稿仅恩护／增辉；此处扩大的是同一个治疗支援技能的正确可用专精，不是增加湮灭爆发技能。 归类为施法／移动支援，不是单体生命治疗或护盾。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 044 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000047",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000047",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          370553
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          355941
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 047：按用户原批注保留。以梦境吐息实际释放／治疗时点建一项，准备动作与治疗效果归入同一证据组。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 047 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000049",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000049",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          186265
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          186265
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 049：保留。偏转与 30% 减伤不等于对所有 Boss 机制都绝对免疫；实际机制兼容性独立核准。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 049 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000050",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000050",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          109304
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          109304
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 050：保留已批准的个人应急自疗，优先级低于团队大招。它不提供前置减伤，宠物回满也不是第二条玩家安排；60 秒不属于严格“小于一分钟”。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 050 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000051",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000051",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          264735
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          264735
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 051：保留。修正只写一充能而漏掉当前双充能天赋的情况；同次影响主人与宠物只建一次。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 051 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000058",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000058",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          45438
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          45438
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 058：保留。与深寒凝冰是替换关系；必须区分低温目标限制和自己的充能恢复，不能把两者当独立可连用大招。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 058 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000059",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000058",
+      "variantId": "70000000-0000-4000-8000-000000000059",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          414658
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          414658
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 059：保留。70% 减伤而非免疫；不能用天赋 ID 414659 直接匹配施放日志。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 059 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000060",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000060",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          342245
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          342246
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 060：保留短冷却例外。主动记录起始快照与返回属于一个安排；仅时光重组 1244090 自动救命不能伪装为主动操控时间。死亡或距离失效要说明。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 060 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000069",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000069",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          115203
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          120954,
+          115203,
+          388917
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 069：保留核心长冷却防御。主动页与天赋页分拆展示效果，不能因为主动页缺少百分比便当成无减伤；专精实际 CD 未核前只能提示，不能硬判冲突。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 069 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000072",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000072",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          122470
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          122470
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 072：保留。自身吸收上限为最大生命值 50%；不把转移给敌人的持续伤害写进防御持续时间。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 072 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000074",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000074",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          115310
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          115310
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 074：保留为同一家族的互斥变体；修正“移除所有魔法”的旧笼统描述。一次群体治疗只建一项。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 074 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000075",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000075",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          322118
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          343737
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 075：保留。与朱鹤为同一家族互斥配置；英雄天赋短暂召来的玉珑不是这次手动青龙下凡。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 075 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000076",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000075",
+      "variantId": "70000000-0000-4000-8000-000000000076",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          325197
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          325209,
+          343819
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 076：保留。与青龙配置互斥；普通近战引发的多段治疗归入同次召唤，不逐次排轴。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 076 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000077",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000077",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          443028
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          443039,
+          443028
+        ],
+        "windowMs": 5000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 077：保留。踏风存在不同取得方式，不能照搬织雾主动规则。青玉庇护等附加防御写为同次技能说明。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 077 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000078",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000078",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          322507
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          322507
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 078：保留。天神酒与天神灌注互斥，按实际盾应用和结束表达；绝不把占位 0 写成有效护盾数值。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 078 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000079",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000078",
+      "variantId": "70000000-0000-4000-8000-000000000079",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          1241059
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          1241059
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 079：保留为天神酒替换变体。不是无限期 30% 全减伤；上限和持续时间未证实时保留未知，不填 0 或猜 8 秒。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 079 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000081",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000081",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          132578
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          132578
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 081：保留防御用途。召唤物必须归属原武僧；不能把“40% 醉拳份额”误写为全伤害减免 40%。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 081 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000084",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000084",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          31821
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          31821
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 084：保留。12% 是强化后总量，不是额外再加 12%；不知道光环种类时只记录掌握，不能默认减伤。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 084 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000085",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000085",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          31884
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          31884
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 085：保留治疗强化窗口。提尔的拯救等父技能附带效果不另排；不能扩展成三个专精的输出翅膀。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 085 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000086",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000085",
+      "variantId": "70000000-0000-4000-8000-000000000086",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          216331
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          216331
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 086：保留短冷却例外。属于明确群体治疗转化窗口；与复仇之怒互斥，必须区别“开十字军”和窗口内普通攻击。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 086 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000087",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000087",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          375576
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          25914
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 087：保留短冷却例外。当前职业树确实也有防护／惩戒版本，但这不等于本轮批准进攻鸣钟。只确认神圣震击治疗结果，五个目标不能生成五次安排。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 087 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000093",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000093",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          498,
+          403876
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          498,
+          403876
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 093：保留短冷却例外。纠正“全专精”；惩戒复仇之盾是其天赋附效，不能再单独排一次。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 093 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000094",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000094",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          642
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          642
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 094：保留。特定天赋可改变自律使用限制，未知时不得推定有特例；不默认能规避所有 Boss 强制效果。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 094 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000096",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000096",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          31850
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          31850
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 096：保留。基础全减伤 30%及一次防致死；12.1 强化天赋不再在致死保护后必然取消剩余持续时间，结束以实际证据为准。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 096 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000097",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000097",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          86659
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          86659
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 097：保留主动大守卫。被动 4 秒守卫不另算手动施放；12.1 的初始冷却说明不能读成总冷却只有 8 秒。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 097 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000099",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000099",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          389539
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          389539
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 099：保留。不能把最高 30% 减伤画满整个 20 秒；不同时再建一次防护复仇之怒。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 099 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000103",
+      "enabled": true,
+      "definitionId": "00000000-0000-4000-8000-000000000501",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          62618
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          81782
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 103：保留。基础全减伤 20%；区域内多目标光环合并。现有牧师目录仍是 needs-live-check，不因本稿直接标为日志验证通过。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 103 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000104",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000104",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          472433
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          472433
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 104：保留。当前 ID 472433；不要套旧版福音延长救赎的语义，也不把附带耀当成额外三次大招。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 104 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000105",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000105",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          421453
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          421453,
+          421543,
+          81751,
+          94472
+        ],
+        "windowMs": 9000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 105：保留戒律治疗用途。不要把前置读条与引导合成一段同质 7.5 秒；伤害型苦修通过救赎生效也需对应治疗证据，不扩大为输出爆发技能。 本轮只纳入群体治疗／救赎用途；仅有非自身单体直疗、不能证实群体治疗语义时不作为已核准团疗候选。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 105 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000110",
+      "enabled": true,
+      "definitionId": "00000000-0000-4000-8000-000000000502",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          64843
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          64844
+        ],
+        "windowMs": 6000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 110：保留。引导、治疗及受到治疗加成区间不同；自带守护之魂不重复建 108。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 110 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000111",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000111",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          200183
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          200183
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 111：保留。属于治疗强化与圣言资源窗口；光晕等联动效果归入各自主动作，不靠光晕被动脉冲重复生成化身。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 111 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000113",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000113",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          15286
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          15286
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 113：保留团队辅助治疗用途，当前仅暗影专精；非暗影牧师不能因为旧职业树曾拥有它而被判可用。 此处是自身开启的治疗转化窗口，期间可治疗不同盟友，不是指定一名盟友施放的单体外部治疗。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 113 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000114",
+      "enabled": true,
+      "definitionId": "00000000-0000-4000-8000-000000000504",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          19236
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          19236
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 114：保留。是最大生命值增加兼即时自疗，不等于固定减伤；圣光鼓舞改变基础百分比时必须有天赋证据。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 114 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000115",
+      "enabled": true,
+      "definitionId": "00000000-0000-4000-8000-000000000505",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          47585
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          47585
+        ],
+        "windowMs": 7000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 115：保留。基础 75% 减伤并带自疗；可提前取消，不能把名义完整时长冒充实测效果区间。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 115 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000118",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000118",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          32375
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "dispel"
+        ],
+        "abilityGameIds": [
+          32375
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 118：保留长冷却团队特殊技能。仅空放成功、没有任何可证实驱散结果时不自动入轴；不把普通驱散一起纳入。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 118 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000122",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000122",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          31224
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          31224
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 122：保留。魔法保护与清除有害效果，不是物理免疫，也不保证对所有特殊 Boss 效果有效。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 122 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000123",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000123",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          5277
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          5277
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 123：保留。基础是躲闪 100%，不是全减伤 100%；只有飘忽不定 79008 才有额外 20% 全减伤。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 123 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000129",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000129",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          108271
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          108271
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 129：保留。基础全减伤 40%；其他天赋修正必须作为已选择变体，不根据日志伤害反推。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 129 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000131",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000131",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          98008
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          325174
+        ],
+        "windowMs": 5000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 131：保留。减伤和生命重分配是不同效果；图腾、多目标变化与附带治疗链只归为一次链接。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [
+          "fhBFw4RybzqLC19H"
+        ],
+        "status": "live-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 131 / 12.1",
+          "2026-09-05：官方 WCL v2 API，encounter 3455，fight 32，revision 287；仅保留匿名聚合与合成测试。"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000133",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000133",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          108280
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          114942
+        ],
+        "windowMs": 5000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 133：保留。治疗之潮仍存在；不能因为旧法力之潮图腾被删除而混为一谈，也不附上已移除的回蓝天赋。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 133 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000134",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000134",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          114052
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          114052
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 134：保留主动恢复升腾。根深蒂固的元素 378270 自动触发短升腾时不单独建主动安排；元素和增强输出升腾不收录。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 134 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000137",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000137",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          192077
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          192082
+        ],
+        "windowMs": 5000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 137：保留团队转场增益。图腾寿命、经过范围和每个目标的增益尾段不能混用一个时长。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 137 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000138",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000138",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          383013
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "dispel"
+        ],
+        "abilityGameIds": [
+          383013
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 138：保留长冷却团队特殊驱散。需要实际驱散结果，不把空图腾默认当作成功清毒。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 138 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000139",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000139",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          8143
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "dispel"
+        ],
+        "abilityGameIds": [
+          8143
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 139：保留团队控制解除，55 秒为条件短 CD 例外。提前放置可以是计划用途；WCL 自动导入仍要有可验证生效，不能把空放当已处理控制。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 139 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000146",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000146",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          108416
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          108416
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 146：保留短冷却例外。可前置的个人大盾，不猜固定生命百分比护盾；不要求一定消耗完盾。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 146 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000147",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000147",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          104773
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          104773
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 147：保留。当前基础全减伤 25%，并抗打断／沉默／施法推迟；不沿用旧百分比。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 147 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000148",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000148",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          452930
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          452930
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 148：保留原先批准的应急自疗。旧页面嵌入“再持续治疗 30%”与当前天赋／官方 12.0 说明冲突，本稿不采信该旧附效。无对应天赋不假定持有恶魔治疗石。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 148 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000149",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000148",
+      "variantId": "70000000-0000-4000-8000-000000000149",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          385899
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          452930
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 149：保留为 148 的单次施放变体。只开灵魂燃烧不建轴；用于传送门、吸取生命等用途不纳入。一个治疗石只能产生普通或强化其中一种安排。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 149 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000156",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000156",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          97462
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          97463
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 156：保留团队生命上限增益。团本基础 10%；不把非团队额外增益或施法者自己的天赋数值套到全团。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 156 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000158",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000158",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          118038
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          118038
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 158：保留。100% 招架与 30% 全减伤分别表示；不能写成全伤害免疫。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 158 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000159",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000159",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          184364
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          184364
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 159：保留。30% 减伤与嗜血自疗强化属于同次防御窗口，不把嗜血每次命中拆成安排。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 159 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000162",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000162",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          871
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "aura-applied"
+        ],
+        "abilityGameIds": [
+          871
+        ],
+        "windowMs": 2000,
+        "target": "self",
+        "minimumTargets": 1
+      },
+      "notes": "审批 162：保留。破釜沉舟当前只是盾墙天赋附效，不单列；同一防战可能连续使用双充能，不能被去重或固定 CD 吞掉。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 162 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000173",
+      "enabled": false,
+      "definitionId": "60000000-0000-4000-8000-000000000173",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          120517
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          120692
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 173：本轮补漏并纳入。是可预定的一分钟群体治疗窗口，不是普通单体治疗；一次主动施放及全部自动后续波只生成一项安排。 组合、替身或效果关联仍待匿名真实样本核准，禁止自动生成候选。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "pending",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 173 / 12.1"
+        ]
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000007401",
+      "enabled": true,
+      "definitionId": "60000000-0000-4000-8000-000000000074",
+      "match": {
+        "eventTypes": [
+          "cast-success"
+        ],
+        "abilityGameIds": [
+          388615
+        ],
+        "sourceActorType": "player"
+      },
+      "timingPoint": "cast-start",
+      "deduplication": {
+        "windowMs": 200,
+        "groupBy": [
+          "source",
+          "ability"
+        ]
+      },
+      "confirmation": {
+        "eventTypes": [
+          "healing"
+        ],
+        "abilityGameIds": [
+          388615
+        ],
+        "windowMs": 2000,
+        "target": "friendly",
+        "minimumTargets": 1
+      },
+      "notes": "审批 074：保留为同一家族的互斥变体；修正“移除所有魔法”的旧笼统描述。一次群体治疗只建一项。",
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "docs/player-skill-extraction-v1.md",
+          "人工审批 074 / 12.1"
+        ]
+      },
+      "variantId": "70000000-0000-4000-8000-000000007401"
+    }
+  ],
+  "notes": "独立的全局 v1；仅引用全局技能定义。173 项人工审核中 77 项范围获准，合为 72 个技能族；组合与不确定映射保持 pending，禁止从准备动作、循环被动、姓名或 Boss 机制猜测。真实验证记录单独保存，不宣称未验收技能已实测。 修订 v2 仅将反魔法领域改为成功施法确认；其他技能保留施放加生效证据条件。",
+  "backgroundWindowRules": [
+    {
+      "id": "90000000-0000-4000-8000-000000000009",
+      "enabled": true,
+      "kind": "bloodlust",
+      "abilityGameIds": [
+        2825,
+        32182,
+        80353,
+        264667,
+        390386
+      ],
+      "maximumDurationMs": 60000,
+      "minimumTargets": 2,
+      "verification": {
+        "reviewedAt": 1788566400000,
+        "sourceReportCodes": [],
+        "status": "fixture-verified",
+        "evidence": [
+          "用户审批：嗜血类不建成员技能卡，只显示实际团队增益窗口。",
+          "docs/player-skill-extraction-v1.md"
+        ]
+      }
+    }
+  ]
+}

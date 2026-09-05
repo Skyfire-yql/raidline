@@ -4,13 +4,19 @@
 
 ![团轴 Raidline 预览](public/og.png)
 
+## 当前进度（2026-09-05）
+
+Vashnik 正式服规则、离线目录骨架和快／中／慢三样本验收已完成。第 4 步已接通 13 职业的匿名成员与关键技能导入、逐项选择、本地建轴和嗜血背景；78 条提取规则中 61 条启用、17 条待核验，技能基础数值仍需正式服复核。当前是阶段性交付，不代表第 4 步全部完成。
+
+接下来先补齐玩家技能核验，再进入实际计时插件导出、第二个阶段型 Boss，最后实现 SQLite 与大陆服务器部署。接手时先看 [固定执行顺序](docs/requirements/2026-08-vNext阶段战术与可持续维护.md) 和 [第 4 步实施记录](docs/player-skill-extraction-v1.md)；当前没有生产部署。
+
 ## vNext v1 模型
 
 Raidline 当前采用全新的严格 v1 格式，不读取或迁移旧 plan v5、catalog v3、旧 IndexedDB 测试数据或旧分享正文。
 
 - `RaidPlanDocument.schemaVersion` 固定为 `1`，包含独立计划标题、遭遇、来源、定义快照、名单和时间轴。
 - 技能与机制定义保存在 `definitions`；计划内实例只引用稳定 UUID。目录或 WCL 来源失效后，完整快照仍可使用。
-- `roster` 保存稳定成员槽位、多策略组、可选 1–8 小队和成员级技能变体；计划正文不保存服务器或 WCL actor ID。
+- `roster` 保存稳定成员槽位和成员级技能变体；当前界面暂时关闭策略组、小队及分组目标入口，技能目标只可选择全团或自己。schema v1 的已有分组和指定目标数据原样保留，不自动迁移；计划正文不保存服务器或 WCL actor ID。
 - `timeline` 分开保存阶段、机制实例、战术任务/说明和技能安排。
 - 所有计划全局时间只持久化为 `TimelineAnchor`：开怪后、阶段开始后，或机制施法开始/命中/结束后的偏移。WCL 导入的单次机制可以保存整秒的施法/持续时长覆盖，以保留该轮实际判定点；拖动仍只修改当前锚点偏移。
 - BOSS 机制定义用严格的 `timelinePresentation.parts` 保存一个 occurrence 内的多个阶段区间与判定点。紧凑模式将阶段气泡左对齐到准确时间，碰撞时增加说明层并按需省略，条形独立显示；宽松模式按稳定机制定义固定子轨道，时间区域只显示条形。布局和 `4×–16×` 缩放只保存在本机视图偏好中。
@@ -28,7 +34,7 @@ Raidline 当前采用全新的严格 v1 格式，不读取或迁移旧 plan v5�
 
 ## 内容目录
 
-仓库内置严格 catalog v1 由通用种子 [data/catalog-seed.json](data/catalog-seed.json) 和正式服 Vashnik 目录 [data/catalog-vashnik.json](data/catalog-vashnik.json) 组合。当前内置 release 包含 5 个牧师排轴技能、13 个机制和 2 个不含名单或技能安排的 Boss 骨架。Vashnik 骨架使用九场正式服击杀的跨样本中位时间，不复制任何单场日志；关闭 WCL 后仍可从首页直接创建。
+仓库内置严格 catalog v1 由通用种子、正式服 Vashnik 目录和 [全职业关键技能](data/player-skills-retail-12.1.json) 组合。当前 builtin-seed-v6 包含 72 个启用技能族（13 职业）、1 个禁用的历史技能、13 个机制和 2 个不含名单或技能安排的 Boss 骨架。部分技能自动识别仍待核准，详见 [玩家技能 v1 实施与验收](docs/player-skill-extraction-v1.md)。Vashnik 骨架来自九场击杀的跨样本中位时间，不复制单场日志；关闭 WCL 后仍能独立创建。
 
 应用预设时会把所需机制定义与当前技能定义复制进计划。已发布目录继续按以下相对路径保存在服务端数据目录，并在所有文件写入后更新 current 指针：
 
@@ -51,7 +57,8 @@ ADMIN_SESSION_SECRET=<随机会话签名密钥>
 
 - `CombatLogSnapshot`、`EncounterConversionProfile`、`PlanImportDraft` 和 `ComparisonRun` 都有提供者无关的严格 v1 契约与 fixture。
 - 首页可以粘贴 `cn.warcraftlogs.com` 等允许域名的公开报告链接。服务端使用 client credentials 读取报告、Boss 战斗和 WCL 官方 `phaseTransitions`；史诗战斗还可在精确匹配 encounter profile 后分页读取转换所需事件。浏览器不会接触 client secret 或 access token。
-- 网站 WCL 边界只读且不做服务器持久化：导入预览会匿名化事件、丢弃玩家姓名与无关字段，只返回机制候选和严格 plan。用户显式确认后，所选机制才保存为浏览器本地计划；不会写 WCL 快照、数据库、队列或分享。
+- 网站 WCL 边界只读且不做服务器持久化：不请求或读取角色名，不返回原始事件或 actors。预览包含匿名机制、职业 A/B 槽位、按核准条件确认的关键技能、嗜血类背景及严格 plan。用户逐项选择后只创建浏览器本地新计划；不合并、不对比、不写 WCL 快照、数据库、队列或分享。
+- 全局玩家 profile 独立于 Boss profile 按游戏与规则版本发布。当前修订 v2 中，反魔法领域按成功施法导入，其他技能仍需对应生效证据；未知专精、无法归属或仅有准备动作时警告而不猜测。基础冷却不能解释真实间隔时保留施放并提示，单次变体与时长可独立编辑。技能面板只展示效果，不写自动来源备注；嗜血背景简称“嗜血”。
 - 探针可列出非史诗战斗并标记为不支持；一旦进入快照或导入边界，非史诗战斗以 `UNSUPPORTED_DIFFICULTY` 停止，难度不写入长期结构。
 - 战斗快照保留原始毫秒精度；GraphQL DTO、WCL 缩写和插件语法不会进入计划模型。
 - 正式服取证采用 API-first：排行网页只用于发现公开报告，fight 元数据、master data、官方阶段和事件证据优先通过 Raidline 服务端的官方 WCL v2 API 获取；页面与 Wowhead 用于语义复核，兼容源只作为显式备用研究入口。
@@ -105,9 +112,12 @@ lib/wcl-client.ts          服务端 OAuth、token 缓存与 GraphQL client
 lib/wcl-server.ts          Node 服务端环境变量配置边界
 lib/wcl-contract.ts        规范化快照和转换 profile 的接收边界
 lib/wcl-conversion.ts      profile 精确选择、聚类/派生、导入草稿与计划落地
+lib/player-skill-extraction.ts 匿名成员、玩家技能与团队增益的纯转换
+lib/wcl-import-server.ts   只读分页、版本核验和匿名导入 API 编排
+lib/plan-presentation.ts   效果和历史自动文案的非破坏性显示
 scripts/wcl-convert.ts     Git 忽略完整事件的本地纵向模拟
 app/components/            首页、双栏编辑器、只读页和目录管理
-app/api/                   发布、目录和管理员边界
+app/api/                   发布、目录、管理员和只读 WCL 边界
 data/catalog-seed.json     内置 v1 目录
 data/fixtures/             WCL/导入/对比契约 fixture
 tests/                     单元和渲染/API 集成测试

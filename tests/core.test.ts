@@ -264,8 +264,9 @@ test("cast overlap and GCD conflicts are reported independently", () => {
 test("catalog v1 seed is strict and presets copy snapshot definitions into an isolated plan", () => {
   const release = validateCatalogRelease(SEED_CATALOG);
   assert.equal(release.manifest.schemaVersion, 1);
-  assert.equal(release.manifest.version, "builtin-seed-v5");
-  assert.equal(release.playerSkills.length, 5);
+  assert.equal(release.manifest.version, "builtin-seed-v6");
+  assert.equal(release.playerSkills.length, 73);
+  assert.equal(release.playerSkills.filter(skill => skill.enabled).length, 72);
   assert.equal(release.bossMechanics.length, 13);
   assert.equal(release.timelinePresets.length, 2);
 

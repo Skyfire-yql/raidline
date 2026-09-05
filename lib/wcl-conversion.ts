@@ -1,3 +1,4 @@
+import { defaultSkillTargets } from "./skills";
 import {
   MAX_TIMELINE_MS,
   TIMELINE_SNAP_MS,
@@ -146,10 +147,10 @@ function observedEventMatchesDataType(event: ObservedEvent, dataType: EncounterC
   if (dataType === "casts") return event.type === "cast-start" || event.type === "cast-success";
   if (dataType === "buffs" || dataType === "debuffs") return event.type === "aura-applied" || event.type === "aura-removed";
   if (dataType === "damage") return event.type === "damage";
-  if (dataType === "healing") return event.type === "healing";
+  if (dataType === "healing") return event.type === "healing" || event.type === "absorb";
   if (dataType === "interrupts") return event.type === "interrupt";
   if (dataType === "dispels") return event.type === "dispel";
-  return event.type === "death";
+  return dataType === "deaths" && (event.type === "death" || event.type === "resurrection");
 }
 
 function intendedForTimeline(event: ObservedEvent, profile: EncounterConversionProfile) {
@@ -287,6 +288,25 @@ export function createPlanFromImportDraft(snapshotValue: unknown, draftValue: un
       },
     };
   });
+  const phases = snapshot.phases.length ? snapshot.phases.map((phase, index) => ({
+    id: phase.id, name: `P${phase.semanticPhaseId}${phase.occurrenceIndex > 1 ? ` · ${phase.occurrenceIndex}` : ""}`, ordinal: index + 1,
+    estimatedStartMs: floorPlanTime(phase.atMs), origin: { sourceId },
+  })) : [{ id: crypto.randomUUID(), name: "P1", ordinal: 1, estimatedStartMs: 0, origin: { sourceId } }];
+  if (phases[0].estimatedStartMs > 0) phases.unshift({ id: crypto.randomUUID(), name: "P1", ordinal: 0, estimatedStartMs: 0, origin: { sourceId } });
+  phases.forEach((phase, index) => { phase.ordinal = index + 1; });
+  const assignments = draft.skillAssignmentCandidates.map(candidate => {
+    const assignment = structuredClone(candidate.assignment);
+    // Recipient evidence confirms a cast; a new plan uses the current all/self targeting workflow.
+    assignment.targets = defaultSkillTargets(candidate.definition, assignment.memberId);
+    if (assignment.anchor.kind !== "pull") throw new Error("WCL 技能候选必须提供开怪后观测时间，不能猜测外部锚点");
+    const atMs = assignment.anchor.offsetMs;
+    const phase = phases.filter(item => item.estimatedStartMs <= atMs).at(-1)!;
+    if (phase.ordinal > 1) assignment.anchor = { kind: "phase", phaseId: phase.id, offsetMs: atMs - phase.estimatedStartMs };
+    assignment.origin = { sourceId, sourceEventKeys: candidate.sourceEventKeys, conversionRuleIds: candidate.conversionRuleIds };
+    return assignment;
+  });
+  const skillDefinitions = [...new Map(draft.skillAssignmentCandidates.map(candidate => [candidate.definition.id, candidate.definition])).values()].map(definition => ({ ...structuredClone(definition), origin: { sourceId } }));
+  const memberSkills = [...new Map(assignments.map(assignment => [`${assignment.memberId}:${assignment.skillDefinitionId}`, { memberId: assignment.memberId, skillDefinitionId: assignment.skillDefinitionId, variantId: null }])).values()];
   return parsePlanDocument({
     schemaVersion: 1,
     metadata: { title: options.title ?? `${snapshot.encounter.name} · fight ${snapshot.source.fightId}` },
@@ -309,14 +329,15 @@ export function createPlanFromImportDraft(snapshotValue: unknown, draftValue: un
       fightId: snapshot.source.fightId,
       importedAt,
       normalizedDataHash: snapshot.contentHash,
+      conversionProfiles: [{ kind: "encounter", id: draft.conversionProfileId, profileVersion: draft.conversionProfileVersion }, ...(draft.playerSkillProfile ? [{ kind: "player-skill", ...draft.playerSkillProfile }] : [])],
     }],
-    definitions: { mechanics: mechanicDefinitions, skills: [] },
-    roster: { groups: [], members: [], memberSkills: [] },
+    definitions: { mechanics: mechanicDefinitions, skills: skillDefinitions },
+    roster: { groups: [], members: draft.rosterCandidates.map(candidate => structuredClone(candidate.slot)), memberSkills },
     timeline: {
-      phases: [{ id: crypto.randomUUID(), name: "P1", ordinal: 1, estimatedStartMs: 0, origin: { sourceId } }],
+      phases,
       mechanics: mechanicOccurrences,
-      directives: [],
-      skillAssignments: [],
+      directives: (draft.noteCandidates ?? []).map(candidate => ({ ...structuredClone(candidate.note), origin: { sourceId, sourceEventKeys: candidate.sourceEventKeys, conversionRuleIds: candidate.conversionRuleIds } })),
+      skillAssignments: assignments,
     },
   });
 }

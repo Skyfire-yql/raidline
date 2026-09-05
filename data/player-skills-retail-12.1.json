@@ -1,0 +1,3348 @@
+[
+  {
+    "id": "60000000-0000-4000-8000-000000000001",
+    "spellId": 51052,
+    "name": "反魔法领域",
+    "description": "区域内队友受到的魔法伤害降低 15%\n基础冷却 240 秒；持续 6 秒。同化 374383 可改为 180 秒、8 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "DeathKnight",
+    "specSlugs": [],
+    "scope": "team",
+    "cooldownMs": 240000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 6000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 15,
+        "schools": [
+          "magic"
+        ]
+      }
+    ],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000010001",
+        "spellId": 51052,
+        "name": "冷却强化（天赋）",
+        "talentSpellId": 374383,
+        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
+        "overrides": {
+          "cooldownMs": 180000,
+          "durationMs": 8000
+        },
+        "limitations": [
+          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留。团队魔法减伤；区域内多个盟友光环合并为一次领域，不能把它写成全伤害减免。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=51052"
+        }
+      ]
+    },
+    "category": "团队减伤",
+    "color": "#c41e3a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000002",
+    "spellId": 48707,
+    "name": "反魔法护罩",
+    "description": "自身魔法吸收并阻止有害魔法效果；基础吸收按最大生命值与全能计算，不能固化为固定血量。\n基础 60 秒、持续 5 秒。反魔法屏障 205727：冷却减 20 秒、时长和吸收量增 40%；不屈意志 457574 又使冷却加 20 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "DeathKnight",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 60000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 5000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "absorb",
+        "amount": null,
+        "allocation": "perTarget",
+        "schools": [
+          "magic"
+        ]
+      }
+    ],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000010002",
+        "spellId": 48707,
+        "name": "冷却强化（天赋）",
+        "talentSpellId": 205727,
+        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
+        "overrides": {
+          "cooldownMs": 40000,
+          "durationMs": 7000
+        },
+        "limitations": [
+          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留短冷却例外。是明确的前置魔法防护；有护罩应用即可证明生效，不要求随后一定受到伤害。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=48707"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#c41e3a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000003",
+    "spellId": 48792,
+    "name": "冰封之韧",
+    "description": "全伤害降低 30%，并免疫昏迷\n基础 120 秒；持续 8 秒。英雄天赋可能强化减伤或改变冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "DeathKnight",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 30,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。基础全减伤 30%；血腥之韧 434136 的额外减伤取决于已损失生命，不能默认人人获得满额。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=48792"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#c41e3a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000006",
+    "spellId": 55233,
+    "name": "吸血鬼之血",
+    "description": "最大生命值及受到的治疗/吸收提高 30%\n基础 90 秒；持续 10 秒。强化吸血鬼之血 317133 可延长 2／4 秒；赤红渴望 205723 按符文能量消耗缩短冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "DeathKnight",
+    "specSlugs": [
+      "blood"
+    ],
+    "scope": "personal",
+    "cooldownMs": 90000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "maxHealth",
+        "percent": 30
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。动态减冷却可能使实际间隔低于一分钟，不能用 90 秒机械否定真实施放。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=55233"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#c41e3a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000008",
+    "spellId": 48743,
+    "name": "天灾契约",
+    "description": "立即恢复 50% 最大生命值，随后承受 30% 最大生命值的治疗吸收\n基础 120 秒；负面治疗吸收最多 15 秒。职业天赋可缩短至 90 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "DeathKnight",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 0,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。属于长冷却大额应急自疗，不当作前置减伤。修正原稿只列鲜血的限制；生命恢复与后续治疗吸收必须同时说明。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=48743"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#c41e3a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000010",
+    "spellId": 49028,
+    "name": "符文刃舞",
+    "description": "激活时提高 30% 招架几率，符文武器复制攻击；只纳入防御窗口。\n基础 120 秒；持续 8 秒。无餍狂刃 377637：90 秒；长久羁绊 377668：持续 12 秒并增加符文武器。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "DeathKnight",
+    "specSlugs": [
+      "blood"
+    ],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。12.1 官方说明明确将招架提高到 30%，不要倒用 12.0 的 20%。镜像攻击及额外符文武器不生成第二次安排。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=49028"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#c41e3a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000012",
+    "spellId": 196718,
+    "name": "黑暗",
+    "description": "8 码内友方有 15% 几率避免攻击；团队外效果不同\n基础 300 秒；持续 8 秒。漆黑 389783 可缩短 120 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "DemonHunter",
+    "specSlugs": [],
+    "scope": "team",
+    "cooldownMs": 300000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。团队环境基础为 15% 概率避开伤害，不是固定 15% 减伤；非团队加成不用于史诗团本。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=196718"
+        }
+      ]
+    },
+    "category": "团队减伤",
+    "color": "#a330c9",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000013",
+    "spellId": 198589,
+    "name": "疾影",
+    "description": "浩劫基础全减伤 25%；噬灭基础全减伤 15%。浩劫绝望本能 205411 可再强化。\n基础 60 秒；持续 10 秒；基础 1 充能，恶魔韧性 1266307 可增加 1 充能。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "DemonHunter",
+    "specSlugs": [
+      "havoc",
+      "devourer"
+    ],
+    "scope": "personal",
+    "cooldownMs": 60000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000010013",
+        "spellId": 198589,
+        "name": "双充能（天赋）",
+        "talentSpellId": 1266307,
+        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
+        "overrides": {
+          "maxCharges": 2
+        },
+        "limitations": [
+          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留。按专精区分同 ID 效果；不能把 PvP 调整套用到团本。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=198589"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#a330c9",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000016",
+    "spellId": 204021,
+    "name": "烈火烙印",
+    "description": "同时标记自己和敌人，使自己受到的伤害降低 40%，并对敌人造成火焰伤害。\n基础 60 秒；基础 1 充能；作用窗口约 12 秒。葬身火海 389732：48 秒并增加 1 充能；血肉灰烬 336639 可延长持续时间。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "DemonHunter",
+    "specSlugs": [
+      "vengeance"
+    ],
+    "scope": "personal",
+    "cooldownMs": 60000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 12000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 40,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000010016",
+        "spellId": 204021,
+        "name": "双充能（天赋）",
+        "talentSpellId": 389732,
+        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
+        "overrides": {
+          "maxCharges": 2
+        },
+        "limitations": [
+          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留短冷却例外。重要纠正：现在是自身通用防御窗口，不能再写成仅被标记敌人对自己的伤害降低。以自身防御生效核验；敌方伤害不入轴。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=204021"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#a330c9",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000017",
+    "spellId": 187827,
+    "name": "恶魔变形",
+    "description": "复仇恶魔形态强化生命与护甲，基础生命增益约 40%、护甲增益 200%，并有自疗。\n基础 120 秒；持续 15 秒。复仇凶兽 1265818 可延长 5 秒；部分英雄天赋减冷却，无羁邪怒 1270444 可提供不触发冷却的主动使用。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "DemonHunter",
+    "specSlugs": [
+      "vengeance"
+    ],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 15000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "maxHealth",
+        "percent": 40
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留复仇手动施放。被动变身、最后一搏及其他技能附带短变身不能伪装成一次手动大变身；免费主动施放则不能被固定 CD 误删。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=187827"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#a330c9",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000020",
+    "spellId": 22812,
+    "name": "树皮术",
+    "description": "全伤害降低 20%，可在多种控制状态下使用\n基础 60 秒；持续 8 秒。强化树皮术 327993 延长 4 秒；守护优胜劣汰 203965 可缩短 12%／24%，即 52.8／45.6 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Druid",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 60000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 20,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留短冷却例外。是通用前置防护；同名的守护天赋“优胜劣汰”不是猎人技能 264735。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=22812"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#ff7c0a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000021",
+    "spellId": 61336,
+    "name": "生存本能",
+    "description": "全伤害降低 50%\n基础 180 秒；持续 6 秒；基础 1 充能。守护优胜劣汰 203965 可减少冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Druid",
+    "specSlugs": [
+      "feral",
+      "guardian"
+    ],
+    "scope": "personal",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 6000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 50,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。不能沿用旧版本默认双充能，也不能把其他专精自动标为可用。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=61336"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#ff7c0a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000024",
+    "spellId": 740,
+    "name": "宁静",
+    "description": "团队引导治疗；引导期间获得与自身生命相关的吸收保护并防击退。繁盛天赋可延长既有持续治疗。\n基础 180 秒；基础引导 6 秒，实际引导受急速及打断影响。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Druid",
+    "specSlugs": [
+      "restoration"
+    ],
+    "scope": "team",
+    "cooldownMs": 180000,
+    "castType": "channel",
+    "castTimeMs": 6000,
+    "durationMs": 6000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。记录实际开始生效和引导结束，不要求完整引导才承认已发生；繁盛和树妖复制的小宁静不另建主动宁静。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=740"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#ff7c0a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000025",
+    "spellId": 33891,
+    "name": "化身：生命之树",
+    "description": "生命之树强化治疗、护甲及部分法术，并立即对附近 3 名受伤盟友施放愈合。\n基础 180 秒；持续 30 秒。塞纳留斯的指引 393371、梦境掌控 434249 等可改变实际冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Druid",
+    "specSlugs": [
+      "restoration"
+    ],
+    "scope": "team",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 30000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。施加治疗强化形态即可核验，不要求后续治疗量达到人为阈值。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=33891"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#ff7c0a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000026",
+    "spellId": 391528,
+    "name": "万灵之召",
+    "description": "恢复专精下快速施放多种法术；结果具有随机性\n基础 120 秒、引导 4 秒。塞纳留斯的指引 393371 可改为 60 秒、3 秒；配合梦境掌控 434249 可再按蓄积时间减去最多 15 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Druid",
+    "specSlugs": [
+      "restoration"
+    ],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "channel",
+    "castTimeMs": 4000,
+    "durationMs": 4000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留治疗用途。一个万灵窗口只建一次安排，随机产生的多个法术是子效果；不能拿两次施放差直接定义固定冷却。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=391528"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#ff7c0a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000028",
+    "spellId": 102558,
+    "name": "化身：乌索克的守护者",
+    "description": "强化熊形态，最大生命值提高约 30%\n基础 180 秒；持续 30 秒。乌索克的指引 393414 按怒气消耗动态减冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Druid",
+    "specSlugs": [
+      "guardian"
+    ],
+    "scope": "personal",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 30000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "maxHealth",
+        "percent": 30
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。只建乌索克化身的防御窗口；不要同时建立狂暴与化身两次安排。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=102558"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#ff7c0a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000030",
+    "spellId": 106898,
+    "name": "狂奔怒吼",
+    "description": "15 码内友方移速提高 60%\n基础 120 秒；持续 8 秒。强化狂奔怒吼 288826：60 秒；兽群韧性 441844 可延长持续时间。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Druid",
+    "specSlugs": [],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。属于能安排整团转场的团队增益，区别于单人位移。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=106898"
+        }
+      ]
+    },
+    "category": "位移",
+    "color": "#ff7c0a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000031",
+    "spellId": 29166,
+    "name": "激活",
+    "description": "使一名友方治疗者恢复 20% 最大法力值\n基础 180 秒；回蓝持续 8 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Druid",
+    "specSlugs": [],
+    "scope": "external",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。当前效果是恢复目标最大法力值的 20%，不能沿用旧版免法力消耗说明。 本轮排除的是非自身单体减伤／生命治疗；激活仍按已批准的回蓝支援保留，不据此开放其他单体治疗。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=29166"
+        }
+      ]
+    },
+    "category": "自定义",
+    "color": "#ff7c0a",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000035",
+    "spellId": 374227,
+    "name": "微风",
+    "description": "自身及 20 码内最近 4 名盟友受到的范围伤害降低 20%，移速提高 30%\n120 秒；持续 8 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Evoker",
+    "specSlugs": [],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 5,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 20,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。最多自己加 4 名附近盟友；仅范围伤害降低 20%，不能写成全团、全伤害减免。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=374227"
+        }
+      ]
+    },
+    "category": "团队减伤",
+    "color": "#33937f",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000036",
+    "spellId": 363916,
+    "name": "黑曜鳞片",
+    "description": "全伤害降低 30%\n基础 90 秒；持续 12 秒；基础 1 充能，黑曜壁垒可增至 2 充能。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Evoker",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 90000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 12000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 30,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000010036",
+        "spellId": 363916,
+        "name": "双充能（天赋）",
+        "talentSpellId": 375406,
+        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
+        "overrides": {
+          "maxCharges": 2
+        },
+        "limitations": [
+          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留。新生光焰是其被动附加治疗，不是另一个主动技能；本轮不单独排该附加项。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=363916"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#33937f",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000038",
+    "spellId": 363534,
+    "name": "回溯",
+    "description": "恢复附近盟友此前 5 秒所受伤害的 30%，存在最低治疗；非团队倍率不用于团本。\n基础 240 秒；即时回溯此前 5 秒。时光巧匠 381922：180 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Evoker",
+    "specSlugs": [
+      "preservation"
+    ],
+    "scope": "team",
+    "cooldownMs": 240000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 0,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。治疗事件须归入同一次回溯，不按每位受治疗者建立技能安排。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=363534"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#33937f",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000039",
+    "spellId": 359816,
+    "name": "梦境飞行",
+    "description": "沿飞行路径立即治疗并附加持续治疗；飞行期间有控制保护和自身吸收。\n120 秒；飞行后治疗可持续 15 秒，飞行时长不写成固定 15 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Evoker",
+    "specSlugs": [
+      "preservation"
+    ],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 15000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。飞行、首次治疗和后续持续治疗是不同时间段；无日志证据不得猜路径上全部成员。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=359816"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#33937f",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000041",
+    "name": "静滞（释放）",
+    "description": "储存三次有益法术并重放；本轮只安排释放。\n储存技能基础 90 秒；可保留最多 30 秒再释放。释放不是第二个独立冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Evoker",
+    "specSlugs": [
+      "preservation"
+    ],
+    "scope": "team",
+    "cooldownMs": 90000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 0,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "按用户原批注保留“只写释放，不写储存”。必须区分手动释放、自动到期处理及未释放；未证实释放时不自动入轴。 按最新范围，仅保留群体治疗组合的释放；只重放非自身单体治疗／保护的组合不纳入。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=370537"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#33937f",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000043",
+    "spellId": 374968,
+    "name": "时间螺旋",
+    "description": "允许团队成员额外使用一次主要移动技能\n120 秒；允许额外移动技能的增益窗口 10 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Evoker",
+    "specSlugs": [],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。属于团队转场资源；增益生效即可，不能要求全团都使用移动技能。后续位移不另建本技能安排。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=374968"
+        }
+      ]
+    },
+    "category": "位移",
+    "color": "#33937f",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000044",
+    "spellId": 406732,
+    "name": "空间悖论",
+    "description": "自身与最近治疗者可移动施法且射程提高\n180 秒；持续 10 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Evoker",
+    "specSlugs": [],
+    "scope": "external",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。修正原稿仅恩护／增辉；此处扩大的是同一个治疗支援技能的正确可用专精，不是增加湮灭爆发技能。 归类为施法／移动支援，不是单体生命治疗或护盾。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=406732"
+        }
+      ]
+    },
+    "category": "自定义",
+    "color": "#33937f",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000047",
+    "spellId": 355936,
+    "name": "扭转天平＋梦境吐息",
+    "description": "仅“天平强化后的梦境吐息”纳入；不收录普通梦境吐息、单独开天平或强化伤害法术。\n扭转天平基础 120 秒；时光赐福 1260484 可减至 90 秒。梦境吐息自身 30 秒，不作为这组安排的冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Evoker",
+    "specSlugs": [
+      "preservation"
+    ],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 0,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "按用户原批注保留。以梦境吐息实际释放／治疗时点建一项，准备动作与治疗效果归入同一证据组。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=370553"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#33937f",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000049",
+    "spellId": 186265,
+    "name": "灵龟守护",
+    "description": "偏转攻击/法术并降低所受伤害 30%，期间不能攻击\n基础 180 秒；持续 8 秒。天生狂野 266921 和强化灵龟守护 1258485 可改变冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Hunter",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 30,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。偏转与 30% 减伤不等于对所有 Boss 机制都绝对免疫；实际机制兼容性独立核准。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=186265"
+        }
+      ]
+    },
+    "category": "免疫",
+    "color": "#aad372",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000050",
+    "spellId": 109304,
+    "name": "意气风发",
+    "description": "自疗 30% 最大生命，宠物回满；天赋可追加持续治疗\n基础 120 秒；瞬发自疗。自然治愈 270581 可减 30／60 秒；春回大地 385539 追加持续治疗。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Hunter",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 0,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留已批准的个人应急自疗，优先级低于团队大招。它不提供前置减伤，宠物回满也不是第二条玩家安排；60 秒不属于严格“小于一分钟”。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=109304"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#aad372",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000051",
+    "spellId": 264735,
+    "name": "优胜劣汰",
+    "description": "自身及宠物全伤害降低 30%\n基础 90 秒、6 秒、1 充能；护身软甲 459450 可增加 1 充能，孤独幸存者 388039 可延长 2 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Hunter",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 90000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 6000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 30,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000010051",
+        "spellId": 264735,
+        "name": "双充能（天赋）",
+        "talentSpellId": 459450,
+        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
+        "overrides": {
+          "maxCharges": 2
+        },
+        "limitations": [
+          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留。修正只写一充能而漏掉当前双充能天赋的情况；同次影响主人与宠物只建一次。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=264735"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#aad372",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000058",
+    "spellId": 45438,
+    "name": "寒冰屏障",
+    "description": "免疫伤害，但不能攻击、移动或施法；产生 30 秒低温\n基础 240 秒；持续最多 10 秒；基础 1 充能。当前多种天赋可减 CD，冰川壁垒 1244110 可加充能；冰霜急速冷却 235219 可重置。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Mage",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 240000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "immunity",
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000000059",
+        "spellId": 414658,
+        "name": "深寒凝冰",
+        "description": "所受伤害降低 70%，产生低温\n基础 240 秒；持续 6 秒；低温限制 30 秒；相关寒冰屏障减 CD／重置关系需按变体确认。",
+        "overrides": {
+          "cooldownMs": 240000,
+          "castTimeMs": 0,
+          "durationMs": 6000,
+          "effects": [
+            {
+              "type": "damageReduction",
+              "percent": 70,
+              "schools": [
+                "physical",
+                "magic"
+              ]
+            }
+          ]
+        },
+        "limitations": [
+          "保留。70% 减伤而非免疫；不能用天赋 ID 414659 直接匹配施放日志。",
+          "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留。与深寒凝冰是替换关系；必须区分低温目标限制和自己的充能恢复，不能把两者当独立可连用大招。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=45438"
+        }
+      ]
+    },
+    "category": "免疫",
+    "color": "#3fc7eb",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000060",
+    "spellId": 342245,
+    "name": "操控时间",
+    "description": "再次施放或到期时回到初始生命值与位置；死亡/过远会失效\n基础 60 秒；最多 10 秒返回。时间大师 342249 减 5／10 秒；日怒扭转时光 1255166 可再减 10 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Mage",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 60000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留短冷却例外。主动记录起始快照与返回属于一个安排；仅时光重组 1244090 自动救命不能伪装为主动操控时间。死亡或距离失效要说明。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=342245"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#3fc7eb",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000069",
+    "spellId": 115203,
+    "name": "壮胆酒",
+    "description": "当前职业树给出提高当前／最大生命值 20%、全减伤 20%；酒仙另有醉拳强化。\n当前主动页面基础 360 秒、持续 15 秒；迅疾豪胆 388813 可减 30 秒。各专精酒类冷却修正须另核，不能把 360 秒写成人人实战间隔。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Monk",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 360000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 15000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 20,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      },
+      {
+        "type": "maxHealth",
+        "percent": 20
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留核心长冷却防御。主动页与天赋页分拆展示效果，不能因为主动页缺少百分比便当成无减伤；专精实际 CD 未核前只能提示，不能硬判冲突。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=115203"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#00ff98",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000072",
+    "spellId": 122470,
+    "name": "业报之触",
+    "description": "吸收最多 50% 最大生命值伤害并向敌方转移部分伤害\n90 秒；吸收窗口 10 秒，转移伤害另有 6 秒持续期。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Monk",
+    "specSlugs": [
+      "windwalker"
+    ],
+    "scope": "personal",
+    "cooldownMs": 90000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "absorb",
+        "amount": null,
+        "allocation": "perTarget",
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。自身吸收上限为最大生命值 50%；不把转移给敌人的持续伤害写进防御持续时间。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=122470"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#00ff98",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000074",
+    "spellId": 115310,
+    "name": "还魂术",
+    "description": "团队治疗；还魂术移除至多 3 个有害魔法效果及所有中毒、疾病，还阳术不包含该魔法驱散且可在昏迷时使用。\n基础 180 秒；瞬发。起死回生 388551 可减至 150 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Monk",
+    "specSlugs": [
+      "mistweaver"
+    ],
+    "scope": "team",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 0,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000007401",
+        "spellId": 388615,
+        "name": "还阳术",
+        "description": "互斥替代还魂术。治疗，不驱散魔法效果。",
+        "overrides": {},
+        "limitations": [
+          "不作为另一个独立冷却计数。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留为同一家族的互斥变体；修正“移除所有魔法”的旧笼统描述。一次群体治疗只建一项。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=115310"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#00ff98",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000075",
+    "spellId": 322118,
+    "name": "青龙下凡",
+    "description": "召唤玉珑持续治疗，并降低相关治疗法术法力消耗\n基础 120 秒；召唤 25 秒。天神之赐 388212：60 秒、12 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Monk",
+    "specSlugs": [
+      "mistweaver"
+    ],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 25000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000000076",
+        "spellId": 325197,
+        "name": "朱鹤下凡",
+        "description": "近战技能触发多目标治疗并强化氤氲之雾\n基础 120 秒；召唤 25 秒。天神之赐 388212：60 秒、12 秒。",
+        "overrides": {
+          "cooldownMs": 120000,
+          "castTimeMs": 0,
+          "durationMs": 25000,
+          "effects": []
+        },
+        "limitations": [
+          "保留。与青龙配置互斥；普通近战引发的多段治疗归入同次召唤，不逐次排轴。",
+          "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留。与朱鹤为同一家族互斥配置；英雄天赋短暂召来的玉珑不是这次手动青龙下凡。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=322118"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#00ff98",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000077",
+    "spellId": 443028,
+    "name": "天神御身",
+    "description": "引导治疗附近最多 5 名受伤盟友，可移动引导\n90 秒；基础引导 4 秒，可移动但施放其他治疗／伤害法术会取消。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Monk",
+    "specSlugs": [
+      "mistweaver"
+    ],
+    "scope": "team",
+    "cooldownMs": 90000,
+    "castType": "channel",
+    "castTimeMs": 4000,
+    "durationMs": 4000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。踏风存在不同取得方式，不能照搬织雾主动规则。青玉庇护等附加防御写为同次技能说明。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=443028"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#00ff98",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000078",
+    "spellId": 322507,
+    "name": "天神酒",
+    "description": "为自身建立吸收盾；页面显示 0 是缺少角色属性计算，不表示护盾无效。\n基础充能 90 秒、1 充能；酒仙轻酿 325093：72 秒；豪饮千杯 450892 增加 1 充能；酒类机制还会动态缩冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Monk",
+    "specSlugs": [
+      "brewmaster"
+    ],
+    "scope": "personal",
+    "cooldownMs": 90000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "absorb",
+        "amount": null,
+        "allocation": "perTarget",
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000000079",
+        "spellId": 1241059,
+        "name": "天神灌注",
+        "description": "吸收每次所受伤害的一部分，当前说明为 30%，并受总吸收上限约束。\n基础充能 90 秒；同酒仙轻酿和豪饮千杯修正，另有酒类动态缩冷却。",
+        "overrides": {
+          "cooldownMs": 90000,
+          "castTimeMs": 0,
+          "durationMs": 8000,
+          "effects": [
+            {
+              "type": "absorb",
+              "amount": null,
+              "allocation": "perTarget",
+              "schools": [
+                "physical",
+                "magic"
+              ]
+            }
+          ]
+        },
+        "limitations": [
+          "保留为天神酒替换变体。不是无限期 30% 全减伤；上限和持续时间未证实时保留未知，不填 0 或猜 8 秒。",
+          "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留。天神酒与天神灌注互斥，按实际盾应用和结束表达；绝不把占位 0 写成有效护盾数值。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=322507"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#00ff98",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000081",
+    "spellId": 132578,
+    "name": "玄牛下凡",
+    "description": "玄牛代为承受 40% 醉拳化解的伤害，并获得相关清除醉拳治疗。\n基础 120 秒；持续 25 秒。高效演武 450989 可缩短 25 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Monk",
+    "specSlugs": [
+      "brewmaster"
+    ],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 25000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留防御用途。召唤物必须归属原武僧；不能把“40% 醉拳份额”误写为全伤害减免 40%。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=132578"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#00ff98",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000084",
+    "spellId": 31821,
+    "name": "光环掌握",
+    "description": "强化当前光环；虔诚光环的总减伤提高至 12%，专注光环可提供打断／沉默保护。\n基础 180 秒；持续 8 秒。不屈精神 392911：150 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Paladin",
+    "specSlugs": [
+      "holy"
+    ],
+    "scope": "team",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。12% 是强化后总量，不是额外再加 12%；不知道光环种类时只记录掌握，不能默认减伤。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=31821"
+        }
+      ]
+    },
+    "category": "团队减伤",
+    "color": "#f48cba",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000085",
+    "spellId": 31884,
+    "name": "复仇之怒",
+    "description": "神圣专精下强化治疗、伤害和爆击\n基础 120 秒、20 秒；正义召唤 1241511 可改冷却和时长，圣洁怒火 53376 可延长时长。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Paladin",
+    "specSlugs": [
+      "holy"
+    ],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 20000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000000086",
+        "spellId": 216331,
+        "name": "复仇十字军",
+        "description": "由攻击技能转化为附近最多 5 人治疗\n基础 60 秒、15 秒；正义召唤 1241511 可改为 52.5／45 秒，并缩短持续时间；圣洁怒火可延长。",
+        "overrides": {
+          "cooldownMs": 60000,
+          "castTimeMs": 0,
+          "durationMs": 15000,
+          "effects": []
+        },
+        "limitations": [
+          "保留短冷却例外。属于明确群体治疗转化窗口；与复仇之怒互斥，必须区别“开十字军”和窗口内普通攻击。",
+          "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留治疗强化窗口。提尔的拯救等父技能附带效果不另排；不能扩展成三个专精的输出翅膀。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=31884"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#f48cba",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000087",
+    "spellId": 375576,
+    "name": "圣洁鸣钟",
+    "description": "神圣专精对最多 5 个目标施放神圣震击\n基础 60 秒；急促祷告 379391：45 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Paladin",
+    "specSlugs": [
+      "holy"
+    ],
+    "scope": "team",
+    "cooldownMs": 60000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 0,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留短冷却例外。当前职业树确实也有防护／惩戒版本，但这不等于本轮批准进攻鸣钟。只确认神圣震击治疗结果，五个目标不能生成五次安排。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=375576"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#f48cba",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000093",
+    "spellId": 498,
+    "name": "圣佑术",
+    "description": "全伤害降低 20%，可在昏迷中使用\n基础 60 秒；持续 8 秒。不败之魂 114154 可缩短为 42 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Paladin",
+    "specSlugs": [
+      "holy",
+      "retribution"
+    ],
+    "scope": "personal",
+    "cooldownMs": 60000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 20,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留短冷却例外。纠正“全专精”；惩戒复仇之盾是其天赋附效，不能再单独排一次。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=498"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#f48cba",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000094",
+    "spellId": 642,
+    "name": "圣盾术",
+    "description": "免疫伤害、有害效果、击退与强制移动；造成自律\n基础 300 秒；持续 8 秒；自律等目标限制独立处理；天赋可减冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Paladin",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 300000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "immunity",
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。特定天赋可改变自律使用限制，未知时不得推定有特例；不默认能规避所有 Boss 强制效果。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=642"
+        }
+      ]
+    },
+    "category": "免疫",
+    "color": "#f48cba",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000096",
+    "spellId": 31850,
+    "name": "炽热防御者",
+    "description": "全伤害降低 30%，并可防止一次致死攻击\n基础 90 秒；持续 12 秒。不败之魂可缩短至 63 秒；强化炽热防御者改变生命和致死触发后的行为。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Paladin",
+    "specSlugs": [
+      "protection"
+    ],
+    "scope": "personal",
+    "cooldownMs": 90000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 12000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 30,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。基础全减伤 30%及一次防致死；12.1 强化天赋不再在致死保护后必然取消剩余持续时间，结束以实际证据为准。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=31850"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#f48cba",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000097",
+    "spellId": 86659,
+    "name": "远古列王守卫",
+    "description": "全伤害降低 50%\n基础 180 秒；持续 8 秒；基础 1 充能。苍穹之谕 1246481 可加 1 充能；金色瓦格里的礼物 378279 可动态缩冷却并被动触发短守卫。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Paladin",
+    "specSlugs": [
+      "protection"
+    ],
+    "scope": "personal",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 50,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000010097",
+        "spellId": 86659,
+        "name": "双充能（天赋）",
+        "talentSpellId": 1246481,
+        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
+        "overrides": {
+          "maxCharges": 2
+        },
+        "limitations": [
+          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留主动大守卫。被动 4 秒守卫不另算手动施放；12.1 的初始冷却说明不能读成总冷却只有 8 秒。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=86659"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#f48cba",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000099",
+    "spellId": 389539,
+    "name": "戒卫",
+    "description": "初始 15 层，每层最大生命值加 1%、减伤加 2%，随后逐渐失去层数。\n基础 120 秒；名义持续 20 秒。正义保护者 204074 可改为 60 秒并缩短持续时间；层数还受时间／神圣能量消耗影响。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Paladin",
+    "specSlugs": [
+      "protection"
+    ],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 20000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。不能把最高 30% 减伤画满整个 20 秒；不同时再建一次防护复仇之怒。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=389539"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#f48cba",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000501",
+    "spellId": 62618,
+    "name": "真言术：障",
+    "description": "区域内盟友全伤害降低 20%\n180 秒；持续 10 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Priest",
+    "specSlugs": [
+      "discipline"
+    ],
+    "scope": "team",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 20,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。基础全减伤 20%；区域内多目标光环合并。现有牧师目录仍是 needs-live-check，不因本稿直接标为日志验证通过。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=62618"
+        }
+      ]
+    },
+    "category": "团队减伤",
+    "color": "#ffffff",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000104",
+    "spellId": 472433,
+    "name": "福音",
+    "description": "新福音立即以强化效果施放真言术：耀，后续两次耀瞬发并降低法力消耗。\n90 秒；立即触发一次强化耀并影响后续两次耀。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Priest",
+    "specSlugs": [
+      "discipline"
+    ],
+    "scope": "team",
+    "cooldownMs": 90000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 0,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。当前 ID 472433；不要套旧版福音延长救赎的语义，也不把附带耀当成额外三次大招。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=472433"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#ffffff",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000105",
+    "spellId": 421453,
+    "name": "终极苦修",
+    "description": "对盟友释放大量治疗箭；升空时获得高额护盾\n基础 240 秒；基础施法 1.5 秒后引导 6 秒；实际时长受急速及中断影响。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Priest",
+    "specSlugs": [
+      "discipline"
+    ],
+    "scope": "team",
+    "cooldownMs": 240000,
+    "castType": "channel",
+    "castTimeMs": 8000,
+    "durationMs": 6000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留戒律治疗用途。不要把前置读条与引导合成一段同质 7.5 秒；伤害型苦修通过救赎生效也需对应治疗证据，不扩大为输出爆发技能。 本轮只纳入群体治疗／救赎用途；仅有非自身单体直疗、不能证实群体治疗语义时不作为已核准团疗候选。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=421453"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#ffffff",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000502",
+    "spellId": 64843,
+    "name": "神圣赞美诗",
+    "description": "团队治疗并叠加受到治疗提高效果；引导时施法者获得守护之魂\n基础 180 秒；引导基础 5 秒；圣洁强音 419110 可改为 120 秒。治疗增益可持续到引导结束后。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Priest",
+    "specSlugs": [
+      "holy"
+    ],
+    "scope": "team",
+    "cooldownMs": 180000,
+    "castType": "channel",
+    "castTimeMs": 5000,
+    "durationMs": 5000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [
+      {
+        "id": "00000000-0000-4000-8000-000000000601",
+        "name": "120 秒冷却（天赋）",
+        "description": "仅在明确选中相应减冷却天赋时采用。",
+        "overrides": {
+          "cooldownMs": 120000
+        },
+        "limitations": [
+          "不由日志中的短间隔自动选择。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留。引导、治疗及受到治疗加成区间不同；自带守护之魂不重复建 108。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=64843"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#ffffff",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000111",
+    "spellId": 200183,
+    "name": "神圣化身",
+    "description": "重置/提供圣言术使用并强化圣言术冷却缩减、降低消耗\n基础 120 秒、20 秒；永恒圣洁 1215245 可加 12 秒，至静化身相关天赋可进一步延长／暂停时长。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Priest",
+    "specSlugs": [
+      "holy"
+    ],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 20000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。属于治疗强化与圣言资源窗口；光晕等联动效果归入各自主动作，不靠光晕被动脉冲重复生成化身。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=200183"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#ffffff",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000113",
+    "spellId": 15286,
+    "name": "吸血鬼的拥抱",
+    "description": "主动窗口将单体暗影法术伤害的 40% 转为附近一名盟友的治疗。\n120 秒；持续 12 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Priest",
+    "specSlugs": [
+      "shadow"
+    ],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 12000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留团队辅助治疗用途，当前仅暗影专精；非暗影牧师不能因为旧职业树曾拥有它而被判可用。 此处是自身开启的治疗转化窗口，期间可治疗不同盟友，不是指定一名盟友施放的单体外部治疗。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=15286"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#ffffff",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000504",
+    "spellId": 19236,
+    "name": "绝望祷言",
+    "description": "最大生命值提高 25%（特定天赋可 35%）并立即治疗等量\n基础 90 秒；持续 10 秒。暗影天使之慈 238100 可减至 70 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Priest",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 90000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "maxHealth",
+        "percent": 25
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。是最大生命值增加兼即时自疗，不等于固定减伤；圣光鼓舞改变基础百分比时必须有天赋证据。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=19236"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#ffffff",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000505",
+    "spellId": 47585,
+    "name": "消散",
+    "description": "全伤害降低 75%，恢复生命且不能攻击/施法\n基础 120 秒、6 秒；暗影无形 288733：90 秒并加治疗；强效升变 453729 可加 2 秒持续时间。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Priest",
+    "specSlugs": [
+      "shadow"
+    ],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "channel",
+    "castTimeMs": 6000,
+    "durationMs": 6000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 75,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。基础 75% 减伤并带自疗；可提前取消，不能把名义完整时长冒充实测效果区间。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=47585"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#ffffff",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000118",
+    "spellId": 32375,
+    "name": "群体驱散",
+    "description": "范围内最多 5 个友方移除有害魔法、最多 5 个敌方移除一个增益，可处理部分特殊效果。\n120 秒；基础施法 1.5 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Priest",
+    "specSlugs": [],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "cast",
+    "castTimeMs": 1500,
+    "durationMs": 0,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留长冷却团队特殊技能。仅空放成功、没有任何可证实驱散结果时不自动入轴；不把普通驱散一起纳入。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=32375"
+        }
+      ]
+    },
+    "category": "自定义",
+    "color": "#ffffff",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000122",
+    "spellId": 31224,
+    "name": "暗影斗篷",
+    "description": "移除有害法术并短暂抵抗有害法术效果\n基础 120 秒；持续 5 秒。虚渺斗篷 457022 可延长 2 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Rogue",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 5000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "immunity",
+        "schools": [
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。魔法保护与清除有害效果，不是物理免疫，也不保证对所有特殊 Boss 效果有效。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=31224"
+        }
+      ]
+    },
+    "category": "免疫",
+    "color": "#fff468",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000123",
+    "spellId": 5277,
+    "name": "闪避",
+    "description": "躲闪提高 100%；有天赋时额外全减伤 20%\n120 秒；持续 10 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Rogue",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。基础是躲闪 100%，不是全减伤 100%；只有飘忽不定 79008 才有额外 20% 全减伤。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=5277"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#fff468",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000129",
+    "spellId": 108271,
+    "name": "星界转移",
+    "description": "全伤害降低 40%\n基础 120 秒；持续 12 秒。位面旅行者 381647：90 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Shaman",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 12000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 40,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。基础全减伤 40%；其他天赋修正必须作为已选择变体，不根据日志伤害反推。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=108271"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#0070dd",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000131",
+    "spellId": 98008,
+    "name": "灵魂链接图腾",
+    "description": "区域全减伤 10%并重新分配生命百分比；喷涌灵魂 462383 可额外减伤 5%并治疗。\n180 秒；持续 6 秒；基础 1 充能。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Shaman",
+    "specSlugs": [
+      "restoration"
+    ],
+    "scope": "team",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 6000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 10,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。减伤和生命重分配是不同效果；图腾、多目标变化与附带治疗链只归为一次链接。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=98008"
+        }
+      ]
+    },
+    "category": "团队减伤",
+    "color": "#0070dd",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000133",
+    "spellId": 108280,
+    "name": "治疗之潮图腾",
+    "description": "每 2 秒治疗 40 码团队成员\n基础 180 秒、10 秒；首席升腾者 462440 可缩短至 120 秒，飞升卓越 462443 可延长持续时间。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Shaman",
+    "specSlugs": [
+      "restoration"
+    ],
+    "scope": "team",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留。治疗之潮仍存在；不能因为旧法力之潮图腾被删除而混为一谈，也不附上已移除的回蓝天赋。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=108280"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#0070dd",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000134",
+    "spellId": 114052,
+    "name": "升腾",
+    "description": "恢复升腾即时群疗，并强化治疗链／治疗波。\n基础 180 秒、15 秒；首席升腾者 462440 可缩短至 120 秒；另有延长天赋。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Shaman",
+    "specSlugs": [
+      "restoration"
+    ],
+    "scope": "team",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 15000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留主动恢复升腾。根深蒂固的元素 378270 自动触发短升腾时不单独建主动安排；元素和增强输出升腾不收录。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=114052"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#0070dd",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000137",
+    "spellId": 192077,
+    "name": "狂风图腾",
+    "description": "经过图腾附近的盟友移速提高 40%\n基础 120 秒；图腾 15 秒，移速增益刷新后 5 秒。升涌气流 462791 减 CD 30 秒并延长增益；图腾集中可延长图腾寿命。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Shaman",
+    "specSlugs": [],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 15000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留团队转场增益。图腾寿命、经过范围和每个目标的增益尾段不能混用一个时长。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=192077"
+        }
+      ]
+    },
+    "category": "位移",
+    "color": "#0070dd",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000138",
+    "spellId": 383013,
+    "name": "清毒图腾",
+    "description": "每 1.5 秒为附近一名队友移除全部中毒\n基础 120 秒；图腾 6 秒，每 1.5 秒处理一名附近目标。天赋可延长图腾、成功驱散可减冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Shaman",
+    "specSlugs": [],
+    "scope": "team",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 6000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留长冷却团队特殊驱散。需要实际驱散结果，不把空图腾默认当作成功清毒。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=383013"
+        }
+      ]
+    },
+    "category": "自定义",
+    "color": "#0070dd",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000139",
+    "spellId": 8143,
+    "name": "战栗图腾",
+    "description": "移除附近团队成员的恐惧、魅惑和睡眠\n基础 60 秒；图腾 10 秒。图腾师迅捷召回 445027 成功移除效果时减 5 秒；图腾集中可延长图腾。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Shaman",
+    "specSlugs": [],
+    "scope": "team",
+    "cooldownMs": 60000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "保留团队控制解除，55 秒为条件短 CD 例外。提前放置可以是计划用途；WCL 自动导入仍要有可验证生效，不能把空放当已处理控制。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=8143"
+        }
+      ]
+    },
+    "category": "自定义",
+    "color": "#0070dd",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000146",
+    "spellId": 108416,
+    "name": "黑暗契约",
+    "description": "消耗当前生命值形成护盾，吸收量与牺牲生命、法强有关。\n基础 60 秒；盾最多 20 秒。契约供体 386686：45 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Warlock",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 60000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 20000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "absorb",
+        "amount": null,
+        "allocation": "perTarget",
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留短冷却例外。可前置的个人大盾，不猜固定生命百分比护盾；不要求一定消耗完盾。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=108416"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#8788ee",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000147",
+    "spellId": 104773,
+    "name": "不灭决心",
+    "description": "全伤害降低 25%，免疫打断、沉默和施法推迟\n基础 180 秒；持续 8 秒。黑暗协约 386659：135 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Warlock",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 25,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。当前基础全减伤 25%，并抗打断／沉默／施法推迟；不沿用旧百分比。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=104773"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#8788ee",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000148",
+    "spellId": 452930,
+    "name": "恶魔治疗石",
+    "description": "基础即时恢复 25% 生命；当前强化治疗石 1271699 写明额外恢复 5%。\n基础物品使用 CD 60 秒。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Warlock",
+    "specSlugs": [],
+    "scope": "personal",
+    "cooldownMs": 60000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 0,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000000149",
+        "spellId": 452930,
+        "name": "灵魂燃烧",
+        "description": "强化治疗石，并在使用后暂时提高最大生命值 20%、持续 12 秒。\n灵魂燃烧准备动作 6 秒 CD；实际安排与治疗石共用 60 秒 CD，不能视作每 6 秒一次自疗。",
+        "overrides": {
+          "cooldownMs": 60000,
+          "castTimeMs": 0,
+          "durationMs": 12000,
+          "effects": [
+            {
+              "type": "maxHealth",
+              "percent": 20
+            }
+          ]
+        },
+        "limitations": [
+          "保留为 148 的单次施放变体。只开灵魂燃烧不建轴；用于传送门、吸取生命等用途不纳入。一个治疗石只能产生普通或强化其中一种安排。",
+          "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留原先批准的应急自疗。旧页面嵌入“再持续治疗 30%”与当前天赋／官方 12.0 说明冲突，本稿不采信该旧附效。无对应天赋不假定持有恶魔治疗石。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=452930"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#8788ee",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000156",
+    "spellId": 97462,
+    "name": "集结呐喊",
+    "description": "40 码团队当前与最大生命值提高 10%\n基础 180 秒；持续 10 秒；战地统帅 424742 会改变施法者自身收益／时长。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Warrior",
+    "specSlugs": [],
+    "scope": "team",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [
+      {
+        "type": "maxHealth",
+        "percent": 10
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留团队生命上限增益。团本基础 10%；不把非团队额外增益或施法者自己的天赋数值套到全团。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=97462"
+        }
+      ]
+    },
+    "category": "团队减伤",
+    "color": "#c69b6d",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000158",
+    "spellId": 118038,
+    "name": "剑在人在",
+    "description": "招架提高 100%，全伤害降低 30%\n基础 120 秒；持续 8 秒；干练反射 391271 可缩短 10%。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Warrior",
+    "specSlugs": [
+      "arms"
+    ],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 30,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。100% 招架与 30% 全减伤分别表示；不能写成全伤害免疫。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=118038"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#c69b6d",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000159",
+    "spellId": 184364,
+    "name": "狂怒回复",
+    "description": "全伤害降低 30%，强化嗜血自疗\n基础 120 秒；持续 8 秒；干练反射减 CD，狂怒提振 383468 可延长 3 秒并附加即时治疗。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Warrior",
+    "specSlugs": [
+      "fury"
+    ],
+    "scope": "personal",
+    "cooldownMs": 120000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 30,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [],
+    "limitations": [
+      "保留。30% 减伤与嗜血自疗强化属于同次防御窗口，不把嗜血每次命中拆成安排。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=184364"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#c69b6d",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000162",
+    "spellId": 871,
+    "name": "盾墙",
+    "description": "全伤害降低 40%\n基础充能 180 秒、1 充能；持续 8 秒。护卫神盾 397103：增加 1 充能、减 CD 60 秒；愤怒掌控 152278、磐固壁垒 384072 等动态缩冷却。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Warrior",
+    "specSlugs": [
+      "protection"
+    ],
+    "scope": "personal",
+    "cooldownMs": 180000,
+    "castType": "instant",
+    "castTimeMs": 0,
+    "durationMs": 8000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": 1,
+    "effects": [
+      {
+        "type": "damageReduction",
+        "percent": 40,
+        "schools": [
+          "physical",
+          "magic"
+        ]
+      }
+    ],
+    "variants": [
+      {
+        "id": "70000000-0000-4000-8000-000000010162",
+        "spellId": 871,
+        "name": "双充能（天赋）",
+        "talentSpellId": 397103,
+        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
+        "overrides": {
+          "maxCharges": 2,
+          "cooldownMs": 120000
+        },
+        "limitations": [
+          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
+        ]
+      }
+    ],
+    "limitations": [
+      "保留。破釜沉舟当前只是盾墙天赋附效，不单列；同一防战可能连续使用双充能，不能被去重或固定 CD 吞掉。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=871"
+        }
+      ]
+    },
+    "category": "个人减伤",
+    "color": "#c69b6d",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000173",
+    "spellId": 120517,
+    "name": "光晕",
+    "description": "环形群体治疗；对应英雄天赋增加重复波、回程治疗及治疗增益。\n基础 60 秒；施法 1.5 秒。英雄天赋产生后续重复波及回程波，最长窗口依天赋、传播和实际治疗事件确认。",
+    "gameVersion": "retail-12.1",
+    "classSlug": "Priest",
+    "specSlugs": [
+      "holy"
+    ],
+    "scope": "team",
+    "cooldownMs": 60000,
+    "castType": "cast",
+    "castTimeMs": 1500,
+    "durationMs": 10000,
+    "triggersGcd": null,
+    "maxCharges": 1,
+    "maxTargets": null,
+    "effects": [],
+    "variants": [],
+    "limitations": [
+      "本轮补漏并纳入。是可预定的一分钟群体治疗窗口，不是普通单体治疗；一次主动施放及全部自动后续波只生成一项安排。",
+      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+    ],
+    "verification": {
+      "gameVersion": "retail-12.1",
+      "checkedAt": 1788566400000,
+      "sources": [
+        {
+          "kind": "community",
+          "label": "12.1 正式服技能数据与人工范围复核",
+          "url": "https://www.wowhead.com/cn/spell=120517"
+        }
+      ]
+    },
+    "category": "治疗",
+    "color": "#ffffff",
+    "dataStatus": "needs-live-check",
+    "enabled": true
+  }
+]

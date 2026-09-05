@@ -137,15 +137,17 @@ test("WCL client reports authentication and GraphQL failures without leaking sec
 
 test("WCL client reads anonymous fight metadata and follows event pagination", async () => {
   let apiCalls = 0;
+  let difficulty = 5, revision = 45, pageRevision = 45;
   const fetchImpl: typeof fetch = async (input, init) => {
     if (String(input).endsWith("/oauth/token")) return Response.json({ access_token: "event-token", expires_in: 3600 });
     apiCalls += 1;
     const body = JSON.parse(String(init?.body)) as { query: string; variables: Record<string, unknown> };
     if (body.query.includes("RaidlineFightMetadata")) {
+      assert.doesNotMatch(body.query, /actors\s*\{[^}]*\bname\b|playerDetails/);
       return Response.json({ data: { reportData: { report: {
         code: "LgdFn8NyAGRqWT3V",
         visibility: "public",
-        revision: 45,
+        revision,
         startTime: 1_787_653_286_382,
         zone: { id: 53 },
         masterData: {
@@ -161,7 +163,7 @@ test("WCL client reads anonymous fight metadata and follows event pagination", a
           id: 64,
           encounterID: 3455,
           name: "万毒邪祟者瓦什尼克",
-          difficulty: 5,
+          difficulty,
           kill: true,
           startTime: 18_932_777,
           endTime: 19_378_225,
@@ -176,15 +178,21 @@ test("WCL client reads anonymous fight metadata and follows event pagination", a
       } } } });
     }
     assert.match(body.query, /RaidlineFightEvents/);
+    assert.match(body.query, /useActorIDs: true/);
+    assert.match(body.query, /includeResources: false/);
     assert.match(body.query, /filterExpression/);
+    if (body.variables.dataType === "All") {
+      assert.equal(body.variables.filterExpression, 'type IN ("death", "resurrect")');
+      return Response.json({ data: { reportData: { report: { revision: pageRevision, events: { data: [], nextPageTimestamp: null } } } } });
+    }
     assert.equal(body.variables.filterExpression, "ability.id IN (1280935, 1284563)");
     if (body.variables.startTime === 18_932_777) {
-      return Response.json({ data: { reportData: { report: { events: {
+      return Response.json({ data: { reportData: { report: { revision: pageRevision, events: {
         data: [{ timestamp: 18_940_797, type: "begincast", sourceID: 10, targetID: -1, abilityGameID: 1280935 }],
         nextPageTimestamp: 19_000_000,
       } } } } });
     }
-    return Response.json({ data: { reportData: { report: { events: { data: [], nextPageTimestamp: null } } } } });
+    return Response.json({ data: { reportData: { report: { revision: pageRevision, events: { data: [], nextPageTimestamp: null } } } } });
   };
   const client = createWclClient({
     clientId: "fixture-client",
@@ -207,4 +215,16 @@ test("WCL client reads anonymous fight metadata and follows event pagination", a
   assert.equal(bundle.series[0].events.length, 1);
   assert.equal(apiCalls, 3);
   assert.doesNotMatch(JSON.stringify(bundle), /event-token|fixture-secret|authorization/i);
+  const before = apiCalls;
+  difficulty = 4;
+  await assert.rejects(() => client.readFightEvents("LgdFn8NyAGRqWT3V", 64, [filteredRequest]), /史诗/);
+  assert.equal(apiCalls, before + 1, "non-mythic metadata must stop before event reads");
+  difficulty = 5; revision = 46;
+  await assert.rejects(() => client.readFightEvents("LgdFn8NyAGRqWT3V", 64, [filteredRequest], { encounterId: 3455, reportRevision: 45, gameVersion: 1, startTime: 18_932_777, endTime: 19_378_225 }), error => error instanceof WclClientError && error.code === "WCL_REPORT_CHANGED");
+  assert.equal(apiCalls, before + 2, "changed metadata must stop before event reads");
+  revision = 45; pageRevision = 46;
+  await assert.rejects(() => client.readFightEvents("LgdFn8NyAGRqWT3V", 64, [filteredRequest]), error => error instanceof WclClientError && error.code === "WCL_REPORT_CHANGED");
+  pageRevision = 45;
+  await assert.rejects(() => client.readFightEvents("LgdFn8NyAGRqWT3V", 64, [{ dataType: "All" }]), /禁止/);
+  assert.equal((await client.readFightEvents("LgdFn8NyAGRqWT3V", 64, [{ dataType: "All", lifecycleOnly: true }])).pageCount, 1);
 });

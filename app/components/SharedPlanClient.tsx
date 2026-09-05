@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buildTimelineScene, detectConflicts, exportPlan, formatTime, resolveDirectiveTime, resolveMechanicPoint, resolveTimelineAnchor } from "@/lib/core";
 import { specializationLabel, WOW_CLASS_LABELS } from "@/lib/cooldowns";
-import { resolveSkillForMember, skillDataStatusLabel } from "@/lib/skills";
+import { resolveSkillForAssignment, skillDataStatusLabel } from "@/lib/skills";
+import { skillAssignmentNoteText, skillEffectText, tacticalDirectiveText } from "@/lib/plan-presentation";
 import type { ApiError, MemberSelector, PublicPublication, RaidPlanDocument } from "@/lib/types";
 import { anchoredScroll, clampZoom, defaultOrientation, MIN_ZOOM, shouldInterceptTimelineWheel, viewPreferenceKey, zoomFromWheel, type MechanicLaneMode, type TimelineOrientation } from "@/lib/view";
 import { ThemeControl } from "./ThemeControl";
@@ -37,23 +38,22 @@ function ReadonlyDetails({ plan, selection }: { plan: RaidPlanDocument; selectio
   const assignment = selection.type === "assignment" ? plan.timeline.skillAssignments.find((item) => item.id === selection.id) : undefined;
 
   if (member) {
-    const groups = member.groupIds.map((id) => plan.roster.groups.find((item) => item.id === id)?.name).filter(Boolean).join("、") || "未分组";
-    return <div className="inspector readonly-inspector"><header><h2>{member.name}</h2><span>成员槽位</span></header><ReadonlyField label="职业" value={member.classSlug ? WOW_CLASS_LABELS[member.classSlug] ?? member.classSlug : "未设置"} /><ReadonlyField label="专精" value={specializationLabel(member.classSlug ?? "", member.specSlug ?? "")} /><ReadonlyField label="职责" value={member.role ? roleLabels[member.role] : "未设置"} /><ReadonlyField label="小队" value={member.subgroup ? `${member.subgroup} 队` : "未指定"} /><ReadonlyField label="策略组" value={groups} /></div>;
+    return <div className="inspector readonly-inspector"><header><h2>{member.name}</h2><span>成员槽位</span></header><ReadonlyField label="职业" value={member.classSlug ? WOW_CLASS_LABELS[member.classSlug] ?? member.classSlug : "未设置"} /><ReadonlyField label="专精" value={specializationLabel(member.classSlug ?? "", member.specSlug ?? "")} /><ReadonlyField label="职责" value={member.role ? roleLabels[member.role] : "未设置"} /></div>;
   }
   if (phase) return <div className="inspector readonly-inspector"><header><h2>{phase.name}</h2><span>阶段 {phase.ordinal}</span></header><ReadonlyField label="预计开始" value={formatTime(phase.estimatedStartMs)} /><p className="field-note">阶段预计时间用于布局、检查和无法表达事件触发时的导出降级。</p></div>;
   if (directive) {
     const resolved = resolveDirectiveTime(plan, directive);
     const directiveScope = directive.scope;
     const scopeLabel = directiveScope.kind === "plan" ? "全计划" : directiveScope.kind === "phase" ? `整个 ${plan.timeline.phases.find((item) => item.id === directiveScope.phaseId)?.name ?? "未知阶段"}` : resolved?.ok ? formatTime(resolved.atMs) : "无法解析";
-    return <div className="inspector readonly-inspector"><header><h2>{directive.kind === "task" ? "战术任务" : "说明"}</h2><span>{directive.kind.toUpperCase()}</span></header><ReadonlyField label="范围" value={scopeLabel} /><ReadonlyField label="内容" value={directive.text || "空内容"} multiline />{directive.kind === "task" && <><ReadonlyField label="执行者" value={selectorLabel(plan, directive.assignees)} /><ReadonlyField label="提前提醒" value={directive.reminder ? `${directive.reminder.leadMs / 1000} 秒` : "无"} /></>}</div>;
+    return <div className="inspector readonly-inspector"><header><h2>{directive.kind === "task" ? "战术任务" : "说明"}</h2><span>{directive.kind.toUpperCase()}</span></header><ReadonlyField label="范围" value={scopeLabel} /><ReadonlyField label="内容" value={tacticalDirectiveText(directive) || "空内容"} multiline />{directive.kind === "task" && <><ReadonlyField label="执行者" value={selectorLabel(plan, directive.assignees)} /><ReadonlyField label="提前提醒" value={directive.reminder ? `${directive.reminder.leadMs / 1000} 秒` : "无"} /></>}</div>;
   }
   if (occurrence) {
     const definition = plan.definitions.mechanics.find((item) => item.id === occurrence.definitionId); const start = resolveMechanicPoint(plan, occurrence.id, "cast-start"); const impact = resolveMechanicPoint(plan, occurrence.id, "impact"); const end = resolveMechanicPoint(plan, occurrence.id, "end");
     return <div className="inspector readonly-inspector"><header><h2>{definition?.name ?? "未知机制"}</h2><span>机制实例</span></header><ReadonlyField label="施法开始" value={start.ok ? formatTime(start.atMs) : "无法解析"} /><ReadonlyField label="命中" value={impact.ok ? formatTime(impact.atMs) : "无法解析"} /><ReadonlyField label="结束" value={end.ok ? formatTime(end.atMs) : "无法解析"} /><ReadonlyField label="说明" value={definition?.description || "暂无说明"} multiline />{definition && <ReadonlyField label="核准状态" value={skillDataStatusLabel(definition.dataStatus)} />}</div>;
   }
   if (assignment) {
-    const memberName = plan.roster.members.find((item) => item.id === assignment.memberId)?.name ?? "未知成员"; const skill = resolveSkillForMember(plan, assignment.memberId, assignment.skillDefinitionId); const time = resolveTimelineAnchor(plan, assignment.anchor);
-    return <div className="inspector readonly-inspector"><header><h2>{skill?.name ?? "未知技能"}</h2><span>{skill ? skillDataStatusLabel(skill.dataStatus) : "技能安排"}</span></header><ReadonlyField label="成员" value={memberName} />{skill?.selectedVariant && <ReadonlyField label="变体" value={skill.selectedVariant.name} />}<ReadonlyField label="开始时间" value={time.ok ? formatTime(time.atMs) : "无法解析"} />{skill && <ReadonlyField label="技能时间" value={`${skill.cooldownMs == null ? "冷却待补" : `${skill.cooldownMs / 1000} 秒冷却`} · ${skill.maxCharges} 层充能 · ${skill.castType === "channel" ? "引导" : skill.castType === "cast" ? "读条" : skill.castType === "instant" ? "瞬发" : "施法待补"}`} />}{skill?.limitations.map((limitation) => <ReadonlyField key={limitation} label="计算限制" value={limitation} multiline />)}{assignment.note && <ReadonlyField label="备注" value={assignment.note} multiline />}</div>;
+    const memberName = plan.roster.members.find((item) => item.id === assignment.memberId)?.name ?? "未知成员"; const skill = resolveSkillForAssignment(plan, assignment); const time = resolveTimelineAnchor(plan, assignment.anchor);
+    return <div className="inspector readonly-inspector"><header><h2>{skill?.name ?? "未知技能"}</h2><span>{skill ? skillDataStatusLabel(skill.dataStatus) : "技能安排"}</span></header><ReadonlyField label="成员" value={memberName} />{skill?.selectedVariant && <ReadonlyField label="变体" value={skill.selectedVariant.name} />}<ReadonlyField label="开始时间" value={time.ok ? formatTime(time.atMs) : "无法解析"} />{skill && <ReadonlyField label="技能时间" value={`${skill.cooldownMs == null ? "冷却待补" : `${skill.cooldownMs / 1000} 秒冷却`} · ${skill.maxCharges} 层充能 · ${skill.castType === "channel" ? "引导" : skill.castType === "cast" ? "读条" : skill.castType === "instant" ? "瞬发" : "施法待补"}`} />}{skill && <ReadonlyField label="技能效果" value={skillEffectText(skill)} multiline />}{skillAssignmentNoteText(assignment) && <ReadonlyField label="备注" value={skillAssignmentNoteText(assignment)} multiline />}</div>;
   }
   return <div className="context-empty"><strong>对象已不存在</strong><p>它可能已从发布版本中移除。</p></div>;
 }

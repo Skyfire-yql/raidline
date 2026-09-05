@@ -1,7 +1,23 @@
-import type { PlayerSkillDefinitionSnapshot, RaidPlanDocument, RosterSlot, SkillDataStatus, SkillVariant } from "./types";
+import type { PlayerSkillDefinitionSnapshot, RaidPlanDocument, RosterSlot, SkillAssignment, SkillDataStatus, SkillTargetSelector, SkillVariant } from "./types";
 
 export interface ResolvedSkillDefinition extends PlayerSkillDefinitionSnapshot {
   selectedVariant?: SkillVariant;
+}
+
+export type SkillTargetMode = "all" | "self";
+
+export function skillTargetMode(target: SkillTargetSelector, memberId: string): SkillTargetMode | null {
+  if (target.kind === "all") return "all";
+  if (target.kind === "members" && target.memberIds.length === 1 && target.memberIds[0] === memberId) return "self";
+  return null;
+}
+
+export function skillTargetsForMode(mode: SkillTargetMode, memberId: string): SkillTargetSelector {
+  return mode === "self" ? { kind: "members", memberIds: [memberId] } : { kind: "all" };
+}
+
+export function defaultSkillTargets(skill: Pick<PlayerSkillDefinitionSnapshot, "scope">, memberId: string): SkillTargetSelector {
+  return skillTargetsForMode(skill.scope === "personal" ? "self" : "all", memberId);
 }
 
 export function memberSkillVariantId(plan: RaidPlanDocument, memberId: string, skillDefinitionId: string) {
@@ -19,6 +35,7 @@ export function resolveSkillVariant(skill: PlayerSkillDefinitionSnapshot, varian
   const overrides = selectedVariant.overrides;
   return {
     ...skill,
+    ...(selectedVariant.spellId ? { spellId: selectedVariant.spellId } : {}),
     ...(overrides.cooldownMs !== undefined ? { cooldownMs: overrides.cooldownMs } : {}),
     ...(overrides.castType !== undefined ? { castType: overrides.castType } : {}),
     ...(overrides.castTimeMs !== undefined ? { castTimeMs: overrides.castTimeMs } : {}),
@@ -36,6 +53,13 @@ export function resolveSkillForMember(plan: RaidPlanDocument, memberId: string, 
   const skill = typeof skillOrId === "string" ? plan.definitions.skills.find((item) => item.id === skillOrId) : skillOrId;
   if (!skill) return undefined;
   return resolveSkillVariant(skill, memberSkillVariantId(plan, memberId, skill.id));
+}
+
+export function resolveSkillForAssignment(plan: RaidPlanDocument, assignment: SkillAssignment): ResolvedSkillDefinition | undefined {
+  const definition = plan.definitions.skills.find(item => item.id === assignment.skillDefinitionId);
+  if (!definition) return undefined;
+  const skill = resolveSkillVariant(definition, assignment.variantId ?? memberSkillVariantId(plan, assignment.memberId, definition.id));
+  return assignment.timing ? { ...skill, castTimeMs: assignment.timing.castTimeMs, durationMs: assignment.timing.durationMs } : skill;
 }
 
 export function skillAvailableToMember(skill: PlayerSkillDefinitionSnapshot, member: Pick<RosterSlot, "classSlug" | "specSlug">) {

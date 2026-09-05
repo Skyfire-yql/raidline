@@ -136,7 +136,7 @@ test("global player extraction profiles stay independent from encounter rules", 
     profileVersion: 3,
     status: "published",
     collectionRules: [{ id: uuid(), enabled: true, dataType: "casts", hostility: "friendly", abilityGameIds: [62_618], uses: ["timeline"], purpose: "全局玩家减伤提取" }],
-    extractionRules: [{ id: uuid(), enabled: true, definitionId: uuid(), match: { eventTypes: ["cast-success"], abilityGameIds: [62_618], sourceActorType: "player" }, timingPoint: "impact", notes: "全局技能目录引用", verification: { reviewedAt: 1_800_000_000_000, sourceReportCodes: ["ABC123"] } }],
+    extractionRules: [{ id: uuid(), enabled: true, definitionId: uuid(), match: { eventTypes: ["cast-success"], abilityGameIds: [62_618], sourceActorType: "player" }, timingPoint: "cast-start", confirmation: { eventTypes: ["aura-applied"], abilityGameIds: [81782], windowMs: 2000, target: "friendly", minimumTargets: 1 }, notes: "全局技能目录引用", verification: { reviewedAt: 1_800_000_000_000, sourceReportCodes: [], status: "fixture-verified", evidence: ["synthetic fixture"] } }],
     notes: "不包含 encounterId",
   });
   assert.deepEqual(selectPublishedPlayerSkillProfile([profile], { gameVersion: "retail-12.1", profileVersion: 3 }), profile);

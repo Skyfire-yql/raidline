@@ -67,6 +67,7 @@ export type WclClientErrorCode =
   | "WCL_NETWORK_FAILED"
   | "WCL_RATE_LIMITED"
   | "WCL_REPORT_NOT_FOUND"
+  | "WCL_REPORT_CHANGED"
   | "WCL_RESPONSE_INVALID";
 
 export class InvalidWclReportUrlError extends Error {

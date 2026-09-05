@@ -74,6 +74,7 @@ function bundle(): WclFightEventBundle {
       enemyPets: [],
     },
     series: [
+      { request: { dataType: "CombatantInfo", hostilityType: "Friendlies" }, pageCount: 1, events: [64, 257, 73, 105, 270].map((specID, index) => ({ type: "combatantinfo", timestamp: metadata.fightStartReportMs, sourceID: index + 1, specID })) },
       {
         request: { dataType: "Casts", hostilityType: "Enemies" },
         pageCount: 1,
@@ -130,8 +131,8 @@ function bundle(): WclFightEventBundle {
         ],
       },
     ],
-    fetchedEventCount: 31,
-    pageCount: 4,
+    fetchedEventCount: 36,
+    pageCount: 5,
   };
 }
 
@@ -161,11 +162,13 @@ test("encounter 3455 exposes only the current live profile", () => {
 
 test("event query planning reads both provider views and pushes complete ability allowlists to WCL", () => {
   const requests = eventRequestsForProfiles(liveVashnikProfile, playerSkillExtractionProfiles[0]);
-  assert.equal(requests.length, 8);
+  assert.equal(requests.length, 14);
   const profileRules = [...liveVashnikProfile.collectionRules, ...playerSkillExtractionProfiles[0].collectionRules];
   const collectionDataTypes = {
     Buffs: "buffs",
     Casts: "casts",
+    CombatantInfo: "combatant-info",
+    All: "deaths",
     DamageDone: "damage",
     Deaths: "deaths",
     Debuffs: "debuffs",
@@ -184,7 +187,7 @@ test("event query planning reads both provider views and pushes complete ability
       `${request.dataType} should push the published profile ability allowlist into the WCL request`,
     );
   }
-  for (const dataType of ["Casts", "DamageDone", "Deaths", "Debuffs"] as const) {
+  for (const dataType of ["Casts", "DamageDone", "Debuffs"] as const) {
     assert.deepEqual(
       requests.filter((request) => request.dataType === dataType).map((request) => request.hostilityType).sort(),
       ["Enemies", "Friendlies"],
@@ -199,7 +202,8 @@ test("anonymous live events infer profile-scoped unlisted enemy NPCs, convert an
   assert.ok(snapshot.actors.some((actor) => actor.name === "玩家 1"));
   assert.ok(snapshot.actors.some((actor) => actor.name === "NPC 269430"));
   assert.ok(snapshot.events.some((event) => event.abilityGameId === 1_280_189 && event.type === "cast-start"));
-  assert.doesNotMatch(JSON.stringify(snapshot), /"Mage"/);
+  assert.equal(snapshot.actors.find(actor => actor.reportActorId === 1)?.classSlug, "Mage");
+  assert.equal(snapshot.actors.find(actor => actor.reportActorId === 1)?.specSlug, "frost");
   assert.doesNotMatch(JSON.stringify(snapshot), /access[_-]?token|client[_-]?secret/i);
 
   const draft = convertCombatLogSnapshotToDraft(snapshot, liveVashnikProfile);
@@ -303,7 +307,7 @@ test("WCL import preview exposes only an anonymous strict plan boundary", async 
     async readFightEvents(reportCode, fightId, requests) {
       assert.equal(reportCode, metadata.reportCode);
       assert.equal(fightId, metadata.fightId);
-      assert.ok(requests.every((request) => request.dataType === "Deaths" || Boolean(request.abilityGameIds?.length)));
+      assert.ok(requests.every((request) => request.lifecycleOnly || request.dataType === "CombatantInfo" || Boolean(request.abilityGameIds?.length)));
       return bundle();
     },
   };
@@ -319,8 +323,26 @@ test("WCL import preview exposes only an anonymous strict plan boundary", async 
   assert.equal(preview.encounterProfile.profileVersion, 3);
   assert.equal(preview.warningCount, 0);
   assert.equal(preview.unresolvedEventCount, 0);
-  assert.equal(preview.plan.roster.members.length, 0);
+  assert.equal(preview.plan.roster.members.length, 5);
+  assert.deepEqual(preview.plan.roster.members.map(member => member.role), ["tank", "healer", "healer", "healer", "damage"]);
   assert.doesNotMatch(serialized, /"(?:actors|events|headers)":/i);
   assert.doesNotMatch(serialized, /玩家\s*\d+/);
   assert.doesNotMatch(serialized, /access[_-]?token|client[_-]?secret|authorization|bearer\s/i);
+});
+
+test("normalization strips combatant payloads, keeps reliable specs and has stable deduplicated hashes", async () => {
+  const input = bundle();
+  const info = input.series.find(series => series.request.dataType === "CombatantInfo")!;
+  info.events[0] = { ...(info.events[0] as object), name: "DO_NOT_COPY_NAME", gear: [{ name: "DO_NOT_COPY_GEAR" }], talentTree: [123] };
+  const first = await normalizeWclFightBundle(input, metadata, liveVashnikProfile, playerSkillExtractionProfiles[0]);
+  const repeated = structuredClone(input);
+  repeated.series.push(structuredClone(repeated.series[1]));
+  const second = await normalizeWclFightBundle(repeated, metadata, liveVashnikProfile, playerSkillExtractionProfiles[0]);
+  assert.equal(first.contentHash, second.contentHash);
+  assert.equal(first.events.length, second.events.length);
+  assert.doesNotMatch(JSON.stringify(first), /DO_NOT_COPY|gear|talentTree/);
+  assert.equal(first.actors.find(actor => actor.reportActorId === 1)?.specSlug, "frost");
+  info.events.push({ type: "combatantinfo", sourceID: 1, specID: 63 });
+  const conflict = await normalizeWclFightBundle(input, metadata, liveVashnikProfile, playerSkillExtractionProfiles[0]);
+  assert.equal(conflict.actors.find(actor => actor.reportActorId === 1)?.specSlug, undefined);
 });

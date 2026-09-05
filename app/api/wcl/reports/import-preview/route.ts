@@ -22,17 +22,21 @@ const RequestSchema = z.strictObject({
 });
 
 export async function POST(request: Request) {
+  const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return jsonError("INVALID_WCL_IMPORT", "WCL 导入请求格式无效", 422);
   try {
-    const payload = RequestSchema.parse(await request.json());
+    const payload = parsed.data;
     const link = parseWclReportUrl(payload.url);
     if (typeof link.fight === "number" && link.fight !== payload.fightId) {
       return jsonError("WCL_FIGHT_MISMATCH", "链接中的 fight 与当前选择不一致，请重新读取报告", 422);
     }
     return jsonData(await createWclImportPreview(getWclClient(), link, payload.fightId));
   } catch (error) {
-    if (error instanceof InvalidWclReportUrlError || error instanceof z.ZodError) {
+    if (error instanceof InvalidWclReportUrlError) {
       return jsonError("INVALID_WCL_IMPORT", error instanceof Error ? error.message : "WCL 导入请求无效", 422);
     }
+    if (error instanceof z.ZodError) return jsonError("WCL_RESPONSE_INVALID", "WCL 数据无法通过严格结构校验，未创建计划", 502);
+    if (error instanceof Error && error.message === "计划内容超过 1 MB 限制") return jsonError("WCL_PLAN_TOO_LARGE", "候选计划超过 1 MB，未创建或截断计划；请选择更短战斗", 413);
     if (error instanceof WclConfigurationError) return jsonError(error.code, error.message, 503);
     if (error instanceof WclClientError) return jsonError(error.code, error.message, error.status, { retryable: error.retryable });
     if (error instanceof UnsupportedDifficultyError) return jsonError(error.code, error.message, 422);

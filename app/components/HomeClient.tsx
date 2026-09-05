@@ -1,11 +1,12 @@
 "use client";
 /* eslint-disable @next/next/no-html-link-for-pages -- Vinext's client runtime does not use the Next Link shim. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { applyCatalogPreset, SEED_CATALOG } from "@/lib/catalog";
 import { createBlankPlan } from "@/lib/core";
-import { selectWclImportMechanics, type WclImportPreview } from "@/lib/wcl-import";
+import { selectWclImportContent, type WclImportPreview } from "@/lib/wcl-import";
+import { WclPlayerImportPreview } from "./WclPlayerImportPreview";
 import type { ApiError, CatalogRelease, LocalPlanRecord } from "@/lib/types";
 import type { WclFightSummary, WclReportProbeResult } from "@/lib/wcl-report";
 import {
@@ -56,6 +57,11 @@ export function HomeClient() {
   const [wclImportBusy, setWclImportBusy] = useState(false);
   const [wclImportPreview, setWclImportPreview] = useState<WclImportPreview | null>(null);
   const [selectedMechanicIds, setSelectedMechanicIds] = useState<string[]>([]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [selectedAssignmentIds, setSelectedAssignmentIds] = useState<string[]>([]);
+  const [selectedDirectiveIds, setSelectedDirectiveIds] = useState<string[]>([]);
+  const requestVersion = useRef(0);
+  const creatingImport = useRef(false);
 
   async function refreshPlans() {
     setPlans(await listLocalPlans());
@@ -108,7 +114,8 @@ export function HomeClient() {
 
   async function probeWclReport(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setWclBusy(true); setWclError(""); setWclProbe(null); setSelectedFightId(null); setWclImportPreview(null); setSelectedMechanicIds([]);
+    const version = ++requestVersion.current;
+    setWclBusy(true); setWclImportBusy(false); setWclError(""); setWclProbe(null); setSelectedFightId(null); setWclImportPreview(null); setSelectedMechanicIds([]);
     try {
       const response = await fetch("/api/wcl/reports/probe", {
         method: "POST",
@@ -116,6 +123,7 @@ export function HomeClient() {
         body: JSON.stringify({ url: wclUrl }),
       });
       const payload = await response.json() as { data?: WclReportProbeResult; error?: ApiError };
+      if (version !== requestVersion.current) return;
       if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "无法读取 WCL 报告");
       const data = payload.data;
       const initialFightId = data.selectedFightId
@@ -126,14 +134,15 @@ export function HomeClient() {
       setWclProbe(data);
       setSelectedFightId(initialFightId);
     } catch (caught) {
-      setWclError(caught instanceof Error ? caught.message : "无法读取 WCL 报告");
+      if (version === requestVersion.current) setWclError(caught instanceof Error ? caught.message : "无法读取 WCL 报告");
     } finally {
-      setWclBusy(false);
+      if (version === requestVersion.current) setWclBusy(false);
     }
   }
 
   async function previewWclEvents() {
     if (!selectedFightId) return;
+    const version = ++requestVersion.current;
     setWclImportBusy(true); setWclError(""); setWclImportPreview(null); setSelectedMechanicIds([]);
     try {
       const response = await fetch("/api/wcl/reports/import-preview", {
@@ -142,26 +151,32 @@ export function HomeClient() {
         body: JSON.stringify({ url: wclUrl, fightId: selectedFightId }),
       });
       const payload = await response.json() as { data?: WclImportPreview; error?: ApiError };
+      if (version !== requestVersion.current) return;
       if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "无法解析 WCL 事件");
       setWclImportPreview(payload.data);
       setSelectedMechanicIds(payload.data.mechanics.map((mechanic) => mechanic.candidateId));
+      setSelectedMemberIds(payload.data.plan.roster.members.map(member => member.id));
+      setSelectedAssignmentIds(payload.data.skills.map(skill => skill.candidateId));
+      setSelectedDirectiveIds(payload.data.plan.timeline.directives.map(note => note.id));
     } catch (caught) {
-      setWclError(caught instanceof Error ? caught.message : "无法解析 WCL 事件");
+      if (version === requestVersion.current) setWclError(caught instanceof Error ? caught.message : "无法解析 WCL 事件");
     } finally {
-      setWclImportBusy(false);
+      if (version === requestVersion.current) setWclImportBusy(false);
     }
   }
 
   async function createImportedPlan() {
-    if (!wclImportPreview) return;
+    if (!wclImportPreview || creatingImport.current) return;
+    creatingImport.current = true;
     setBusy("wcl-import"); setError("");
     try {
-      const document = selectWclImportMechanics(wclImportPreview.plan, selectedMechanicIds);
+      const document = selectWclImportContent(wclImportPreview.plan, { mechanicIds: selectedMechanicIds, memberIds: selectedMemberIds, assignmentIds: selectedAssignmentIds, directiveIds: selectedDirectiveIds });
       const record = await createLocalPlan(document);
       router.push(`/plans/${record.id}`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "导入计划失败");
       setBusy("");
+      creatingImport.current = false;
     }
   }
 
@@ -200,7 +215,7 @@ export function HomeClient() {
               <input
                 type="url"
                 value={wclUrl}
-                onChange={(event) => { setWclUrl(event.target.value); setWclImportPreview(null); setSelectedMechanicIds([]); }}
+                onChange={(event) => { requestVersion.current += 1; setWclBusy(false); setWclImportBusy(false); setWclUrl(event.target.value); setWclProbe(null); setSelectedFightId(null); setWclImportPreview(null); setSelectedMechanicIds([]); }}
                 placeholder="粘贴 cn.warcraftlogs.com/reports/..."
                 required
               />
@@ -213,7 +228,7 @@ export function HomeClient() {
             <div className="wcl-report-summary">
               <span><strong>{wclProbe.report.title}</strong><small>{wclProbe.report.zone?.name ?? "未知区域"} · revision {wclProbe.report.revision}</small></span>
               <label>选择战斗
-                <select value={selectedFightId ?? ""} onChange={(event) => { setSelectedFightId(Number(event.target.value)); setWclImportPreview(null); setSelectedMechanicIds([]); setWclError(""); }}>
+                <select value={selectedFightId ?? ""} onChange={(event) => { requestVersion.current += 1; setWclBusy(false); setWclImportBusy(false); setSelectedFightId(Number(event.target.value)); setWclImportPreview(null); setSelectedMechanicIds([]); setWclError(""); }}>
                   {encounterGroups.map(([encounterId, encounterName]) => <optgroup key={encounterId} label={encounterName}>
                     {wclProbe.fights.filter((fight) => fight.encounterId === encounterId).map((fight) => <option key={fight.id} value={fight.id}>
                       #{fight.id} · {fightResultLabel(fight)} · {durationLabel(fight.durationMs)} · {difficultyLabel(fight)}
@@ -242,8 +257,8 @@ export function HomeClient() {
               {wclImportPreview && <div className="wcl-import-preview">
                 <div className="wcl-import-stats">
                   <span><strong>{wclImportPreview.mechanics.length}</strong><small>机制候选</small></span>
-                  <span><strong>{wclImportPreview.retainedEventCount}</strong><small>保留事件</small></span>
-                  <span><strong>{wclImportPreview.fetchedEventCount}</strong><small>读取事件</small></span>
+                  <span><strong>{wclImportPreview.plan.roster.members.length}</strong><small>匿名成员</small></span>
+                  <span><strong>{wclImportPreview.skills.length}</strong><small>实际技能</small></span>
                   <span><strong>{wclImportPreview.pageCount}</strong><small>事件页</small></span>
                 </div>
                 {(wclImportPreview.warningCount > 0 || wclImportPreview.unresolvedEventCount > 0) && <p className="wcl-import-diagnostics">
@@ -270,8 +285,10 @@ export function HomeClient() {
                   </label>)}
                   {!wclImportPreview.mechanics.length && <p>已读取事件，但当前 profile 没有生成机制候选。</p>}
                 </div>
-                <button className="primary-action wcl-create-plan" type="button" onClick={createImportedPlan} disabled={Boolean(busy) || selectedMechanicIds.length === 0}>
-                  导入 {selectedMechanicIds.length} 个机制并创建本地计划
+                <WclPlayerImportPreview preview={wclImportPreview} memberIds={selectedMemberIds} assignmentIds={selectedAssignmentIds} onSelection={(members, assignments) => { setSelectedMemberIds(members); setSelectedAssignmentIds(assignments); }} />
+                {wclImportPreview.plan.timeline.directives.length > 0 && <section aria-label="团队增益背景预览"><p>嗜血以背景色显示。</p>{wclImportPreview.plan.timeline.directives.map(note => <label className="checkbox-field" key={note.id}><input type="checkbox" checked={selectedDirectiveIds.includes(note.id)} onChange={event => setSelectedDirectiveIds(event.target.checked ? [...selectedDirectiveIds, note.id] : selectedDirectiveIds.filter(id => id !== note.id))} />{note.text} · {note.scope.kind === "timed" ? durationLabel(note.scope.anchor.offsetMs) : ""} · 持续 {durationLabel(note.durationMs ?? 0)}</label>)}</section>}
+                <button className="primary-action wcl-create-plan" type="button" onClick={createImportedPlan} disabled={Boolean(busy) || selectedMechanicIds.length + selectedMemberIds.length + selectedAssignmentIds.length + selectedDirectiveIds.length === 0}>
+                  新建本地计划 · {selectedMechanicIds.length} 个机制 · {selectedMemberIds.length} 人 · {selectedAssignmentIds.length} 次技能
                 </button>
                 <p className="wcl-import-footnote">确认后只把严格 schema v1 计划写入本浏览器本地存储；不写服务器数据库、不发布分享。</p>
               </div>}

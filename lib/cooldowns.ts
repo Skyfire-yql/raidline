@@ -4,7 +4,7 @@ import type { PlayerSkillDefinitionSnapshot, RaidRole, RosterSlot } from "./type
 export const WOW_CLASS_COLORS: Record<string, string> = {
   DeathKnight: "#c41e3a", DemonHunter: "#a330c9", Druid: "#ff7c0a", Evoker: "#33937f",
   Hunter: "#aad372", Mage: "#3fc7eb", Monk: "#00ff98", Paladin: "#f48cba",
-  Priest: "#e7e7e7", Rogue: "#fff468", Shaman: "#0070dd", Warlock: "#8788ee", Warrior: "#c69b6d",
+  Priest: "#ffffff", Rogue: "#fff468", Shaman: "#0070dd", Warlock: "#8788ee", Warrior: "#c69b6d",
 };
 
 export const WOW_CLASS_LABELS: Record<string, string> = {
@@ -28,6 +28,7 @@ export const WOW_CLASS_SPECS: Record<string, WowSpecialization[]> = {
   DemonHunter: [
     { slug: "havoc", label: "浩劫", role: "damage" },
     { slug: "vengeance", label: "复仇", role: "tank" },
+    { slug: "devourer", label: "噬灭", role: "damage" },
   ],
   Druid: [
     { slug: "balance", label: "平衡", role: "damage" },
@@ -86,6 +87,36 @@ export const WOW_CLASS_SPECS: Record<string, WowSpecialization[]> = {
     { slug: "protection", label: "防护", role: "tank" },
   ],
 };
+
+export const RAID_ROLE_COLORS = { tank: "#1980e0", healer: "#4dcf29", damage: "#c41e3a" } as const;
+export const RAID_ROLE_BACKGROUNDS = { tank: "#d6e8f9", healer: "#dff6d8", damage: "#f4d7dc" } as const;
+
+export function compareRosterRoles(left: Pick<RosterSlot, "role">, right: Pick<RosterSlot, "role">) {
+  const order = { tank: 0, healer: 1, damage: 2 };
+  return (left.role ? order[left.role] : 3) - (right.role ? order[right.role] : 3);
+}
+
+// Blizzard specialization IDs. Unknown IDs remain unknown; no spell/name inference.
+const SPECIALIZATION_IDS: Record<number, [string, string]> = {
+  250: ["DeathKnight", "blood"], 251: ["DeathKnight", "frost"], 252: ["DeathKnight", "unholy"],
+  577: ["DemonHunter", "havoc"], 581: ["DemonHunter", "vengeance"], 1480: ["DemonHunter", "devourer"],
+  102: ["Druid", "balance"], 103: ["Druid", "feral"], 104: ["Druid", "guardian"], 105: ["Druid", "restoration"],
+  1467: ["Evoker", "devastation"], 1468: ["Evoker", "preservation"], 1473: ["Evoker", "augmentation"],
+  253: ["Hunter", "beast-mastery"], 254: ["Hunter", "marksmanship"], 255: ["Hunter", "survival"],
+  62: ["Mage", "arcane"], 63: ["Mage", "fire"], 64: ["Mage", "frost"],
+  268: ["Monk", "brewmaster"], 270: ["Monk", "mistweaver"], 269: ["Monk", "windwalker"],
+  65: ["Paladin", "holy"], 66: ["Paladin", "protection"], 70: ["Paladin", "retribution"],
+  256: ["Priest", "discipline"], 257: ["Priest", "holy"], 258: ["Priest", "shadow"],
+  259: ["Rogue", "assassination"], 260: ["Rogue", "outlaw"], 261: ["Rogue", "subtlety"],
+  262: ["Shaman", "elemental"], 263: ["Shaman", "enhancement"], 264: ["Shaman", "restoration"],
+  265: ["Warlock", "affliction"], 266: ["Warlock", "demonology"], 267: ["Warlock", "destruction"],
+  71: ["Warrior", "arms"], 72: ["Warrior", "fury"], 73: ["Warrior", "protection"],
+};
+
+export function specializationFromGameId(classSlug: string, id: number) {
+  const value = SPECIALIZATION_IDS[id];
+  return value?.[0] === classSlug ? specializationFor(classSlug, value[1]) : undefined;
+}
 
 export function specializationsForClass(classSlug: string) {
   return WOW_CLASS_SPECS[classSlug] ?? [];

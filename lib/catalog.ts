@@ -1,5 +1,7 @@
 import seedJson from "../data/catalog-seed.json" with { type: "json" };
 import vashnikCatalogJson from "../data/catalog-vashnik.json" with { type: "json" };
+import playerSkillsJson from "../data/player-skills-retail-12.1.json" with { type: "json" };
+import { CatalogSkillDefinitionSchema } from "./types";
 import { parseCatalogRelease, parsePlanDocument, type CatalogMechanicDefinition, type CatalogRelease, type CatalogSkillDefinition, type MechanicDefinitionSnapshot, type PlayerSkillDefinitionSnapshot, type RaidPlanDocument, type TimelinePreset } from "./types";
 
 const VERSION_PATTERN = /^[0-9A-Za-z][0-9A-Za-z._-]{0,79}$/;
@@ -53,9 +55,12 @@ const VASHNIK_SEED_CATALOG = validateCatalogRelease(vashnikCatalogJson);
 
 function builtInCatalog() {
   const release = structuredClone(BASE_SEED_CATALOG);
-  release.manifest.version = "builtin-seed-v5";
-  release.manifest.title = "Raidline vNext 内置种子目录（含 Vashnik 正式服史诗）";
-  release.manifest.publishedAt = Math.max(release.manifest.publishedAt, VASHNIK_SEED_CATALOG.manifest.publishedAt);
+  release.manifest.version = "builtin-seed-v6";
+  release.manifest.title = "Raidline 12.1 全职业关键技能与 Vashnik 正式服目录";
+  release.manifest.publishedAt = Math.max(release.manifest.publishedAt, VASHNIK_SEED_CATALOG.manifest.publishedAt, 1788566400000);
+  const skills = playerSkillsJson.map(value => CatalogSkillDefinitionSchema.parse(value));
+  release.playerSkills = release.playerSkills.map(old => skills.find(skill => skill.id === old.id) ?? { ...old, enabled: false });
+  release.playerSkills.push(...skills.filter(skill => !release.playerSkills.some(old => old.id === skill.id)));
   release.bossMechanics.push(...structuredClone(VASHNIK_SEED_CATALOG.bossMechanics));
   release.timelinePresets.push(...structuredClone(VASHNIK_SEED_CATALOG.timelinePresets));
   release.manifest.counts = {

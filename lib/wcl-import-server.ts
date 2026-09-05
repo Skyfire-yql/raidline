@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { specializationFromGameId, WOW_CLASS_LABELS } from "./cooldowns";
+import { extractPlayerSkillCandidates } from "./player-skill-extraction";
 import {
   type WclActorReference,
   type WclClient,
@@ -20,6 +22,7 @@ import type { WclImportPreview } from "./wcl-import";
 import {
   encounterConversionProfiles,
   playerSkillExtractionProfiles,
+  playerSkillDefinitions,
 } from "./wcl-profile-registry";
 import { wclDifficulty, type WclReportLink } from "./wcl-report";
 import type {
@@ -34,7 +37,7 @@ import type {
 const GAME_VERSION_KEY = "retail-12.1";
 const WCL_RETAIL_GAME_VERSION = 1;
 const ENCOUNTER_PROFILE_VERSION = 3;
-const PLAYER_PROFILE_VERSION = 1;
+const PLAYER_PROFILE_VERSION = 2;
 
 const RawEventSchema = z.object({
   timestamp: z.number().finite(),
@@ -45,7 +48,9 @@ const RawEventSchema = z.object({
   amount: z.number().finite().optional(),
   duration: z.number().finite().optional(),
   stack: z.number().int().optional(),
-}).passthrough();
+});
+
+const CombatantInfoSchema = z.object({ type: z.literal("combatantinfo"), sourceID: z.number().int().positive(), specID: z.number().int().positive() });
 
 type CollectionDataType = EventCollectionRule["dataType"];
 type ActorHostility = "friendly" | "enemy";
@@ -58,6 +63,7 @@ interface ActorRecord {
 const providerDataTypes: Record<CollectionDataType, WclEventDataType> = {
   buffs: "Buffs",
   casts: "Casts",
+  "combatant-info": "CombatantInfo",
   damage: "DamageDone",
   deaths: "Deaths",
   debuffs: "Debuffs",
@@ -80,10 +86,10 @@ function rawEventDataType(type: string): CollectionDataType | null {
   if (["applybuff", "applybuffstack", "refreshbuff", "removebuff", "removebuffstack"].includes(type)) return "buffs";
   if (["applydebuff", "applydebuffstack", "refreshdebuff", "removedebuff", "removedebuffstack"].includes(type)) return "debuffs";
   if (type === "damage") return "damage";
-  if (type === "heal") return "healing";
+  if (type === "heal" || type === "absorbed") return "healing";
   if (type === "interrupt") return "interrupts";
   if (type === "dispel") return "dispels";
-  if (type === "death") return "deaths";
+  if (type === "death" || type === "resurrect") return "deaths";
   return null;
 }
 
@@ -91,12 +97,14 @@ function normalizedEventType(type: string): ObservedEvent["type"] | null {
   if (type === "begincast") return "cast-start";
   if (type === "cast") return "cast-success";
   if (["applybuff", "applybuffstack", "refreshbuff", "applydebuff", "applydebuffstack", "refreshdebuff"].includes(type)) return "aura-applied";
-  if (["removebuff", "removebuffstack", "removedebuff", "removedebuffstack"].includes(type)) return "aura-removed";
+  if (["removebuff", "removedebuff"].includes(type)) return "aura-removed";
   if (type === "damage") return "damage";
   if (type === "heal") return "healing";
+  if (type === "absorbed") return "absorb";
   if (type === "interrupt") return "interrupt";
   if (type === "dispel") return "dispel";
   if (type === "death") return "death";
+  if (type === "resurrect") return "resurrection";
   return null;
 }
 
@@ -109,6 +117,14 @@ export function eventRequestsForProfiles(
   for (const dataType of Object.keys(providerDataTypes) as CollectionDataType[]) {
     const matching = rules.filter((rule) => rule.dataType === dataType);
     if (!matching.length) continue;
+    if (dataType === "combatant-info") {
+      requests.push({ dataType: "CombatantInfo", hostilityType: "Friendlies" });
+      continue;
+    }
+    if (dataType === "deaths" && playerProfile.collectionRules.some(rule => rule.enabled && rule.dataType === "deaths")) {
+      requests.push({ dataType: "All", lifecycleOnly: true });
+      continue;
+    }
     const abilityGameIds = matching.every((rule) => rule.abilityGameIds?.length)
       ? [...new Set(matching.flatMap((rule) => rule.abilityGameIds ?? []))].sort((left, right) => left - right)
       : undefined;
@@ -150,6 +166,7 @@ function anonymizedActor(reference: WclActorReference, type: ObservedActor["type
     ...(gameId ? { gameId } : {}),
     type,
     name,
+    ...(type === "player" && reference.subType && WOW_CLASS_LABELS[reference.subType] ? { classSlug: reference.subType } : {}),
   };
 }
 
@@ -178,7 +195,7 @@ function actorIndex(
   };
 
   for (const id of bundle.fight.friendlyPlayers) ensure(id, "player", "friendly");
-  for (const id of bundle.fight.enemyPlayers) ensure(id, "player", "enemy");
+  for (const id of bundle.fight.enemyPlayers) if (!bundle.fight.friendlyPlayers.includes(id)) ensure(id, "other", "enemy");
   for (const npc of bundle.fight.friendlyNPCs) ensure(npc.id, "other", "friendly", npc);
   for (const npc of bundle.fight.enemyNPCs) ensure(npc.id, "npc", "enemy", npc);
   for (const pet of bundle.fight.friendlyPets) ensure(pet.id, "pet", "friendly", pet);
@@ -198,9 +215,26 @@ function actorIndex(
   }
 
   for (const [id, record] of records) {
-    const ownerId = master.get(id)?.petOwner;
+    const ownerId = master.get(id)?.petOwner ?? [...bundle.fight.friendlyPets, ...bundle.fight.enemyPets, ...bundle.fight.friendlyNPCs].find(pet => pet.id === id)?.petOwner;
     const owner = ownerId ? records.get(ownerId)?.actor : undefined;
-    if (owner) record.actor.ownerActorKey = owner.actorKey;
+    if (owner) {
+      record.actor.ownerActorKey = owner.actorKey;
+      record.hostility ??= records.get(ownerId!)?.hostility;
+    }
+  }
+  const specs = new Map<number, Set<number>>();
+  for (const series of bundle.series.filter(series => series.request.dataType === "CombatantInfo")) for (const value of series.events) {
+    const parsed = CombatantInfoSchema.safeParse(value);
+    if (!parsed.success || !bundle.fight.friendlyPlayers.includes(parsed.data.sourceID)) continue;
+    const values = specs.get(parsed.data.sourceID) ?? new Set<number>();
+    values.add(parsed.data.specID);
+    specs.set(parsed.data.sourceID, values);
+  }
+  for (const [actorId, values] of specs) {
+    const record = records.get(actorId);
+    if (!record?.actor.classSlug || values.size !== 1) continue;
+    const spec = specializationFromGameId(record.actor.classSlug, [...values][0]);
+    if (spec) record.actor.specSlug = spec.slug;
   }
   return records;
 }
@@ -266,10 +300,10 @@ function normalizeEvents(
       const type = normalizedEventType(raw.type);
       if (!type) continue;
       const source = raw.sourceID && raw.sourceID > 0 ? actors.get(raw.sourceID) : undefined;
-      if (!collectionMatches(raw.type, type, raw.abilityGameID, source, rules)) continue;
+      const target = raw.targetID && raw.targetID > 0 ? actors.get(raw.targetID) : undefined;
+      if (!collectionMatches(raw.type, type, raw.abilityGameID, type === "death" || type === "resurrection" ? target ?? source : source, rules)) continue;
       const atMs = Math.round(raw.timestamp - bundle.fight.startTime);
       if (atMs < 0 || atMs > bundle.fight.endTime - bundle.fight.startTime) continue;
-      const target = raw.targetID && raw.targetID > 0 ? actors.get(raw.targetID) : undefined;
       const amount = finiteNonnegative(raw.amount);
       const duration = finiteNonnegative(raw.duration);
       const event: ObservedEvent = {
@@ -288,8 +322,16 @@ function normalizeEvents(
       if (event.targetActorKey) referencedActors.add(event.targetActorKey);
     }
   }
-  events.sort((left, right) => left.atMs - right.atMs || left.eventKey.localeCompare(right.eventKey));
-  return { events, referencedActors };
+  // Identical rows across provider views/pages are one observation. Keys must not encode actor IDs.
+  const signatures = new Map<string, ObservedEvent>();
+  for (const event of events) {
+    const { eventKey: _key, ...body } = event;
+    void _key;
+    signatures.set(JSON.stringify(body), event);
+  }
+  const uniqueEvents = [...signatures.entries()].sort(([leftKey, left], [rightKey, right]) => left.atMs - right.atMs || leftKey.localeCompare(rightKey))
+    .map(([, event], index) => ({ ...event, eventKey: `wcl:${bundle.fight.id}:${index + 1}` }));
+  return { events: uniqueEvents, referencedActors };
 }
 
 function normalizedPhases(bundle: WclFightEventBundle) {
@@ -310,7 +352,7 @@ async function snapshotHash(snapshot: Omit<CombatLogSnapshot, "contentHash">) {
     source: snapshot.source,
     encounter: snapshot.encounter,
     actors: snapshot.actors,
-    phases: snapshot.phases,
+    phases: snapshot.phases.map(({ semanticPhaseId, occurrenceIndex, atMs }) => ({ semanticPhaseId, occurrenceIndex, atMs })),
     events: snapshot.events,
   });
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
@@ -330,6 +372,10 @@ export async function normalizeWclFightBundle(
   const actors = actorIndex(bundle, expectedEnemyNpcGameIds, profileEnemyNpcActorIds(bundle, collectionRules));
   const normalized = normalizeEvents(bundle, collectionRules, actors);
   const retainedActorKeys = new Set(normalized.referencedActors);
+  for (const id of bundle.fight.friendlyPlayers) {
+    const actor = actors.get(id)?.actor;
+    if (actor) retainedActorKeys.add(actor.actorKey);
+  }
   for (const record of actors.values()) {
     if (retainedActorKeys.has(record.actor.actorKey) && record.actor.ownerActorKey) {
       retainedActorKeys.add(record.actor.ownerActorKey);
@@ -342,7 +388,7 @@ export async function normalizeWclFightBundle(
     schemaVersion: 1,
     id: crypto.randomUUID(),
     provider: "wcl",
-    normalizerVersion: "raidline-wcl-api-v1",
+    normalizerVersion: "raidline-wcl-api-v2-anonymous-skills",
     importedAt: Date.now(),
     source: {
       reportCode: metadata.reportCode,
@@ -395,7 +441,7 @@ export async function createWclImportPreview(
   }, encounterConversionProfiles, ENCOUNTER_PROFILE_VERSION, playerSkillExtractionProfiles, PLAYER_PROFILE_VERSION);
 
   const requests = eventRequestsForProfiles(preparedForRequests.encounterProfile, preparedForRequests.playerSkillProfile);
-  const bundle = await client.readFightEvents(link.reportCode, fightId, requests);
+  const bundle = await client.readFightEvents(link.reportCode, fightId, requests, { encounterId: fight.encounterId, reportRevision: probe.report.revision, gameVersion: WCL_RETAIL_GAME_VERSION, startTime: fight.startReportMs, endTime: fight.endReportMs });
   if (bundle.masterData.gameVersion !== WCL_RETAIL_GAME_VERSION) throw new WclGameVersionNotConfiguredError();
   if (
     bundle.fight.encounterID !== fight.encounterId
@@ -427,6 +473,13 @@ export async function createWclImportPreview(
   );
   const snapshot = await normalizeWclFightBundle(bundle, metadata, prepared.encounterProfile, prepared.playerSkillProfile);
   const draft = convertCombatLogSnapshotToDraft(snapshot, prepared.encounterProfile);
+  const definitions = playerSkillDefinitions.map(({ enabled: _enabled, ...definition }) => { void _enabled; return definition; });
+  const playerCandidates = extractPlayerSkillCandidates(snapshot, prepared.playerSkillProfile, definitions);
+  draft.rosterCandidates = playerCandidates.rosterCandidates;
+  draft.skillAssignmentCandidates = playerCandidates.skillAssignmentCandidates;
+  draft.noteCandidates = playerCandidates.noteCandidates;
+  draft.warnings.push(...playerCandidates.warnings);
+  draft.playerSkillProfile = { id: prepared.playerSkillProfile.id, profileVersion: prepared.playerSkillProfile.profileVersion };
   const plan = createPlanFromImportDraft(snapshot, draft, {
     title: `${metadata.encounterName} · WCL fight ${fightId}`,
   });
@@ -443,12 +496,25 @@ export async function createWclImportPreview(
       id: prepared.encounterProfile.id,
       profileVersion: prepared.encounterProfile.profileVersion,
     },
+    playerSkillProfile: {
+      id: prepared.playerSkillProfile.id, profileVersion: prepared.playerSkillProfile.profileVersion,
+      pendingSkillNames: prepared.playerSkillProfile.extractionRules.filter(rule => !rule.enabled).map(rule => {
+        const definition = definitions.find(item => item.id === rule.definitionId)!;
+        return rule.variantId ? definition.variants.find(item => item.id === rule.variantId)!.name : definition.name;
+      }),
+    },
     fetchedEventCount: bundle.fetchedEventCount,
     retainedEventCount: snapshot.events.length,
     discardedEventCount: bundle.fetchedEventCount - snapshot.events.length,
     pageCount: bundle.pageCount,
     warningCount: draft.warnings.length,
     unresolvedEventCount: draft.unresolvedEvents.length,
+    warnings: draft.warnings.slice(0, 100),
+    skills: draft.skillAssignmentCandidates.map(candidate => ({ candidateId: candidate.id, memberId: candidate.assignment.memberId, definitionId: candidate.definition.id,
+      name: candidate.assignment.variantId ? candidate.definition.variants.find(variant => variant.id === candidate.assignment.variantId)!.name : candidate.definition.name,
+      category: candidate.definition.category, startMs: candidate.observed?.startMs ?? candidate.assignment.anchor.offsetMs,
+      endMs: candidate.observed?.endMs ?? candidate.assignment.anchor.offsetMs,
+    })),
     mechanics: draft.mechanicCandidates.map((candidate) => ({
       candidateId: candidate.id,
       definitionId: candidate.definition.id,

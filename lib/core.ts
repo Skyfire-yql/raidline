@@ -1,7 +1,8 @@
 import { parsePlanDocument, type MemberSelector, type MechanicDefinitionSnapshot, type MechanicOccurrence, type PlayerSkillDefinitionSnapshot, type RaidPlanDocument, type SkillTargetSelector } from "./types";
 import type { ExportDiagnostic, ExportRequest, ExportResult } from "./types";
 import { hasBlockingDiagnostics, resolveDirectiveTime, resolveMemberIds, resolveMechanicPoint, resolveSkillTargets, resolveTimelineAnchor, snapTimelineTime, validatePlanSemantics } from "./domain/timeline";
-import { resolveSkillForMember, skillBusyEndMs, skillEffectStartMs } from "./skills";
+import { resolveSkillForAssignment, skillBusyEndMs, skillEffectStartMs } from "./skills";
+import { skillAssignmentNoteText, tacticalDirectiveText } from "./plan-presentation";
 
 export { MAX_TIMELINE_MS, TIMELINE_SNAP_MS, assertPlanDocument, parsePlanDocument } from "./domain/schema";
 export { buildTimelineScene } from "./domain/view-model";
@@ -89,7 +90,7 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
 
   for (const { assignment, atMs } of timed) {
     const member = plan.roster.members.find((item) => item.id === assignment.memberId);
-    const skill = resolveSkillForMember(plan, assignment.memberId, assignment.skillDefinitionId);
+    const skill = resolveSkillForAssignment(plan, assignment);
     if (!member || !skill) continue;
     if (member.classSlug !== skill.classSlug || member.specSlug && skill.specSlugs.length > 0 && !skill.specSlugs.includes(member.specSlug)) warnings.push({ assignmentId: assignment.id, type: "ownership", message: `${member.name} 的职业或专精无法使用 ${skill.name}` });
     const targetIds = skill.scope === "personal" ? [member.id] : resolveSkillTargets(plan, assignment);
@@ -114,7 +115,7 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
   }
   for (const assignments of byMemberAndSkill.values()) {
     const first = assignments[0];
-    const skill = first && resolveSkillForMember(plan, first.assignment.memberId, first.assignment.skillDefinitionId);
+    const skill = first && resolveSkillForAssignment(plan, first.assignment);
     if (!skill?.cooldownMs || skill.cooldownMs <= 0) continue;
     let charges = skill.maxCharges;
     const rechargeAt: number[] = [];
@@ -123,7 +124,7 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
         rechargeAt.shift();
         charges = Math.min(skill.maxCharges, charges + 1);
       }
-      if (charges <= 0) warnings.push({ assignmentId: item.assignment.id, type: "cooldown", message: `${skill.name} 的充能尚未恢复` });
+      if (charges <= 0) warnings.push({ assignmentId: item.assignment.id, type: "cooldown", message: `${skill.name} 按当前基础值计算充能尚未恢复；天赋、动态减冷却或重置未经确认时，仅作提示` });
       else {
         charges -= 1;
         const start = rechargeAt.at(-1) ?? item.atMs;
@@ -135,8 +136,8 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
     for (let index = 1; index < assignments.length; index += 1) {
       const previous = assignments[index - 1];
       const current = assignments[index];
-      const previousSkill = resolveSkillForMember(plan, previous.assignment.memberId, previous.assignment.skillDefinitionId);
-      const currentSkill = resolveSkillForMember(plan, current.assignment.memberId, current.assignment.skillDefinitionId);
+      const previousSkill = resolveSkillForAssignment(plan, previous.assignment);
+      const currentSkill = resolveSkillForAssignment(plan, current.assignment);
       if (!previousSkill || !currentSkill) continue;
       if (current.atMs < skillBusyEndMs(previous.atMs, previousSkill)) warnings.push({ assignmentId: current.assignment.id, type: "cast", message: "同一成员的施法或引导区间重叠" });
       if (previousSkill.triggersGcd && currentSkill.triggersGcd && current.atMs - previous.atMs < 1500) warnings.push({ assignmentId: current.assignment.id, type: "gcd", message: "两项占用 GCD 的技能相隔不足 1.5 秒" });
@@ -179,18 +180,19 @@ export function exportPlan(request: ExportRequest): ExportResult {
       omittedObjectIds.push(directive.id);
       continue;
     }
-    timedRows.push({ atMs: resolved.atMs, id: directive.id, text: directive.kind === "task" ? `${selectorLabel(plan, directive.assignees)} — ${directive.text}` : directive.text });
+    timedRows.push({ atMs: resolved.atMs, id: directive.id, text: directive.kind === "task" ? `${selectorLabel(plan, directive.assignees)} — ${tacticalDirectiveText(directive)}` : tacticalDirectiveText(directive) });
   }
   for (const assignment of plan.timeline.skillAssignments) {
     const resolved = resolveTimelineAnchor(plan, assignment.anchor);
     const member = plan.roster.members.find((item) => item.id === assignment.memberId);
-    const skill = resolveSkillForMember(plan, assignment.memberId, assignment.skillDefinitionId);
+    const skill = resolveSkillForAssignment(plan, assignment);
     if (!resolved.ok || !member || !skill) {
       omittedObjectIds.push(assignment.id);
       continue;
     }
-    const suffix = assignment.note.trim() ? `  # ${assignment.note.trim()}` : "";
-    timedRows.push({ atMs: resolved.atMs, id: assignment.id, text: `${member.name} — ${skill.name}${suffix}` });
+    const note = skillAssignmentNoteText(assignment).trim();
+    const suffix = note ? `  # ${note}` : "";
+    timedRows.push({ atMs: resolved.atMs, id: assignment.id, text: `${member.name} — ${skill.selectedVariant?.name ?? skill.name}${suffix}` });
   }
   for (const row of timedRows.sort((a, b) => a.atMs - b.atMs || a.id.localeCompare(b.id))) lines.push(`{time:${formatTime(row.atMs)}} ${row.text}`);
   return { target: request.target, text: lines.join("\n"), diagnostics, omittedObjectIds };

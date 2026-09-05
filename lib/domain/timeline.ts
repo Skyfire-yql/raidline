@@ -182,6 +182,7 @@ export function validatePlanSemantics(plan: RaidPlanDocument): PlanDiagnostic[] 
   }
 
   for (const directive of plan.timeline.directives) {
+    if (directive.kind === "note" && directive.timelinePresentation && (directive.scope.kind !== "timed" || !directive.durationMs)) diagnostics.push({ code: "INVALID_BACKGROUND_WINDOW", severity: "error", message: "团队增益背景需要精确时间与正持续时长", objectId: directive.id });
     if (!directive.text.trim()) diagnostics.push({ code: "EMPTY_DIRECTIVE", severity: directive.kind === "task" ? "error" : "warning", message: directive.kind === "task" ? "战术任务不能为空" : "说明内容为空", objectId: directive.id });
     if (directive.scope.kind === "phase" && !phaseIds.has(directive.scope.phaseId)) diagnostics.push({ code: "MISSING_PHASE", severity: "error", message: "战术指令引用了不存在的阶段", objectId: directive.id });
     if (directive.scope.kind === "timed") {
@@ -200,6 +201,7 @@ export function validatePlanSemantics(plan: RaidPlanDocument): PlanDiagnostic[] 
     const skill = plan.definitions.skills.find((item) => item.id === assignment.skillDefinitionId);
     if (!member) diagnostics.push({ code: "MISSING_MEMBER", severity: "error", message: "技能安排引用了不存在的成员", objectId: assignment.id });
     if (!skill) diagnostics.push({ code: "MISSING_SKILL_DEFINITION", severity: "error", message: "技能安排引用了不存在的技能", objectId: assignment.id });
+    if (skill && assignment.variantId && !skill.variants.some(variant => variant.id === assignment.variantId)) diagnostics.push({ code: "MISSING_SKILL_VARIANT", severity: "error", message: "技能安排引用了不存在的施放变体", objectId: assignment.id });
     if (assignment.targets.kind === "mechanic-targets") {
       if (assignment.anchor.kind !== "mechanic" || !mechanicIds.has(assignment.anchor.mechanicOccurrenceId)) diagnostics.push({ code: "INVALID_INHERITED_TARGETS", severity: "error", message: "继承机制目标的技能必须锚定到有效机制", objectId: assignment.id });
     } else diagnostics.push(...selectorReferenceDiagnostics(plan, assignment.targets, assignment.id));
