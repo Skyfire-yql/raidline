@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readCurrentCatalog } from "@/lib/catalog-server";
 import { jsonData, jsonError } from "@/lib/server";
 import { WclClientError } from "@/lib/wcl-client";
 import {
@@ -30,7 +31,9 @@ export async function POST(request: Request) {
     if (typeof link.fight === "number" && link.fight !== payload.fightId) {
       return jsonError("WCL_FIGHT_MISMATCH", "链接中的 fight 与当前选择不一致，请重新读取报告", 422);
     }
-    return jsonData(await createWclImportPreview(getWclClient(), link, payload.fightId));
+    const client = getWclClient();
+    const catalog = await readCurrentCatalog();
+    return jsonData(await createWclImportPreview(client, link, payload.fightId, catalog.playerSkills));
   } catch (error) {
     if (error instanceof InvalidWclReportUrlError) {
       return jsonError("INVALID_WCL_IMPORT", error instanceof Error ? error.message : "WCL 导入请求无效", 422);

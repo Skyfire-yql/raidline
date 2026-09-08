@@ -33,17 +33,6 @@
           }
         ]
       },
-      "damage": {
-        "school": "magic",
-        "directAmount": null,
-        "periodicAmount": null,
-        "periodicIntervalMs": null,
-        "tickOnStart": false
-      },
-      "defaultTargets": {
-        "kind": "all"
-      },
-      "severity": "warning",
       "color": "#6ca83d",
       "dataStatus": "verified",
       "limitations": [
@@ -92,20 +81,6 @@
           }
         ]
       },
-      "damage": {
-        "school": "physical",
-        "directAmount": null,
-        "periodicAmount": null,
-        "periodicIntervalMs": null,
-        "tickOnStart": false
-      },
-      "defaultTargets": {
-        "kind": "roles",
-        "roles": [
-          "tank"
-        ]
-      },
-      "severity": "danger",
       "color": "#cf6644",
       "dataStatus": "verified",
       "limitations": [
@@ -156,17 +131,6 @@
           }
         ]
       },
-      "damage": {
-        "school": "magic",
-        "directAmount": null,
-        "periodicAmount": null,
-        "periodicIntervalMs": null,
-        "tickOnStart": false
-      },
-      "defaultTargets": {
-        "kind": "all"
-      },
-      "severity": "warning",
       "color": "#b979d1",
       "dataStatus": "verified",
       "limitations": [
@@ -214,17 +178,6 @@
           }
         ]
       },
-      "damage": {
-        "school": "magic",
-        "directAmount": null,
-        "periodicAmount": null,
-        "periodicIntervalMs": null,
-        "tickOnStart": false
-      },
-      "defaultTargets": {
-        "kind": "all"
-      },
-      "severity": "warning",
       "color": "#d39835",
       "dataStatus": "verified",
       "limitations": [
@@ -288,17 +241,6 @@
           }
         ]
       },
-      "damage": {
-        "school": "magic",
-        "directAmount": null,
-        "periodicAmount": null,
-        "periodicIntervalMs": null,
-        "tickOnStart": false
-      },
-      "defaultTargets": {
-        "kind": "all"
-      },
-      "severity": "danger",
       "color": "#d04d63",
       "dataStatus": "verified",
       "limitations": [
@@ -341,17 +283,6 @@
           }
         ]
       },
-      "damage": {
-        "school": "magic",
-        "directAmount": null,
-        "periodicAmount": null,
-        "periodicIntervalMs": null,
-        "tickOnStart": false
-      },
-      "defaultTargets": {
-        "kind": "all"
-      },
-      "severity": "danger",
       "color": "#8d58c7",
       "dataStatus": "verified",
       "limitations": [
@@ -400,17 +331,6 @@
           }
         ]
       },
-      "damage": {
-        "school": "magic",
-        "directAmount": null,
-        "periodicAmount": null,
-        "periodicIntervalMs": null,
-        "tickOnStart": false
-      },
-      "defaultTargets": {
-        "kind": "all"
-      },
-      "severity": "danger",
       "color": "#6651a3",
       "dataStatus": "verified",
       "limitations": [
@@ -453,17 +373,6 @@
           }
         ]
       },
-      "damage": {
-        "school": "magic",
-        "directAmount": null,
-        "periodicAmount": null,
-        "periodicIntervalMs": null,
-        "tickOnStart": false
-      },
-      "defaultTargets": {
-        "kind": "all"
-      },
-      "severity": "danger",
       "color": "#e16a3b",
       "dataStatus": "verified",
       "limitations": [
@@ -505,17 +414,6 @@
           }
         ]
       },
-      "damage": {
-        "school": "magic",
-        "directAmount": null,
-        "periodicAmount": null,
-        "periodicIntervalMs": null,
-        "tickOnStart": false
-      },
-      "defaultTargets": {
-        "kind": "all"
-      },
-      "severity": "warning",
       "color": "#8a3fa0",
       "dataStatus": "verified",
       "limitations": [

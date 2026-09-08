@@ -1,6 +1,7 @@
-import { resolveSkillForAssignment, skillEffectStartMs } from "../skills";
+import { PLAYER_SKILLS } from "../player-skill-library";
+import type { PlayerSkillDefinition } from "./schema";
+import { resolveSkillForAssignment, skillTimelineDurationMs } from "../skills";
 import { compareRosterRoles } from "../cooldowns";
-import { tacticalDirectiveText } from "../plan-presentation";
 import type { MechanicTimelinePoint, RaidPlanDocument, RosterSlot, TacticalDirective } from "./schema";
 import { MAX_TIMELINE_MS, TIMELINE_SNAP_MS } from "./schema";
 import { resolveDirectiveTime, resolveMechanicPoint, resolveTimelineAnchor, validatePlanSemantics, type PlanDiagnostic } from "./timeline";
@@ -59,9 +60,6 @@ export interface TimelineSceneAssignment {
   skillDefinitionId: string;
   name: string;
   atMs: number;
-  castType: "unknown" | "instant" | "cast" | "channel";
-  castTimeMs: number;
-  effectStartMs: number;
   durationMs: number;
   color: string;
 }
@@ -80,12 +78,12 @@ function directiveDuration(directive: TacticalDirective) {
   return directive.durationMs ?? 0;
 }
 
-export function buildTimelineScene(plan: RaidPlanDocument): TimelineScene {
+export function buildTimelineScene(plan: RaidPlanDocument, library: readonly PlayerSkillDefinition[] = PLAYER_SKILLS): TimelineScene {
   const phases = plan.timeline.phases.map((phase) => ({ id: phase.id, name: phase.name, atMs: phase.estimatedStartMs }));
   const directives = plan.timeline.directives.flatMap<TimelineSceneDirective>((directive) => {
-    if (directive.scope.kind === "plan") return [{ id: directive.id, kind: directive.kind, text: `全局 · ${tacticalDirectiveText(directive)}`, atMs: 0, durationMs: directiveDuration(directive) }];
+    if (directive.scope.kind === "plan") return [{ id: directive.id, kind: directive.kind, text: `全局 · ${directive.text}`, atMs: 0, durationMs: directiveDuration(directive) }];
     const resolved = resolveDirectiveTime(plan, directive);
-    return resolved?.ok ? [{ id: directive.id, kind: directive.kind, text: tacticalDirectiveText(directive), atMs: resolved.atMs, durationMs: directiveDuration(directive), ...(directive.kind === "note" && directive.timelinePresentation === "team-buff-window" ? { backgroundWindow: true } : {}) }] : [];
+    return resolved?.ok ? [{ id: directive.id, kind: directive.kind, text: directive.text, atMs: resolved.atMs, durationMs: directiveDuration(directive), ...(directive.kind === "note" && directive.timelinePresentation === "team-buff-window" ? { backgroundWindow: true } : {}) }] : [];
   });
   const mechanics = plan.timeline.mechanics.flatMap<TimelineSceneMechanic>((occurrence) => {
     const definition = plan.definitions.mechanics.find((item) => item.id === occurrence.definitionId);
@@ -118,19 +116,16 @@ export function buildTimelineScene(plan: RaidPlanDocument): TimelineScene {
   });
   const assignments = plan.timeline.skillAssignments.flatMap<TimelineSceneAssignment>((assignment) => {
     const resolved = resolveTimelineAnchor(plan, assignment.anchor);
-    const skill = resolveSkillForAssignment(plan, assignment);
+    const skill = resolveSkillForAssignment(assignment, library);
     if (!resolved.ok || !skill) return [];
-    const name = skill.selectedVariant ? `${skill.name} · ${skill.selectedVariant.name}` : skill.name;
+    const name = skill.name;
     return [{
       id: assignment.id,
       memberId: assignment.memberId,
       skillDefinitionId: assignment.skillDefinitionId,
       name,
       atMs: resolved.atMs,
-      castType: skill.castType,
-      castTimeMs: skill.castTimeMs ?? 0,
-      effectStartMs: skillEffectStartMs(resolved.atMs, skill),
-      durationMs: skill.durationMs ?? 0,
+      durationMs: assignment.observedDurationMs ?? skillTimelineDurationMs(skill),
       color: skill.color,
     }];
   });
@@ -138,10 +133,10 @@ export function buildTimelineScene(plan: RaidPlanDocument): TimelineScene {
     ...phases.map((item) => item.atMs),
     ...directives.map((item) => item.atMs + item.durationMs),
     ...mechanics.map((item) => item.endMs),
-    ...assignments.map((item) => Math.max(item.atMs + item.castTimeMs, item.effectStartMs + item.durationMs)),
+    ...assignments.map((item) => item.atMs + item.durationMs),
   ];
   const contentEnd = Math.max(0, ...ends);
   const rounded = Math.ceil((contentEnd + 30_000) / 30_000) * 30_000;
   const durationMs = Math.min(MAX_TIMELINE_MS, Math.max(120_000, Math.ceil(rounded / TIMELINE_SNAP_MS) * TIMELINE_SNAP_MS));
-  return { durationMs, phases, directives, mechanics, members: [...plan.roster.members].sort(compareRosterRoles), assignments, diagnostics: validatePlanSemantics(plan) };
+  return { durationMs, phases, directives, mechanics, members: [...plan.roster.members].sort(compareRosterRoles), assignments, diagnostics: validatePlanSemantics(plan, library) };
 }

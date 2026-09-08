@@ -18,8 +18,6 @@ const RelativeWholeSecond = z.number().int().min(-MAX_TIMELINE_MS).max(MAX_TIMEL
 const UniqueStrings = z.array(z.string().min(1).max(200)).max(500);
 
 export const RaidRoleSchema = z.enum(["tank", "healer", "damage"]);
-export const MechanicSeveritySchema = z.enum(["info", "warning", "danger"]);
-export const DamageSchoolSchema = z.enum(["physical", "magic"]);
 export const CooldownScopeSchema = z.enum(["team", "external", "personal"]);
 export const SkillCastTypeSchema = z.enum(["unknown", "instant", "cast", "channel"]);
 export const DataStatusSchema = z.enum(["unconfigured", "needs-live-check", "verified", "custom"]);
@@ -71,38 +69,20 @@ export const ObjectOriginSchema = z.strictObject({
 
 export const MemberSelectorSchema = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("all") }),
-  z.strictObject({ kind: z.literal("groups"), groupIds: z.array(Id).max(100) }),
-  z.strictObject({ kind: z.literal("roles"), roles: z.array(RaidRoleSchema).max(3) }),
-  z.strictObject({ kind: z.literal("subgroups"), subgroups: z.array(z.number().int().min(1).max(8)).max(8) }),
   z.strictObject({ kind: z.literal("members"), memberIds: z.array(Id).max(100) }),
 ]);
 
-export const SkillTargetSelectorSchema = z.union([
-  MemberSelectorSchema,
-  z.strictObject({ kind: z.literal("mechanic-targets") }),
-]);
+export const SkillTargetSelectorSchema = MemberSelectorSchema;
 
 export const TimelineAnchorSchema = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("pull"), offsetMs: WholeSecond }),
   z.strictObject({ kind: z.literal("phase"), phaseId: Id, offsetMs: RelativeWholeSecond }),
-  z.strictObject({
-    kind: z.literal("mechanic"),
-    mechanicOccurrenceId: Id,
-    point: z.enum(["cast-start", "impact", "end"]),
-    offsetMs: RelativeWholeSecond,
-  }),
 ]);
 
 export const RuntimeTriggerSchema = z.strictObject({
   event: z.enum(["cast-start", "cast-success", "aura-applied", "aura-removed"]),
   abilityGameId: z.number().int().positive(),
   occurrence: z.number().int().positive(),
-});
-
-export const StrategyGroupSchema = z.strictObject({
-  id: Id,
-  name: ShortText,
-  color: z.string().min(1).max(32),
 });
 
 export const RosterSlotSchema = z.strictObject({
@@ -112,8 +92,6 @@ export const RosterSlotSchema = z.strictObject({
   specSlug: z.string().min(1).max(80).nullable(),
   role: RaidRoleSchema.nullable(),
   color: z.string().min(1).max(32),
-  groupIds: z.array(Id).max(100),
-  subgroup: z.number().int().min(1).max(8).nullable(),
   origin: ObjectOriginSchema.optional(),
 });
 
@@ -124,14 +102,6 @@ export const RaidPhaseSchema = z.strictObject({
   estimatedStartMs: WholeSecond,
   runtimeTrigger: RuntimeTriggerSchema.optional(),
   origin: ObjectOriginSchema.optional(),
-});
-
-export const MechanicDamageProfileSchema = z.strictObject({
-  school: DamageSchoolSchema,
-  directAmount: z.number().nonnegative().nullable(),
-  periodicAmount: z.number().nonnegative().nullable(),
-  periodicIntervalMs: z.number().int().positive().max(MAX_TIMELINE_MS).nullable(),
-  tickOnStart: z.boolean(),
 });
 
 export const DefinitionSourceSchema = z.strictObject({
@@ -196,9 +166,6 @@ export const MechanicDefinitionSnapshotSchema = z.strictObject({
   castTimeMs: Duration,
   durationMs: Duration,
   timelinePresentation: MechanicTimelinePresentationSchema,
-  damage: MechanicDamageProfileSchema,
-  defaultTargets: MemberSelectorSchema,
-  severity: MechanicSeveritySchema,
   color: z.string().min(1).max(32),
   dataStatus: DataStatusSchema,
   limitations: z.array(z.string().min(1).max(500)).max(30),
@@ -215,40 +182,11 @@ export const MechanicOccurrenceSchema = z.strictObject({
     castTimeMs: WholeSecond,
     durationMs: WholeSecond,
   }).optional(),
-  targets: MemberSelectorSchema.optional(),
   runtimeTrigger: RuntimeTriggerSchema.optional(),
   origin: ObjectOriginSchema.optional(),
 });
 
-export const CooldownEffectSchema = z.discriminatedUnion("type", [
-  z.strictObject({ type: z.literal("damageReduction"), percent: z.number().min(0).max(100).nullable(), schools: z.array(DamageSchoolSchema).max(2) }),
-  z.strictObject({ type: z.literal("absorb"), amount: z.number().nonnegative().nullable(), allocation: z.enum(["perTarget", "shared"]), schools: z.array(DamageSchoolSchema).max(2) }),
-  z.strictObject({ type: z.literal("maxHealth"), percent: z.number().min(0).max(100).nullable() }),
-  z.strictObject({ type: z.literal("immunity"), schools: z.array(DamageSchoolSchema).max(2) }),
-]);
-
-export const SkillVariantOverridesSchema = z.strictObject({
-  cooldownMs: Duration.optional(),
-  castType: SkillCastTypeSchema.optional(),
-  castTimeMs: Duration.optional(),
-  durationMs: Duration.optional(),
-  triggersGcd: z.boolean().nullable().optional(),
-  maxCharges: z.number().int().min(1).max(10).optional(),
-  maxTargets: z.number().int().positive().max(100).nullable().optional(),
-  effects: z.array(CooldownEffectSchema).max(20).optional(),
-});
-
-export const SkillVariantSchema = z.strictObject({
-  id: Id,
-  spellId: z.number().int().positive().optional(),
-  name: ShortText,
-  talentSpellId: z.number().int().positive().optional(),
-  description: LongText,
-  overrides: SkillVariantOverridesSchema,
-  limitations: z.array(z.string().min(1).max(500)).max(30),
-});
-
-export const PlayerSkillDefinitionSnapshotSchema = z.strictObject({
+export const PlayerSkillDefinitionSchema = z.strictObject({
   id: Id,
   spellId: z.number().int().positive().optional(),
   name: ShortText,
@@ -261,23 +199,17 @@ export const PlayerSkillDefinitionSnapshotSchema = z.strictObject({
   castType: SkillCastTypeSchema,
   castTimeMs: Duration,
   durationMs: Duration,
-  triggersGcd: z.boolean().nullable(),
   maxCharges: z.number().int().min(1).max(10),
-  maxTargets: z.number().int().positive().max(100).nullable(),
-  effects: z.array(CooldownEffectSchema).max(20),
-  variants: z.array(SkillVariantSchema).max(30),
+  observedSpells: z.array(z.strictObject({
+    spellId: z.number().int().positive(),
+    castTimeMs: Duration.optional(),
+    durationMs: Duration.optional(),
+  })).max(20),
   limitations: z.array(z.string().min(1).max(500)).max(30),
   verification: DefinitionVerificationSchema.optional(),
   category: CooldownCategorySchema,
   color: z.string().min(1).max(32),
   dataStatus: DataStatusSchema,
-  origin: ObjectOriginSchema.optional(),
-});
-
-export const MemberSkillSelectionSchema = z.strictObject({
-  memberId: Id,
-  skillDefinitionId: Id,
-  variantId: Id.nullable(),
 });
 
 const TimedDirectiveScopeSchema = z.strictObject({ kind: z.literal("timed"), anchor: TimelineAnchorSchema });
@@ -291,7 +223,6 @@ export const TacticalTaskSchema = z.strictObject({
   scope: z.union([TimedDirectiveScopeSchema, PhaseDirectiveScopeSchema]),
   assignees: MemberSelectorSchema,
   durationMs: Duration,
-  reminder: z.strictObject({ leadMs: WholeSecond }).optional(),
   origin: ObjectOriginSchema.optional(),
 });
 
@@ -314,8 +245,7 @@ export const SkillAssignmentSchema = z.strictObject({
   anchor: TimelineAnchorSchema,
   targets: SkillTargetSelectorSchema,
   note: LongText,
-  variantId: Id.optional(),
-  timing: z.strictObject({ castTimeMs: WholeSecond, durationMs: WholeSecond }).optional(),
+  observedDurationMs: WholeSecond.optional(),
   origin: ObjectOriginSchema.optional(),
 });
 
@@ -326,12 +256,9 @@ export const RaidPlanDocumentSchema = z.strictObject({
   sources: z.array(PlanSourceRecordSchema).max(100),
   definitions: z.strictObject({
     mechanics: z.array(MechanicDefinitionSnapshotSchema).max(500),
-    skills: z.array(PlayerSkillDefinitionSnapshotSchema).max(500),
   }),
   roster: z.strictObject({
-    groups: z.array(StrategyGroupSchema).max(100),
     members: z.array(RosterSlotSchema).max(100),
-    memberSkills: z.array(MemberSkillSelectionSchema).max(1000),
   }),
   timeline: z.strictObject({
     phases: z.array(RaidPhaseSchema).min(1).max(100),
@@ -342,7 +269,7 @@ export const RaidPlanDocumentSchema = z.strictObject({
   templateSourceId: Id.optional(),
 });
 
-export const CatalogSkillDefinitionSchema = PlayerSkillDefinitionSnapshotSchema.extend({ enabled: z.boolean() }).strict();
+export const CatalogSkillDefinitionSchema = PlayerSkillDefinitionSchema.extend({ enabled: z.boolean() }).strict();
 export const CatalogMechanicDefinitionSchema = MechanicDefinitionSnapshotSchema.extend({ encounterId: Id, enabled: z.boolean() }).strict();
 
 export const TimelinePresetSchema = z.strictObject({
@@ -506,7 +433,6 @@ export const PlayerSkillExtractionRuleSchema = z.strictObject({
   id: Id,
   enabled: z.boolean(),
   definitionId: Id,
-  variantId: Id.optional(),
   match: EventRuleMatchSchema.extend({ sourceActorType: z.enum(["player", "pet"]) }).strict(),
   timingPoint: z.enum(["cast-start", "impact", "end"]),
   deduplication: EventDeduplicationSchema.optional(),
@@ -568,10 +494,9 @@ export const PlanImportDraftSchema = z.strictObject({
       endMs: Timestamp,
       displayLabel: ShortText.optional(),
     }),
-    targets: MemberSelectorSchema.optional(),
-    runtimeTrigger: RuntimeTriggerSchema.optional(),
+      runtimeTrigger: RuntimeTriggerSchema.optional(),
   }).strict()).max(1000),
-  skillAssignmentCandidates: z.array(ImportCandidateBaseSchema.extend({ definition: PlayerSkillDefinitionSnapshotSchema, assignment: SkillAssignmentSchema,
+  skillAssignmentCandidates: z.array(ImportCandidateBaseSchema.extend({ assignment: SkillAssignmentSchema,
     observed: z.strictObject({ startMs: Timestamp, impactMs: Timestamp, endMs: Timestamp }).optional(),
   }).strict()).max(5000),
   unresolvedEvents: z.array(z.strictObject({ eventKey: z.string().min(1).max(200), reason: LongText })).max(10_000),
@@ -598,8 +523,6 @@ export const ComparisonRunSchema = z.strictObject({
 });
 
 export type RaidRole = z.infer<typeof RaidRoleSchema>;
-export type MechanicSeverity = z.infer<typeof MechanicSeveritySchema>;
-export type DamageSchool = z.infer<typeof DamageSchoolSchema>;
 export type CooldownScope = z.infer<typeof CooldownScopeSchema>;
 export type SkillCastType = z.infer<typeof SkillCastTypeSchema>;
 export type SkillDataStatus = z.infer<typeof DataStatusSchema>;
@@ -611,10 +534,8 @@ export type MemberSelector = z.infer<typeof MemberSelectorSchema>;
 export type SkillTargetSelector = z.infer<typeof SkillTargetSelectorSchema>;
 export type TimelineAnchor = z.infer<typeof TimelineAnchorSchema>;
 export type RuntimeTrigger = z.infer<typeof RuntimeTriggerSchema>;
-export type StrategyGroup = z.infer<typeof StrategyGroupSchema>;
 export type RosterSlot = z.infer<typeof RosterSlotSchema>;
 export type RaidPhase = z.infer<typeof RaidPhaseSchema>;
-export type MechanicDamageProfile = z.infer<typeof MechanicDamageProfileSchema>;
 export type DefinitionSource = z.infer<typeof DefinitionSourceSchema>;
 export type DefinitionVerification = z.infer<typeof DefinitionVerificationSchema>;
 export type MechanicTimelinePoint = z.infer<typeof MechanicTimelinePointSchema>;
@@ -622,11 +543,7 @@ export type MechanicTimelinePresentationPart = z.infer<typeof MechanicTimelinePr
 export type MechanicTimelinePresentation = z.infer<typeof MechanicTimelinePresentationSchema>;
 export type MechanicDefinitionSnapshot = z.infer<typeof MechanicDefinitionSnapshotSchema>;
 export type MechanicOccurrence = z.infer<typeof MechanicOccurrenceSchema>;
-export type CooldownEffect = z.infer<typeof CooldownEffectSchema>;
-export type SkillVariantOverrides = z.infer<typeof SkillVariantOverridesSchema>;
-export type SkillVariant = z.infer<typeof SkillVariantSchema>;
-export type PlayerSkillDefinitionSnapshot = z.infer<typeof PlayerSkillDefinitionSnapshotSchema>;
-export type MemberSkillSelection = z.infer<typeof MemberSkillSelectionSchema>;
+export type PlayerSkillDefinition = z.infer<typeof PlayerSkillDefinitionSchema>;
 export type TacticalTask = z.infer<typeof TacticalTaskSchema>;
 export type TacticalNote = z.infer<typeof TacticalNoteSchema>;
 export type TacticalDirective = z.infer<typeof TacticalDirectiveSchema>;
@@ -665,8 +582,6 @@ export function parsePlanDocument(value: unknown): RaidPlanDocument {
   const ids = [
     ...document.sources.map((item) => item.id),
     ...document.definitions.mechanics.map((item) => item.id),
-    ...document.definitions.skills.flatMap((item) => [item.id, ...item.variants.map((variant) => variant.id)]),
-    ...document.roster.groups.map((item) => item.id),
     ...document.roster.members.map((item) => item.id),
     ...document.timeline.phases.map((item) => item.id),
     ...document.timeline.mechanics.map((item) => item.id),

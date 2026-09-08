@@ -32,6 +32,7 @@ import type {
   ObservedActor,
   ObservedEvent,
   PlayerSkillExtractionProfile,
+  PlayerSkillDefinition,
 } from "./types";
 
 const GAME_VERSION_KEY = "retail-12.1";
@@ -420,6 +421,7 @@ export async function createWclImportPreview(
   client: WclClient,
   link: WclReportLink,
   fightId: number,
+  library: readonly PlayerSkillDefinition[] = playerSkillDefinitions,
 ): Promise<WclImportPreview> {
   const probe = await client.probeReport({ ...link, fight: fightId });
   const fight = probe.fights.find((candidate) => candidate.id === fightId);
@@ -473,7 +475,7 @@ export async function createWclImportPreview(
   );
   const snapshot = await normalizeWclFightBundle(bundle, metadata, prepared.encounterProfile, prepared.playerSkillProfile);
   const draft = convertCombatLogSnapshotToDraft(snapshot, prepared.encounterProfile);
-  const definitions = playerSkillDefinitions.map(({ enabled: _enabled, ...definition }) => { void _enabled; return definition; });
+  const definitions = library;
   const playerCandidates = extractPlayerSkillCandidates(snapshot, prepared.playerSkillProfile, definitions);
   draft.rosterCandidates = playerCandidates.rosterCandidates;
   draft.skillAssignmentCandidates = playerCandidates.skillAssignmentCandidates;
@@ -482,6 +484,7 @@ export async function createWclImportPreview(
   draft.playerSkillProfile = { id: prepared.playerSkillProfile.id, profileVersion: prepared.playerSkillProfile.profileVersion };
   const plan = createPlanFromImportDraft(snapshot, draft, {
     title: `${metadata.encounterName} · WCL fight ${fightId}`,
+    skillLibrary: library,
   });
 
   return {
@@ -500,7 +503,7 @@ export async function createWclImportPreview(
       id: prepared.playerSkillProfile.id, profileVersion: prepared.playerSkillProfile.profileVersion,
       pendingSkillNames: prepared.playerSkillProfile.extractionRules.filter(rule => !rule.enabled).map(rule => {
         const definition = definitions.find(item => item.id === rule.definitionId)!;
-        return rule.variantId ? definition.variants.find(item => item.id === rule.variantId)!.name : definition.name;
+        return definition.name;
       }),
     },
     fetchedEventCount: bundle.fetchedEventCount,
@@ -510,9 +513,9 @@ export async function createWclImportPreview(
     warningCount: draft.warnings.length,
     unresolvedEventCount: draft.unresolvedEvents.length,
     warnings: draft.warnings.slice(0, 100),
-    skills: draft.skillAssignmentCandidates.map(candidate => ({ candidateId: candidate.id, memberId: candidate.assignment.memberId, definitionId: candidate.definition.id,
-      name: candidate.assignment.variantId ? candidate.definition.variants.find(variant => variant.id === candidate.assignment.variantId)!.name : candidate.definition.name,
-      category: candidate.definition.category, startMs: candidate.observed?.startMs ?? candidate.assignment.anchor.offsetMs,
+    skills: draft.skillAssignmentCandidates.map(candidate => ({ candidateId: candidate.id, memberId: candidate.assignment.memberId, definitionId: candidate.assignment.skillDefinitionId,
+      name: library.find(skill => skill.id === candidate.assignment.skillDefinitionId)!.name,
+      category: library.find(skill => skill.id === candidate.assignment.skillDefinitionId)!.category, startMs: candidate.observed?.startMs ?? candidate.assignment.anchor.offsetMs,
       endMs: candidate.observed?.endMs ?? candidate.assignment.anchor.offsetMs,
     })),
     mechanics: draft.mechanicCandidates.map((candidate) => ({

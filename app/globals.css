@@ -259,8 +259,7 @@ small { color: var(--text-2); }
 .mechanic-label { color: var(--danger); font-size: 10px; font-weight: 800; }
 .mechanic-label small { color: var(--text-3); font-weight: 500; }
 .axis-segment { position: absolute; z-index: 2; display: block; min-width: 2px; min-height: 2px; border-radius: 2px; pointer-events: none; opacity: .62; }
-.cast-segment { background: repeating-linear-gradient(135deg, var(--warning) 0, var(--warning) 3px, transparent 3px, transparent 6px); }
-.effect-segment { background: var(--accent); opacity: .32; }
+.assignment-segment { background: var(--accent); opacity: .32; }
 .mechanic-stage-label { position: absolute; z-index: 5; width: max-content; min-width: 24px; min-height: 22px; overflow: hidden; padding: 1px 5px; border: 1px solid color-mix(in srgb, var(--mechanic-color) 45%, var(--line)); border-radius: 4px; color: var(--mechanic-color); background: color-mix(in srgb, var(--mechanic-color) 10%, var(--surface)); box-shadow: none; font-size: 11px; font-weight: 650; line-height: 18px; text-align: left; text-overflow: ellipsis; white-space: nowrap; touch-action: none; cursor: grab; }
 button.mechanic-stage-label:hover:not(:disabled) { color: var(--mechanic-color); border-color: color-mix(in srgb, var(--mechanic-color) 70%, var(--line)); background: color-mix(in srgb, var(--mechanic-color) 16%, var(--surface)); }
 .mechanic-stage-label:active, .mechanic-part:active { cursor: grabbing; }
@@ -448,7 +447,8 @@ button.mechanic-interval.tone-active:hover:not(:disabled), button.mechanic-marke
   .timeline-work-panel { width: 100%; height: 100%; }
   .left-table-panel { position: absolute; z-index: 30; top: 0; bottom: 0; width: min(86vw, 320px); border: 1px solid var(--line-strong); box-shadow: var(--shadow); transition: transform .18s ease; }
   .left-table-panel { left: 0; }
-  .left-table-panel.collapsed { transform: translateX(calc(-100% + 28px)); }
+  .left-table-panel.collapsed { width: 28px; box-shadow: none; border: 0; background: transparent; }
+  .editor-table-grid.left-collapsed { padding-left: 28px; }
   .panel-collapse { display: block; }
   .axis-toolbar { align-items: stretch; flex-direction: column; }
   .axis-toolbar > div { overflow-x: auto; }

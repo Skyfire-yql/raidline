@@ -1,5 +1,5 @@
 import { skillAvailableToMember } from "./skills";
-import type { PlayerSkillDefinitionSnapshot, RaidRole, RosterSlot } from "./types";
+import type { PlayerSkillDefinition, RaidRole, RosterSlot } from "./types";
 
 export const WOW_CLASS_COLORS: Record<string, string> = {
   DeathKnight: "#c41e3a", DemonHunter: "#a330c9", Druid: "#ff7c0a", Evoker: "#33937f",
@@ -131,7 +131,7 @@ export function specializationLabel(classSlug: string, specSlug: string) {
   return specializationFor(classSlug, specSlug)?.label ?? specSlug;
 }
 
-export function cooldownsForMember(skills: PlayerSkillDefinitionSnapshot[], member: Pick<RosterSlot, "classSlug" | "specSlug"> | undefined) {
+export function cooldownsForMember(skills: PlayerSkillDefinition[], member: Pick<RosterSlot, "classSlug" | "specSlug"> | undefined) {
   if (!member) return [];
   return skills.filter((item) => skillAvailableToMember(item, member));
 }

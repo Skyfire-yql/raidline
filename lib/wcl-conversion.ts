@@ -1,3 +1,4 @@
+import { PLAYER_SKILLS } from "./player-skill-library";
 import { defaultSkillTargets } from "./skills";
 import {
   MAX_TIMELINE_MS,
@@ -12,6 +13,7 @@ import {
   type ObservedActor,
   type ObservedEvent,
   type PlanImportDraft,
+  type PlayerSkillDefinition,
   type RaidPlanDocument,
 } from "./types";
 
@@ -255,6 +257,7 @@ export interface CreatePlanFromImportDraftOptions {
   title?: string;
   importedAt?: number;
   candidateIds?: string[];
+  skillLibrary?: readonly PlayerSkillDefinition[];
 }
 
 export function createPlanFromImportDraft(snapshotValue: unknown, draftValue: unknown, options: CreatePlanFromImportDraftOptions = {}): RaidPlanDocument {
@@ -279,7 +282,6 @@ export function createPlanFromImportDraft(snapshotValue: unknown, draftValue: un
       anchor: { kind: "pull" as const, offsetMs: startMs },
       timing: { castTimeMs: impactMs - startMs, durationMs: endMs - impactMs },
       ...(candidate.observed.displayLabel ? { displayLabel: candidate.observed.displayLabel } : {}),
-      ...(candidate.targets ? { targets: structuredClone(candidate.targets) } : {}),
       ...(candidate.runtimeTrigger ? { runtimeTrigger: structuredClone(candidate.runtimeTrigger) } : {}),
       origin: {
         sourceId,
@@ -297,7 +299,9 @@ export function createPlanFromImportDraft(snapshotValue: unknown, draftValue: un
   const assignments = draft.skillAssignmentCandidates.map(candidate => {
     const assignment = structuredClone(candidate.assignment);
     // Recipient evidence confirms a cast; a new plan uses the current all/self targeting workflow.
-    assignment.targets = defaultSkillTargets(candidate.definition, assignment.memberId);
+    const skill = (options.skillLibrary ?? PLAYER_SKILLS).find(skill => skill.id === assignment.skillDefinitionId);
+    if (!skill) throw new Error("技能候选引用的全局技能已不存在");
+    assignment.targets = defaultSkillTargets(skill, assignment.memberId);
     if (assignment.anchor.kind !== "pull") throw new Error("WCL 技能候选必须提供开怪后观测时间，不能猜测外部锚点");
     const atMs = assignment.anchor.offsetMs;
     const phase = phases.filter(item => item.estimatedStartMs <= atMs).at(-1)!;
@@ -305,8 +309,6 @@ export function createPlanFromImportDraft(snapshotValue: unknown, draftValue: un
     assignment.origin = { sourceId, sourceEventKeys: candidate.sourceEventKeys, conversionRuleIds: candidate.conversionRuleIds };
     return assignment;
   });
-  const skillDefinitions = [...new Map(draft.skillAssignmentCandidates.map(candidate => [candidate.definition.id, candidate.definition])).values()].map(definition => ({ ...structuredClone(definition), origin: { sourceId } }));
-  const memberSkills = [...new Map(assignments.map(assignment => [`${assignment.memberId}:${assignment.skillDefinitionId}`, { memberId: assignment.memberId, skillDefinitionId: assignment.skillDefinitionId, variantId: null }])).values()];
   return parsePlanDocument({
     schemaVersion: 1,
     metadata: { title: options.title ?? `${snapshot.encounter.name} · fight ${snapshot.source.fightId}` },
@@ -331,8 +333,8 @@ export function createPlanFromImportDraft(snapshotValue: unknown, draftValue: un
       normalizedDataHash: snapshot.contentHash,
       conversionProfiles: [{ kind: "encounter", id: draft.conversionProfileId, profileVersion: draft.conversionProfileVersion }, ...(draft.playerSkillProfile ? [{ kind: "player-skill", ...draft.playerSkillProfile }] : [])],
     }],
-    definitions: { mechanics: mechanicDefinitions, skills: skillDefinitions },
-    roster: { groups: [], members: draft.rosterCandidates.map(candidate => structuredClone(candidate.slot)), memberSkills },
+    definitions: { mechanics: mechanicDefinitions },
+    roster: { members: draft.rosterCandidates.map(candidate => structuredClone(candidate.slot)) },
     timeline: {
       phases,
       mechanics: mechanicOccurrences,

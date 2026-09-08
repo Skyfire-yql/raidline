@@ -49,9 +49,6 @@ export function selectWclImportContent(planValue: unknown, selection: { mechanic
   for (const assignment of plan.timeline.skillAssignments) {
     if (!members.has(assignment.memberId) || assignment.targets.kind === "members" && assignment.targets.memberIds.some(id => !members.has(id))) throw new Error("选中的技能依赖尚未选择的成员，请保留该成员或取消相关技能。");
   }
-  const usedDefinitions = new Set(plan.timeline.skillAssignments.map(assignment => assignment.skillDefinitionId));
-  plan.definitions.skills = plan.definitions.skills.filter(skill => usedDefinitions.has(skill.id));
-  plan.roster.memberSkills = plan.roster.memberSkills.filter(selection => members.has(selection.memberId) && plan.timeline.skillAssignments.some(assignment => assignment.memberId === selection.memberId && assignment.skillDefinitionId === selection.skillDefinitionId));
   return parsePlanDocument(plan);
 }
 

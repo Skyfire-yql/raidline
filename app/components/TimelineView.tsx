@@ -24,7 +24,6 @@ interface TimelineViewProps {
   onAddMember?: () => void;
   onAddPhase?: (atMs: number) => void;
   onAddDirective?: (kind: "task" | "note", atMs: number) => void;
-  onAddMechanic?: (atMs: number) => void;
   onMovePhase?: (id: string, atMs: number) => void;
   onMoveDirective?: (id: string, atMs: number) => void;
   onMoveMechanic?: (id: string, atMs: number) => void;
@@ -145,7 +144,6 @@ export function TimelineView({
   onAddMember,
   onAddPhase,
   onAddDirective,
-  onAddMechanic,
   onMovePhase,
   onMoveDirective,
   onMoveMechanic,
@@ -321,7 +319,7 @@ export function TimelineView({
       })}
       <div className="axis-lane-label phase-note-label" style={laneLabelStyle(0)}><span><b>阶段 / 战术</b></span>{!readOnly && <details className="lane-add-menu"><summary aria-label="添加阶段、任务或说明">＋</summary><div><button onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onAddPhase?.(visibleCenterTime()); }}>阶段</button><button onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onAddDirective?.("task", visibleCenterTime()); }}>任务</button><button onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onAddDirective?.("note", visibleCenterTime()); }}>说明</button></div></details>}</div>
       {mechanicLanes.lanes.map((lane, index) => (
-        <div className="axis-lane-label mechanic-label" data-mechanic-lane-index={index} key={lane.key} style={laneLabelStyle(mechanicLaneCrossStarts[index], lane.crossSizePx)}><span><b>{lane.label}</b></span>{!readOnly && index === 0 && <button className="axis-lane-add" onClick={() => onAddMechanic?.(visibleCenterTime())} aria-label="添加机制">＋</button>}</div>
+        <div className="axis-lane-label mechanic-label" data-mechanic-lane-index={index} key={lane.key} style={laneLabelStyle(mechanicLaneCrossStarts[index], lane.crossSizePx)}><span><b>{lane.label}</b></span></div>
       ))}
       {scene.members.map((member, index) => (
         <div className={`axis-lane-label member-lane-label ${readOnly ? "readonly" : ""}`} key={member.id} style={{ ...laneLabelStyle(memberLaneStart + index * standardCrossSize), ...(member.role ? { background: RAID_ROLE_BACKGROUNDS[member.role] } : {}) }}>
@@ -388,7 +386,7 @@ export function TimelineView({
         if (memberIndex < 0) return null;
         const crossStart = memberLaneStart + memberIndex * standardCrossSize;
         const atMs = displayedTime("assignment", assignment.id, assignment.atMs);
-        return <div key={assignment.id}>{assignment.castTimeMs > 0 && (assignment.castType === "cast" || assignment.castType === "channel") && <span className="axis-segment cast-segment" style={lengthStyle(orientation, atMs, assignment.castTimeMs, crossStart, pixelsPerSecond)} />}{assignment.durationMs > 0 && <span className="axis-segment effect-segment" style={{ ...lengthStyle(orientation, assignment.effectStartMs, assignment.durationMs, crossStart, pixelsPerSecond), background: assignment.color }} />}<button data-timeline-key={`assignment:${assignment.id}`} className={`axis-event assignment-event ${selected === `assignment:${assignment.id}` ? "selected" : ""} ${warningIds.has(assignment.id) ? "warning" : ""}`} style={{ ...pointStyle(orientation, atMs, crossStart, pixelsPerSecond), borderColor: assignment.color }} onPointerDown={(event) => beginDrag("assignment", assignment.id, assignment.atMs, event)} onClick={() => handleSelect(`assignment:${assignment.id}`)} title={`${formatTime(atMs)} 开始 · ${assignment.name}`}><i style={{ background: assignment.color }} /><strong>{assignment.name}</strong>{warningIds.has(assignment.id) && <b>!</b>}</button></div>;
+        return <div key={assignment.id}>{assignment.durationMs > 0 && <span className="axis-segment assignment-segment" style={{ ...lengthStyle(orientation, atMs, assignment.durationMs, crossStart, pixelsPerSecond), background: assignment.color }} />}<button data-timeline-key={`assignment:${assignment.id}`} className={`axis-event assignment-event ${selected === `assignment:${assignment.id}` ? "selected" : ""} ${warningIds.has(assignment.id) ? "warning" : ""}`} style={{ ...pointStyle(orientation, atMs, crossStart, pixelsPerSecond), borderColor: assignment.color }} onPointerDown={(event) => beginDrag("assignment", assignment.id, assignment.atMs, event)} onClick={() => handleSelect(`assignment:${assignment.id}`)} title={`${formatTime(atMs)} 开始 · ${assignment.name}`}><i style={{ background: assignment.color }} /><strong>{assignment.name}</strong>{warningIds.has(assignment.id) && <b>!</b>}</button></div>;
       })}
     </div>
   );

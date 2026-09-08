@@ -6,192 +6,12 @@
     "title": "Raidline vNext 内置种子目录",
     "publishedAt": 0,
     "counts": {
-      "playerSkills": 5,
+      "playerSkills": 0,
       "bossMechanics": 4,
       "timelinePresets": 1
     }
   },
-  "playerSkills": [
-    {
-      "id": "00000000-0000-4000-8000-000000000501",
-      "spellId": 62618,
-      "name": "真言术：障",
-      "description": "为范围内队友提供团队防护。",
-      "gameVersion": "retail-12.1",
-      "classSlug": "Priest",
-      "specSlugs": ["discipline"],
-      "scope": "team",
-      "cooldownMs": 180000,
-      "castType": "instant",
-      "castTimeMs": 0,
-      "durationMs": 10000,
-      "triggersGcd": true,
-      "maxCharges": 1,
-      "maxTargets": null,
-      "effects": [{ "type": "damageReduction", "percent": 20, "schools": ["physical", "magic"] }],
-      "variants": [],
-      "limitations": [],
-      "verification": {
-        "gameVersion": "retail-12.1",
-        "checkedAt": null,
-        "sources": [{ "kind": "community", "label": "Wowhead 12.1 PTR 技能页", "url": "https://www.wowhead.com/ptr/spell=62618/power-word-barrier" }]
-      },
-      "category": "团队减伤",
-      "color": "#e7e7e7",
-      "dataStatus": "needs-live-check",
-      "enabled": true
-    },
-    {
-      "id": "00000000-0000-4000-8000-000000000502",
-      "spellId": 64843,
-      "name": "神圣赞美诗",
-      "description": "持续引导的团队治疗技能。",
-      "gameVersion": "retail-12.1",
-      "classSlug": "Priest",
-      "specSlugs": ["holy"],
-      "scope": "team",
-      "cooldownMs": 180000,
-      "castType": "channel",
-      "castTimeMs": 5000,
-      "durationMs": 5000,
-      "triggersGcd": true,
-      "maxCharges": 1,
-      "maxTargets": null,
-      "effects": [],
-      "variants": [{
-        "id": "00000000-0000-4000-8000-000000000601",
-        "name": "Seraphic Crescendo",
-        "description": "神圣赞美诗的冷却时间缩短 60 秒。",
-        "overrides": { "cooldownMs": 120000 },
-        "limitations": []
-      }],
-      "limitations": ["基础引导时间受急速影响，当前按 5 秒计算。"],
-      "verification": {
-        "gameVersion": "retail-12.1",
-        "checkedAt": null,
-        "sources": [
-          { "kind": "community", "label": "Wowhead 12.1 PTR 技能页", "url": "https://www.wowhead.com/ptr/spell=64843/divine-hymn" },
-          { "kind": "community", "label": "Wowhead 神圣牧师技能与天赋指南", "url": "https://www.wowhead.com/guide/classes/priest/holy/abilities-talents-pve-healer" }
-        ]
-      },
-      "category": "治疗",
-      "color": "#e7e7e7",
-      "dataStatus": "needs-live-check",
-      "enabled": true
-    },
-    {
-      "id": "00000000-0000-4000-8000-000000000503",
-      "spellId": 33206,
-      "name": "痛苦压制",
-      "description": "为一名队友提供外部减伤。",
-      "gameVersion": "retail-12.1",
-      "classSlug": "Priest",
-      "specSlugs": ["discipline"],
-      "scope": "external",
-      "cooldownMs": 180000,
-      "castType": "instant",
-      "castTimeMs": 0,
-      "durationMs": 8000,
-      "triggersGcd": false,
-      "maxCharges": 1,
-      "maxTargets": 1,
-      "effects": [{ "type": "damageReduction", "percent": 40, "schools": ["physical", "magic"] }],
-      "variants": [{
-        "id": "00000000-0000-4000-8000-000000000602",
-        "name": "Protector of the Frail",
-        "talentSpellId": 373036,
-        "description": "痛苦压制获得第二层充能。",
-        "overrides": { "maxCharges": 2 },
-        "limitations": ["真言术：盾触发的动态冷却缩减未计算；排轴检查使用 180 秒基础充能时间。"]
-      }],
-      "limitations": [],
-      "verification": {
-        "gameVersion": "retail-12.1",
-        "checkedAt": null,
-        "sources": [
-          { "kind": "community", "label": "Wowhead 12.1 PTR 技能页", "url": "https://www.wowhead.com/ptr/spell=33206/pain-suppression" },
-          { "kind": "community", "label": "Warcraft Wiki：Protector of the Frail", "url": "https://warcraft.wiki.gg/wiki/Protector_of_the_Frail" }
-        ]
-      },
-      "category": "外部减伤",
-      "color": "#e7e7e7",
-      "dataStatus": "needs-live-check",
-      "enabled": true
-    },
-    {
-      "id": "00000000-0000-4000-8000-000000000504",
-      "spellId": 19236,
-      "name": "绝望祷言",
-      "description": "牧师的个人生存技能。",
-      "gameVersion": "retail-12.1",
-      "classSlug": "Priest",
-      "specSlugs": [],
-      "scope": "personal",
-      "cooldownMs": 90000,
-      "castType": "instant",
-      "castTimeMs": 0,
-      "durationMs": 10000,
-      "triggersGcd": false,
-      "maxCharges": 1,
-      "maxTargets": 1,
-      "effects": [{ "type": "maxHealth", "percent": 25 }],
-      "variants": [{
-        "id": "00000000-0000-4000-8000-000000000603",
-        "name": "Light's Inspiration",
-        "description": "最大生命值与治疗效果由 25% 提高至 35%。",
-        "overrides": { "effects": [{ "type": "maxHealth", "percent": 35 }] },
-        "limitations": ["额外治疗量仅展示说明，不参与当前检查。"]
-      }],
-      "limitations": [],
-      "verification": {
-        "gameVersion": "retail-12.1",
-        "checkedAt": null,
-        "sources": [{ "kind": "community", "label": "Wowhead 12.1 PTR 技能页", "url": "https://www.wowhead.com/ptr/spell=19236/desperate-prayer" }]
-      },
-      "category": "个人减伤",
-      "color": "#e7e7e7",
-      "dataStatus": "needs-live-check",
-      "enabled": true
-    },
-    {
-      "id": "00000000-0000-4000-8000-000000000505",
-      "spellId": 47585,
-      "name": "消散",
-      "description": "暗影牧师的强力个人防护。",
-      "gameVersion": "retail-12.1",
-      "classSlug": "Priest",
-      "specSlugs": ["shadow"],
-      "scope": "personal",
-      "cooldownMs": 120000,
-      "castType": "instant",
-      "castTimeMs": 0,
-      "durationMs": 6000,
-      "triggersGcd": true,
-      "maxCharges": 1,
-      "maxTargets": 1,
-      "effects": [{ "type": "damageReduction", "percent": 75, "schools": ["physical", "magic"] }],
-      "variants": [{
-        "id": "00000000-0000-4000-8000-000000000604",
-        "name": "Intangibility",
-        "description": "消散的冷却时间缩短 30 秒。",
-        "overrides": { "cooldownMs": 90000 },
-        "limitations": ["额外治疗效果仅展示说明，不参与当前检查。"]
-      }],
-      "limitations": [],
-      "verification": {
-        "gameVersion": "retail-12.1",
-        "checkedAt": null,
-        "sources": [
-          { "kind": "community", "label": "Wowhead 12.1 PTR 技能页", "url": "https://www.wowhead.com/ptr/spell=47585/dispersion" },
-          { "kind": "community", "label": "Warcraft Wiki：Intangibility", "url": "https://warcraft.wiki.gg/wiki/Intangibility" }
-        ]
-      },
-      "category": "个人减伤",
-      "color": "#e7e7e7",
-      "dataStatus": "needs-live-check",
-      "enabled": true
-    }
-  ],
+  "playerSkills": [],
   "bossMechanics": [
     {
       "id": "00000000-0000-4000-8000-000000000101",
@@ -202,10 +22,16 @@
       "abilityGameIds": [],
       "castTimeMs": 0,
       "durationMs": 0,
-      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "集合" }] },
-      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
-      "defaultTargets": { "kind": "all" },
-      "severity": "warning",
+      "timelinePresentation": {
+        "parts": [
+          {
+            "kind": "marker",
+            "at": "cast-start",
+            "tone": "judgment",
+            "text": "集合"
+          }
+        ]
+      },
       "color": "#cf3e3e",
       "dataStatus": "unconfigured",
       "limitations": [],
@@ -220,10 +46,16 @@
       "abilityGameIds": [],
       "castTimeMs": 0,
       "durationMs": 0,
-      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "分散" }] },
-      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
-      "defaultTargets": { "kind": "all" },
-      "severity": "warning",
+      "timelinePresentation": {
+        "parts": [
+          {
+            "kind": "marker",
+            "at": "cast-start",
+            "tone": "judgment",
+            "text": "分散"
+          }
+        ]
+      },
       "color": "#cf3e3e",
       "dataStatus": "unconfigured",
       "limitations": [],
@@ -238,10 +70,16 @@
       "abilityGameIds": [],
       "castTimeMs": 0,
       "durationMs": 0,
-      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "转阶段" }] },
-      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
-      "defaultTargets": { "kind": "all" },
-      "severity": "warning",
+      "timelinePresentation": {
+        "parts": [
+          {
+            "kind": "marker",
+            "at": "cast-start",
+            "tone": "judgment",
+            "text": "转阶段"
+          }
+        ]
+      },
       "color": "#cf3e3e",
       "dataStatus": "unconfigured",
       "limitations": [],
@@ -256,37 +94,90 @@
       "abilityGameIds": [],
       "castTimeMs": 0,
       "durationMs": 0,
-      "timelinePresentation": { "parts": [{ "kind": "marker", "at": "cast-start", "tone": "judgment", "text": "分组站位" }] },
-      "damage": { "school": "magic", "directAmount": null, "periodicAmount": null, "periodicIntervalMs": null, "tickOnStart": false },
-      "defaultTargets": { "kind": "all" },
-      "severity": "warning",
+      "timelinePresentation": {
+        "parts": [
+          {
+            "kind": "marker",
+            "at": "cast-start",
+            "tone": "judgment",
+            "text": "分组站位"
+          }
+        ]
+      },
       "color": "#cf3e3e",
       "dataStatus": "unconfigured",
       "limitations": [],
       "enabled": true
     }
   ],
-  "timelinePresets": [{
-    "id": "00000000-0000-4000-8000-000000000401",
-    "name": "基础机制示例",
-    "description": "集合、分散、转阶段与分组站位的简洁时间轴。",
-    "enabled": true,
-    "encounter": {
-      "id": "00000000-0000-4000-8000-000000000001",
+  "timelinePresets": [
+    {
+      "id": "00000000-0000-4000-8000-000000000401",
       "name": "基础机制示例",
-      "gameVersion": "retail-12.1",
-      "instance": { "id": "00000000-0000-4000-8000-000000000002", "name": "示例团本" }
-    },
-    "phases": [
-      { "id": "00000000-0000-4000-8000-000000000201", "name": "P1", "ordinal": 1, "estimatedStartMs": 0 },
-      { "id": "00000000-0000-4000-8000-000000000202", "name": "P2", "ordinal": 2, "estimatedStartMs": 60000 }
-    ],
-    "mechanics": [
-      { "id": "00000000-0000-4000-8000-000000000301", "definitionId": "00000000-0000-4000-8000-000000000101", "anchor": { "kind": "phase", "phaseId": "00000000-0000-4000-8000-000000000201", "offsetMs": 15000 } },
-      { "id": "00000000-0000-4000-8000-000000000302", "definitionId": "00000000-0000-4000-8000-000000000102", "anchor": { "kind": "phase", "phaseId": "00000000-0000-4000-8000-000000000201", "offsetMs": 35000 } },
-      { "id": "00000000-0000-4000-8000-000000000303", "definitionId": "00000000-0000-4000-8000-000000000103", "anchor": { "kind": "phase", "phaseId": "00000000-0000-4000-8000-000000000202", "offsetMs": 0 } },
-      { "id": "00000000-0000-4000-8000-000000000304", "definitionId": "00000000-0000-4000-8000-000000000104", "anchor": { "kind": "phase", "phaseId": "00000000-0000-4000-8000-000000000202", "offsetMs": 25000 } }
-    ],
-    "notes": []
-  }]
+      "description": "集合、分散、转阶段与分组站位的简洁时间轴。",
+      "enabled": true,
+      "encounter": {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "name": "基础机制示例",
+        "gameVersion": "retail-12.1",
+        "instance": {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "示例团本"
+        }
+      },
+      "phases": [
+        {
+          "id": "00000000-0000-4000-8000-000000000201",
+          "name": "P1",
+          "ordinal": 1,
+          "estimatedStartMs": 0
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000202",
+          "name": "P2",
+          "ordinal": 2,
+          "estimatedStartMs": 60000
+        }
+      ],
+      "mechanics": [
+        {
+          "id": "00000000-0000-4000-8000-000000000301",
+          "definitionId": "00000000-0000-4000-8000-000000000101",
+          "anchor": {
+            "kind": "phase",
+            "phaseId": "00000000-0000-4000-8000-000000000201",
+            "offsetMs": 15000
+          }
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000302",
+          "definitionId": "00000000-0000-4000-8000-000000000102",
+          "anchor": {
+            "kind": "phase",
+            "phaseId": "00000000-0000-4000-8000-000000000201",
+            "offsetMs": 35000
+          }
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000303",
+          "definitionId": "00000000-0000-4000-8000-000000000103",
+          "anchor": {
+            "kind": "phase",
+            "phaseId": "00000000-0000-4000-8000-000000000202",
+            "offsetMs": 0
+          }
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000304",
+          "definitionId": "00000000-0000-4000-8000-000000000104",
+          "anchor": {
+            "kind": "phase",
+            "phaseId": "00000000-0000-4000-8000-000000000202",
+            "offsetMs": 25000
+          }
+        }
+      ],
+      "notes": []
+    }
+  ]
 }

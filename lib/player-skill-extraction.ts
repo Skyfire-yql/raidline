@@ -1,6 +1,6 @@
 import { WOW_CLASS_COLORS, WOW_CLASS_LABELS, WOW_CLASS_SPECS, specializationFor, compareRosterRoles } from "./cooldowns";
-import { resolveSkillVariant } from "./skills";
-import { parseCombatLogSnapshot, parsePlayerSkillExtractionProfile, type CatalogSkillDefinition, type ObservedActor, type PlanImportDraft, type PlayerSkillDefinitionSnapshot, type PlayerSkillExtractionProfile, type RosterSlot } from "./types";
+import { resolveObservedSkill } from "./skills";
+import { parseCombatLogSnapshot, parsePlayerSkillExtractionProfile, type ObservedActor, type PlanImportDraft, type PlayerSkillDefinition, type PlayerSkillExtractionProfile, type RosterSlot } from "./types";
 
 type PlayerCandidates = Pick<PlanImportDraft, "rosterCandidates" | "skillAssignmentCandidates" | "warnings" | "noteCandidates">;
 
@@ -11,7 +11,7 @@ function anonymousSuffix(index: number): string {
 function floorTime(value: number) { return Math.max(0, Math.floor(value / 1000) * 1000); }
 
 /** Pure conversion: names from an input snapshot are deliberately never consulted. */
-export function extractPlayerSkillCandidates(snapshotValue: unknown, profileValue: unknown, definitions: PlayerSkillDefinitionSnapshot[]): PlayerCandidates {
+export function extractPlayerSkillCandidates(snapshotValue: unknown, profileValue: unknown, definitions: readonly PlayerSkillDefinition[]): PlayerCandidates {
   const snapshot = parseCombatLogSnapshot(snapshotValue);
   const profile = parsePlayerSkillExtractionProfile(profileValue);
   if (profile.status !== "published" || profile.gameVersion !== snapshot.source.gameVersionKey) throw new Error("玩家技能规则与战斗版本不匹配");
@@ -26,7 +26,7 @@ export function extractPlayerSkillCandidates(snapshotValue: unknown, profileValu
     const key = classSlug ?? "unknown";
     const count = counters.get(key) ?? 0;
     counters.set(key, count + 1);
-    const slot: RosterSlot = { id: crypto.randomUUID(), name: `${classSlug ? WOW_CLASS_LABELS[classSlug] : "成员"}${anonymousSuffix(count)}`, classSlug, specSlug: spec?.slug ?? null, role: spec?.role ?? (roles.size === 1 ? [...roles][0] : null), color: classSlug ? WOW_CLASS_COLORS[classSlug] : "#888888", groupIds: [], subgroup: null };
+    const slot: RosterSlot = { id: crypto.randomUUID(), name: `${classSlug ? WOW_CLASS_LABELS[classSlug] : "成员"}${anonymousSuffix(count)}`, classSlug, specSlug: spec?.slug ?? null, role: spec?.role ?? (roles.size === 1 ? [...roles][0] : null), color: classSlug ? WOW_CLASS_COLORS[classSlug] : "#888888" };
     if (!spec) warnings.push({ code: "PLAYER_SPECIALIZATION_UNKNOWN", objectId: slot.id, message: `${slot.name} 的专精未能可靠识别；仅处理职业通用技能，不猜测专精或天赋。` });
     return { id: slot.id, actorKey: actor.actorKey, slot, sourceEventKeys: [], conversionRuleIds: [] };
   }).sort((a, b) => compareRosterRoles(a.slot, b.slot));
@@ -66,7 +66,7 @@ export function extractPlayerSkillCandidates(snapshotValue: unknown, profileValu
     const rule = matches[0];
     if (!rule) continue;
     const definition = definitions.find(item => item.id === rule.definitionId)!;
-    const skill = resolveSkillVariant(definition, rule.variantId);
+    const skill = resolveObservedSkill(definition, cast.abilityGameId!);
     const duplicateKey = `${caster.actorKey}:${rule.definitionId}:${cast.atMs}`;
     if (consumed.has(duplicateKey)) continue;
     consumed.add(duplicateKey);
@@ -92,12 +92,13 @@ export function extractPlayerSkillCandidates(snapshotValue: unknown, profileValu
     const familyKey = `${caster.actorKey}:${rule.definitionId}`;
     const previousCastMs = lastConfirmedCast.get(familyKey);
     if (previousCastMs != null && cast.atMs - previousCastMs <= (rule.deduplication?.windowMs ?? 0)) continue;
-    if (previousCastMs != null && skill.cooldownMs && cast.atMs - previousCastMs < skill.cooldownMs / skill.maxCharges) {
-      warn("PLAYER_SKILL_COOLDOWN_UNCERTAIN", slot.id, `${slot.name} 的 ${skill.name} 实际间隔短于基础冷却，保留成功施放；天赋、额外充能、动态减冷却或重置不能由间隔倒推。`);
-    }
     const castStart = skill.castType === "cast" || skill.castType === "channel"
-      ? events.filter(event => event.type === "cast-start" && event.sourceActorKey === cast.sourceActorKey && event.abilityGameId === cast.abilityGameId && event.atMs <= cast.atMs && cast.atMs - event.atMs <= (skill.castTimeMs ?? 0) + 2000).at(-1)
+      ? events.filter(event => event.type === "cast-start" && event.sourceActorKey === cast.sourceActorKey && event.abilityGameId === cast.abilityGameId && event.atMs <= cast.atMs && event.atMs > (previousCastMs ?? -1) && cast.atMs - event.atMs <= (skill.castTimeMs ?? 0) + 2000).at(-1)
       : undefined;
+    if (skill.castType === "cast" && !castStart) {
+      warn("PLAYER_SKILL_START_UNCONFIRMED", slot.id, `${slot.name} 的 ${skill.name} 缺少成功施法对应的开始记录，未生成安排。`);
+      continue;
+    }
     const startMs = castStart?.atMs ?? cast.atMs;
     const nextCast = events.find(event => event.type === "cast-success" && event.atMs > cast.atMs + 200 && owner(event.sourceActorKey)?.actorKey === caster.actorKey && event.abilityGameId != null && rule.match.abilityGameIds.includes(event.abilityGameId));
     // Pair each initial aura with its first removal. Later passive reapplications are
@@ -112,23 +113,18 @@ export function extractPlayerSkillCandidates(snapshotValue: unknown, profileValu
     const actualEnd = endEvents.length ? Math.max(...endEvents.map(event => event.atMs)) : undefined;
     const baseEnd = effectStartMs + (skill.durationMs ?? 0);
     const endMs = Math.min(snapshot.encounter.durationMs, actualEnd ?? baseEnd);
-    const castTimeMs = skill.castType === "cast" ? floorTime(cast.atMs) - floorTime(startMs)
-      : skill.castType === "channel" ? Math.min(floorTime(endMs) - floorTime(startMs), floorTime(skill.castTimeMs ?? 0)) : 0;
     const targets = skill.scope === "personal" ? [slot.id] : [...new Set(evidence.map(event => event.targetActorKey ? roster.get(event.targetActorKey)?.id : undefined).filter((value): value is string => Boolean(value)))];
     // A self aura can confirm a group cooldown, but cannot identify everyone benefiting from it.
     const targetSelection = skill.scope === "team" && (!confirmation || confirmation.target === "self") ? { kind: "all" as const } : { kind: "members" as const, memberIds: targets };
     const candidateId = crypto.randomUUID();
     lastConfirmedCast.set(familyKey, cast.atMs);
-    const { origin: _origin, enabled: _enabled, ...cleanDefinition } = definition as CatalogSkillDefinition;
-    void _origin;
-    void _enabled;
     skillAssignmentCandidates.push({
       id: candidateId,
       sourceEventKeys: [...new Set([cast.eventKey, ...(castStart ? [castStart.eventKey] : []), ...evidence.slice(0, 20).map(event => event.eventKey), ...endEvents.slice(0, 20).map(event => event.eventKey)])],
-      conversionRuleIds: [rule.id], definition: structuredClone(cleanDefinition),
+      conversionRuleIds: [rule.id],
       observed: { startMs, impactMs: effectStartMs, endMs: Math.max(effectStartMs, endMs) },
       assignment: { id: candidateId, memberId: slot.id, skillDefinitionId: definition.id, anchor: { kind: "pull", offsetMs: floorTime(startMs) }, targets: targetSelection, note: "",
-        ...(rule.variantId ? { variantId: rule.variantId } : {}), timing: { castTimeMs: Math.max(0, castTimeMs), durationMs: Math.max(0, floorTime(endMs) - floorTime(effectStartMs)) } },
+        observedDurationMs: Math.max(0, floorTime(endMs) - floorTime(startMs)) },
     });
   }
   const noteCandidates: NonNullable<PlayerCandidates["noteCandidates"]> = [];
@@ -171,12 +167,11 @@ export function extractPlayerSkillCandidates(snapshotValue: unknown, profileValu
   return { rosterCandidates, skillAssignmentCandidates, noteCandidates, warnings };
 }
 
-export function validatePlayerSkillProfileReferences(profile: PlayerSkillExtractionProfile, definitions: PlayerSkillDefinitionSnapshot[]) {
+export function validatePlayerSkillProfileReferences(profile: PlayerSkillExtractionProfile, definitions: readonly PlayerSkillDefinition[]) {
   for (const rule of profile.backgroundWindowRules ?? []) if (rule.enabled && rule.verification.status === "pending") throw new Error("待核验团队背景规则不得启用");
   for (const rule of profile.extractionRules) {
     const definition = definitions.find(item => item.id === rule.definitionId);
     if (!definition || definition.gameVersion !== profile.gameVersion) throw new Error("玩家技能规则引用了不存在或版本不匹配的全局定义");
-    if (rule.variantId && !definition.variants.some(variant => variant.id === rule.variantId)) throw new Error("玩家技能规则引用了不存在的变体");
     if (rule.enabled && rule.verification.status === "pending") throw new Error("待核验玩家技能规则不得启用");
     if (rule.enabled && (rule.timingPoint !== "cast-start" || rule.match.eventTypes.some(type => type !== "cast-success"))) throw new Error("玩家技能必须以成功的主动施放为候选，不能直接导入开始读条或被动光环");
   }

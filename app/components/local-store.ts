@@ -5,8 +5,8 @@ import { validateCatalogRelease } from "../../lib/catalog.ts";
 import { isExpectedRevision, snapshotIdsToDelete } from "../../lib/local-policy.ts";
 import type { CatalogRelease, LocalPlanRecord, PlanSnapshot, PublicationBinding, RaidPlanDocument, SnapshotReason } from "../../lib/types.ts";
 
-const DB_NAME = "raidline-local";
-const DB_VERSION = 2;
+const DB_NAME = "raidline";
+const DB_VERSION = 1;
 
 export class LocalRevisionConflictError extends Error {
   latest: LocalPlanRecord;
@@ -43,11 +43,8 @@ function database() {
   if (!databasePromise) {
     databasePromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = () => {
         const db = request.result;
-        if (event.oldVersion > 0 && event.oldVersion < DB_VERSION) {
-          for (const name of ["plans", "snapshots", "catalogCache"]) if (db.objectStoreNames.contains(name)) db.deleteObjectStore(name);
-        }
         if (!db.objectStoreNames.contains("plans")) db.createObjectStore("plans", { keyPath: "id" });
         if (!db.objectStoreNames.contains("snapshots")) {
           const store = db.createObjectStore("snapshots", { keyPath: "id" });

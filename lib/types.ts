@@ -19,7 +19,7 @@ export interface LocalPlanRecord {
   activePublication?: PublicationBinding;
 }
 
-export type SnapshotReason = "minute" | "publish" | "preset" | "catalog-upgrade" | "destructive" | "manual";
+export type SnapshotReason = "minute" | "publish" | "preset" | "destructive" | "manual";
 
 export interface PlanSnapshot {
   id: string;
@@ -47,6 +47,7 @@ export type ExportTarget = "mrt-reading";
 export interface ExportRequest {
   target: ExportTarget;
   document: RaidPlanDocument;
+  skillLibrary?: readonly import("./domain/schema").PlayerSkillDefinition[];
 }
 
 export interface ExportDiagnostic {

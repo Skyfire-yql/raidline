@@ -1,3 +1,5 @@
+import { PLAYER_SKILLS } from "../player-skill-library";
+import type { PlayerSkillDefinition } from "./schema";
 import { MAX_TIMELINE_MS, TIMELINE_SNAP_MS, type MemberSelector, type MechanicOccurrence, type RaidPlanDocument, type SkillAssignment, type TacticalDirective, type TimelineAnchor } from "./schema";
 
 export interface PlanDiagnostic {
@@ -5,6 +7,7 @@ export interface PlanDiagnostic {
   severity: "warning" | "error";
   message: string;
   objectId?: string;
+  objectType?: "member" | "phase" | "mechanic" | "directive" | "assignment";
   path?: string;
 }
 
@@ -25,7 +28,7 @@ function mechanicPointOffset(plan: RaidPlanDocument, occurrence: MechanicOccurre
   return point === "impact" ? impactOffset : impactOffset + duration;
 }
 
-function resolveAnchorInternal(plan: RaidPlanDocument, anchor: TimelineAnchor, visiting: Set<string>): ResolvedTime {
+export function resolveTimelineAnchor(plan: RaidPlanDocument, anchor: TimelineAnchor): ResolvedTime {
   if (anchor.kind === "pull") return { ok: true, atMs: anchor.offsetMs };
   if (anchor.kind === "phase") {
     const phase = plan.timeline.phases.find((item) => item.id === anchor.phaseId);
@@ -34,22 +37,7 @@ function resolveAnchorInternal(plan: RaidPlanDocument, anchor: TimelineAnchor, v
     if (atMs < 0 || atMs > MAX_TIMELINE_MS) return { ok: false, error: { code: "ANCHOR_OUT_OF_RANGE", severity: "error", message: "阶段相对时间超出有效范围", objectId: phase.id } };
     return { ok: true, atMs };
   }
-  const id = anchor.mechanicOccurrenceId;
-  if (visiting.has(id)) return { ok: false, error: { code: "ANCHOR_CYCLE", severity: "error", message: "机制时间锚点形成了循环引用", objectId: id } };
-  const occurrence = plan.timeline.mechanics.find((item) => item.id === id);
-  if (!occurrence) return { ok: false, error: { code: "MISSING_MECHANIC", severity: "error", message: "时间锚点引用了不存在的机制实例", objectId: id } };
-  const pointOffset = mechanicPointOffset(plan, occurrence, anchor.point);
-  if (pointOffset == null) return { ok: false, error: { code: "MISSING_MECHANIC_DEFINITION", severity: "error", message: "机制实例引用的定义不存在", objectId: occurrence.id } };
-  const nextVisiting = new Set(visiting).add(id);
-  const start = resolveAnchorInternal(plan, occurrence.anchor, nextVisiting);
-  if (!start.ok) return start;
-  const atMs = start.atMs + pointOffset + anchor.offsetMs;
-  if (atMs < 0 || atMs > MAX_TIMELINE_MS) return { ok: false, error: { code: "ANCHOR_OUT_OF_RANGE", severity: "error", message: "机制相对时间超出有效范围", objectId: id } };
-  return { ok: true, atMs };
-}
-
-export function resolveTimelineAnchor(plan: RaidPlanDocument, anchor: TimelineAnchor): ResolvedTime {
-  return resolveAnchorInternal(plan, anchor, new Set());
+  throw new Error("不支持的时间锚点");
 }
 
 export function resolveMechanicPoint(plan: RaidPlanDocument, occurrenceId: string, point: "cast-start" | "impact" | "end" = "cast-start"): ResolvedTime {
@@ -57,7 +45,7 @@ export function resolveMechanicPoint(plan: RaidPlanDocument, occurrenceId: strin
   if (!occurrence) return { ok: false, error: { code: "MISSING_MECHANIC", severity: "error", message: "机制实例不存在", objectId: occurrenceId } };
   const offset = mechanicPointOffset(plan, occurrence, point);
   if (offset == null) return { ok: false, error: { code: "MISSING_MECHANIC_DEFINITION", severity: "error", message: "机制实例引用的定义不存在", objectId: occurrenceId } };
-  const start = resolveAnchorInternal(plan, occurrence.anchor, new Set([occurrenceId]));
+  const start = resolveTimelineAnchor(plan, occurrence.anchor);
   return start.ok ? { ok: true, atMs: start.atMs + offset } : start;
 }
 
@@ -80,35 +68,23 @@ export function moveAnchorTo(plan: RaidPlanDocument, anchor: TimelineAnchor, atM
     const phase = plan.timeline.phases.find((item) => item.id === anchor.phaseId);
     return phase ? { ...anchor, offsetMs: Math.round((snapped - phase.estimatedStartMs) / TIMELINE_SNAP_MS) * TIMELINE_SNAP_MS } : anchor;
   }
-  const base = resolveMechanicPoint(plan, anchor.mechanicOccurrenceId, anchor.point);
-  return base.ok ? { ...anchor, offsetMs: Math.round((snapped - base.atMs) / TIMELINE_SNAP_MS) * TIMELINE_SNAP_MS } : anchor;
+  return anchor;
 }
 
 export function resolveMemberIds(plan: RaidPlanDocument, selector: MemberSelector) {
   const members = plan.roster.members;
   if (selector.kind === "all") return members.map((item) => item.id);
-  if (selector.kind === "groups") return members.filter((item) => item.groupIds.some((id) => selector.groupIds.includes(id))).map((item) => item.id);
-  if (selector.kind === "roles") return members.filter((item) => item.role != null && selector.roles.includes(item.role)).map((item) => item.id);
-  if (selector.kind === "subgroups") return members.filter((item) => item.subgroup != null && selector.subgroups.includes(item.subgroup)).map((item) => item.id);
   return members.filter((item) => selector.memberIds.includes(item.id)).map((item) => item.id);
 }
 
 export function resolveSkillTargets(plan: RaidPlanDocument, assignment: SkillAssignment) {
-  if (assignment.targets.kind !== "mechanic-targets") return resolveMemberIds(plan, assignment.targets);
-  const anchor = assignment.anchor;
-  if (anchor.kind !== "mechanic") return [];
-  const occurrence = plan.timeline.mechanics.find((item) => item.id === anchor.mechanicOccurrenceId);
-  if (!occurrence) return [];
-  const definition = plan.definitions.mechanics.find((item) => item.id === occurrence.definitionId);
-  return definition ? resolveMemberIds(plan, occurrence.targets ?? definition.defaultTargets) : [];
+  return resolveMemberIds(plan, assignment.targets);
 }
 
 function duplicateIds(plan: RaidPlanDocument) {
   const all = [
     ...plan.sources.map((item) => item.id),
     ...plan.definitions.mechanics.map((item) => item.id),
-    ...plan.definitions.skills.map((item) => item.id),
-    ...plan.roster.groups.map((item) => item.id),
     ...plan.roster.members.map((item) => item.id),
     ...plan.timeline.phases.map((item) => item.id),
     ...plan.timeline.mechanics.map((item) => item.id),
@@ -121,26 +97,20 @@ function duplicateIds(plan: RaidPlanDocument) {
 
 function selectorReferenceDiagnostics(plan: RaidPlanDocument, selector: MemberSelector, objectId: string): PlanDiagnostic[] {
   const diagnostics: PlanDiagnostic[] = [];
-  const groupIds = new Set(plan.roster.groups.map((item) => item.id));
   const memberIds = new Set(plan.roster.members.map((item) => item.id));
-  if (selector.kind === "groups") for (const id of selector.groupIds) if (!groupIds.has(id)) diagnostics.push({ code: "MISSING_GROUP", severity: "error", message: "目标选择引用了不存在的策略组", objectId });
   if (selector.kind === "members") for (const id of selector.memberIds) if (!memberIds.has(id)) diagnostics.push({ code: "MISSING_MEMBER", severity: "error", message: "目标选择引用了不存在的成员", objectId });
   return diagnostics;
 }
 
-export function validatePlanSemantics(plan: RaidPlanDocument): PlanDiagnostic[] {
+export function validatePlanSemantics(plan: RaidPlanDocument, library: readonly PlayerSkillDefinition[] = PLAYER_SKILLS): PlanDiagnostic[] {
   const diagnostics: PlanDiagnostic[] = [];
   for (const id of duplicateIds(plan)) diagnostics.push({ code: "DUPLICATE_ID", severity: "error", message: "计划内存在重复的实体 ID", objectId: id });
 
   const sourceIds = new Set(plan.sources.map((item) => item.id));
   const mechanicDefinitionIds = new Set(plan.definitions.mechanics.map((item) => item.id));
-  const groupIds = new Set(plan.roster.groups.map((item) => item.id));
-  const memberIds = new Set(plan.roster.members.map((item) => item.id));
   const phaseIds = new Set(plan.timeline.phases.map((item) => item.id));
-  const mechanicIds = new Set(plan.timeline.mechanics.map((item) => item.id));
   const originObjects = [
     ...plan.definitions.mechanics,
-    ...plan.definitions.skills,
     ...plan.roster.members,
     ...plan.timeline.phases,
     ...plan.timeline.mechanics,
@@ -159,24 +129,8 @@ export function validatePlanSemantics(plan: RaidPlanDocument): PlanDiagnostic[] 
   if (phases[0]?.ordinal !== 1 || phases[0]?.estimatedStartMs !== 0) diagnostics.push({ code: "INVALID_FIRST_PHASE", severity: "error", message: "第一个阶段必须为序号 1 且从 00:00 开始", objectId: phases[0]?.id });
   for (let index = 1; index < phases.length; index += 1) if (phases[index].estimatedStartMs < phases[index - 1].estimatedStartMs) diagnostics.push({ code: "PHASE_ORDER", severity: "error", message: "阶段预计时间不能早于前一阶段", objectId: phases[index].id });
 
-  for (const member of plan.roster.members) {
-    for (const groupId of member.groupIds) if (!groupIds.has(groupId)) diagnostics.push({ code: "MISSING_GROUP", severity: "error", message: "成员引用了不存在的策略组", objectId: member.id });
-  }
-
-  const loadoutKeys = new Set<string>();
-  for (const selection of plan.roster.memberSkills) {
-    const key = `${selection.memberId}:${selection.skillDefinitionId}`;
-    if (loadoutKeys.has(key)) diagnostics.push({ code: "DUPLICATE_MEMBER_SKILL", severity: "error", message: "同一成员和技能只能选择一个变体", objectId: selection.memberId });
-    loadoutKeys.add(key);
-    const skill = plan.definitions.skills.find((item) => item.id === selection.skillDefinitionId);
-    if (!memberIds.has(selection.memberId)) diagnostics.push({ code: "MISSING_MEMBER", severity: "error", message: "成员技能选择引用了不存在的成员", objectId: selection.memberId });
-    if (!skill) diagnostics.push({ code: "MISSING_SKILL_DEFINITION", severity: "error", message: "成员技能选择引用了不存在的技能", objectId: selection.skillDefinitionId });
-    else if (selection.variantId && !skill.variants.some((item) => item.id === selection.variantId)) diagnostics.push({ code: "MISSING_SKILL_VARIANT", severity: "error", message: "成员技能选择引用了不存在的变体", objectId: selection.skillDefinitionId });
-  }
-
   for (const occurrence of plan.timeline.mechanics) {
     if (!mechanicDefinitionIds.has(occurrence.definitionId)) diagnostics.push({ code: "MISSING_MECHANIC_DEFINITION", severity: "error", message: "机制实例引用了不存在的定义", objectId: occurrence.id });
-    if (occurrence.targets) diagnostics.push(...selectorReferenceDiagnostics(plan, occurrence.targets, occurrence.id));
     const resolved = resolveTimelineAnchor(plan, occurrence.anchor);
     if (!resolved.ok) diagnostics.push({ ...resolved.error, objectId: occurrence.id });
   }
@@ -188,7 +142,6 @@ export function validatePlanSemantics(plan: RaidPlanDocument): PlanDiagnostic[] 
     if (directive.scope.kind === "timed") {
       const resolved = resolveTimelineAnchor(plan, directive.scope.anchor);
       if (!resolved.ok) diagnostics.push({ ...resolved.error, objectId: directive.id });
-      if (directive.kind === "task" && directive.reminder && resolved.ok && resolved.atMs - directive.reminder.leadMs < 0) diagnostics.push({ code: "REMINDER_BEFORE_PULL", severity: "error", message: "提醒时间不能早于开怪", objectId: directive.id });
     }
     if (directive.kind === "task") {
       diagnostics.push(...selectorReferenceDiagnostics(plan, directive.assignees, directive.id));
@@ -198,16 +151,21 @@ export function validatePlanSemantics(plan: RaidPlanDocument): PlanDiagnostic[] 
 
   for (const assignment of plan.timeline.skillAssignments) {
     const member = plan.roster.members.find((item) => item.id === assignment.memberId);
-    const skill = plan.definitions.skills.find((item) => item.id === assignment.skillDefinitionId);
+    const skill = library.find((item) => item.id === assignment.skillDefinitionId);
     if (!member) diagnostics.push({ code: "MISSING_MEMBER", severity: "error", message: "技能安排引用了不存在的成员", objectId: assignment.id });
     if (!skill) diagnostics.push({ code: "MISSING_SKILL_DEFINITION", severity: "error", message: "技能安排引用了不存在的技能", objectId: assignment.id });
-    if (skill && assignment.variantId && !skill.variants.some(variant => variant.id === assignment.variantId)) diagnostics.push({ code: "MISSING_SKILL_VARIANT", severity: "error", message: "技能安排引用了不存在的施放变体", objectId: assignment.id });
-    if (assignment.targets.kind === "mechanic-targets") {
-      if (assignment.anchor.kind !== "mechanic" || !mechanicIds.has(assignment.anchor.mechanicOccurrenceId)) diagnostics.push({ code: "INVALID_INHERITED_TARGETS", severity: "error", message: "继承机制目标的技能必须锚定到有效机制", objectId: assignment.id });
-    } else diagnostics.push(...selectorReferenceDiagnostics(plan, assignment.targets, assignment.id));
+    diagnostics.push(...selectorReferenceDiagnostics(plan, assignment.targets, assignment.id));
     const resolved = resolveTimelineAnchor(plan, assignment.anchor);
     if (!resolved.ok) diagnostics.push({ ...resolved.error, objectId: assignment.id });
     if (member && skill && (member.classSlug !== skill.classSlug || member.specSlug && skill.specSlugs.length > 0 && !skill.specSlugs.includes(member.specSlug))) diagnostics.push({ code: "SKILL_MEMBER_MISMATCH", severity: "warning", message: `${skill.name} 与 ${member.name} 的职业或专精不匹配`, objectId: assignment.id });
+  }
+  for (const diagnostic of diagnostics) {
+    const id = diagnostic.objectId;
+    if (plan.timeline.skillAssignments.some(item => item.id === id)) diagnostic.objectType = "assignment";
+    else if (plan.timeline.mechanics.some(item => item.id === id)) diagnostic.objectType = "mechanic";
+    else if (plan.timeline.directives.some(item => item.id === id)) diagnostic.objectType = "directive";
+    else if (plan.timeline.phases.some(item => item.id === id)) diagnostic.objectType = "phase";
+    else if (plan.roster.members.some(item => item.id === id)) diagnostic.objectType = "member";
   }
   return diagnostics;
 }

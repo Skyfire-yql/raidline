@@ -20,15 +20,6 @@
           { "kind": "marker", "at": "impact", "tone": "judgment", "text": "伤害判定" }
         ]
       },
-      "damage": {
-        "school": "magic",
-        "directAmount": null,
-        "periodicAmount": null,
-        "periodicIntervalMs": null,
-        "tickOnStart": false
-      },
-      "defaultTargets": { "kind": "all" },
-      "severity": "warning",
       "color": "#cf3e3e",
       "dataStatus": "needs-live-check",
       "limitations": []

@@ -5,7 +5,7 @@
 ## 开始之前
 
 - 使用 Node.js `22.13+` 和 pnpm `11+`。
-- 先阅读 [README](README.md)、[架构说明](docs/architecture.md)、[需求索引](docs/requirements/INDEX.md) 和当前 vNext 需求文档。
+- 先阅读 [README](README.md)、[架构说明](docs/architecture.md)、[需求索引](docs/requirements/INDEX.md) 和当前 vNext 需求文档；冲突规则以 [消融后的功能收敛](docs/requirements/2026-09-08-消融后的功能收敛.md) 为准。
 - 先运行 `git status -sb`。不要重置、覆盖或删除不属于当前任务的改动。
 - 从 `main` 创建主题分支；建议使用 `codex/<topic>`，例如 `codex/wcl-contracts`。
 
@@ -39,9 +39,9 @@ pnpm test       # 单元测试 + 构建 + 页面/API 集成测试
 
 - `lib/domain/schema.ts` 是 v1 结构的唯一运行时入口；Zod schema 同时提供 TypeScript 类型。
 - 计划、目录、WCL 快照和导出契约必须保持提供者无关。不要把 React、IndexedDB、SQLite、文件系统、WCL GraphQL DTO 或插件语法放进领域 schema。
-- 计划内定义必须是快照。目录更新或来源删除不能静默改变既有计划。
+- 计划内只保存机制定义快照。玩家技能使用当前全局库，更新目录会影响既有计划和分享的技能名称、冷却与默认时长；不得复制进计划或提供天赋配置。
 - 时间只把 `TimelineAnchor` 作为持久化真值；全局显示时间是派生值。
-- 不添加旧 v1–v5 的运行时迁移器或宽松 `normalize(any)`。旧文档应得到明确的不支持错误。
+- 不添加旧测试格式的运行时迁移器或宽松 `normalize(any)`。当前分发前的 schema v1 已移除废弃字段；旧正文应得到明确的不支持错误。本地存储使用 `raidline` 命名空间，不读取或删除旧测试数据库。
 
 ### 页面和存储
 

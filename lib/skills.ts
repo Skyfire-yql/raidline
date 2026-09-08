@@ -1,14 +1,11 @@
-import type { PlayerSkillDefinitionSnapshot, RaidPlanDocument, RosterSlot, SkillAssignment, SkillDataStatus, SkillTargetSelector, SkillVariant } from "./types";
-
-export interface ResolvedSkillDefinition extends PlayerSkillDefinitionSnapshot {
-  selectedVariant?: SkillVariant;
-}
+import { PLAYER_SKILLS } from "./player-skill-library";
+import type { PlayerSkillDefinition, RosterSlot, SkillAssignment, SkillDataStatus, SkillTargetSelector } from "./types";
 
 export type SkillTargetMode = "all" | "self";
 
 export function skillTargetMode(target: SkillTargetSelector, memberId: string): SkillTargetMode | null {
   if (target.kind === "all") return "all";
-  if (target.kind === "members" && target.memberIds.length === 1 && target.memberIds[0] === memberId) return "self";
+  if (target.memberIds.length === 1 && target.memberIds[0] === memberId) return "self";
   return null;
 }
 
@@ -16,71 +13,33 @@ export function skillTargetsForMode(mode: SkillTargetMode, memberId: string): Sk
   return mode === "self" ? { kind: "members", memberIds: [memberId] } : { kind: "all" };
 }
 
-export function defaultSkillTargets(skill: Pick<PlayerSkillDefinitionSnapshot, "scope">, memberId: string): SkillTargetSelector {
+export function defaultSkillTargets(skill: Pick<PlayerSkillDefinition, "scope">, memberId: string): SkillTargetSelector {
   return skillTargetsForMode(skill.scope === "personal" ? "self" : "all", memberId);
 }
 
-export function memberSkillVariantId(plan: RaidPlanDocument, memberId: string, skillDefinitionId: string) {
-  return plan.roster.memberSkills.find((item) => item.memberId === memberId && item.skillDefinitionId === skillDefinitionId)?.variantId ?? undefined;
+export function resolveSkillForAssignment(assignment: SkillAssignment, library: readonly PlayerSkillDefinition[] = PLAYER_SKILLS): PlayerSkillDefinition | undefined {
+  const skill = library.find(item => item.id === assignment.skillDefinitionId);
+  return skill;
 }
 
-export function setMemberSkillVariant(plan: RaidPlanDocument, memberId: string, skillDefinitionId: string, variantId?: string) {
-  plan.roster.memberSkills = plan.roster.memberSkills.filter((item) => item.memberId !== memberId || item.skillDefinitionId !== skillDefinitionId);
-  plan.roster.memberSkills.push({ memberId, skillDefinitionId, variantId: variantId ?? null });
+/** Alternate spell IDs affect observed timing; there is no player talent configuration. */
+export function resolveObservedSkill(skill: PlayerSkillDefinition, spellId: number): PlayerSkillDefinition {
+  const timing = skill.observedSpells.find(item => item.spellId === spellId);
+  return timing ? { ...skill, ...timing } : skill;
 }
 
-export function resolveSkillVariant(skill: PlayerSkillDefinitionSnapshot, variantId?: string | null): ResolvedSkillDefinition {
-  const selectedVariant = skill.variants.find((item) => item.id === variantId);
-  if (!selectedVariant) return skill;
-  const overrides = selectedVariant.overrides;
-  return {
-    ...skill,
-    ...(selectedVariant.spellId ? { spellId: selectedVariant.spellId } : {}),
-    ...(overrides.cooldownMs !== undefined ? { cooldownMs: overrides.cooldownMs } : {}),
-    ...(overrides.castType !== undefined ? { castType: overrides.castType } : {}),
-    ...(overrides.castTimeMs !== undefined ? { castTimeMs: overrides.castTimeMs } : {}),
-    ...(overrides.durationMs !== undefined ? { durationMs: overrides.durationMs } : {}),
-    ...(overrides.triggersGcd !== undefined ? { triggersGcd: overrides.triggersGcd } : {}),
-    ...(overrides.maxCharges !== undefined ? { maxCharges: overrides.maxCharges } : {}),
-    ...(overrides.maxTargets !== undefined ? { maxTargets: overrides.maxTargets } : {}),
-    ...(overrides.effects !== undefined ? { effects: structuredClone(overrides.effects) } : {}),
-    limitations: [...skill.limitations, ...selectedVariant.limitations],
-    selectedVariant,
-  };
-}
-
-export function resolveSkillForMember(plan: RaidPlanDocument, memberId: string, skillOrId: PlayerSkillDefinitionSnapshot | string): ResolvedSkillDefinition | undefined {
-  const skill = typeof skillOrId === "string" ? plan.definitions.skills.find((item) => item.id === skillOrId) : skillOrId;
-  if (!skill) return undefined;
-  return resolveSkillVariant(skill, memberSkillVariantId(plan, memberId, skill.id));
-}
-
-export function resolveSkillForAssignment(plan: RaidPlanDocument, assignment: SkillAssignment): ResolvedSkillDefinition | undefined {
-  const definition = plan.definitions.skills.find(item => item.id === assignment.skillDefinitionId);
-  if (!definition) return undefined;
-  const skill = resolveSkillVariant(definition, assignment.variantId ?? memberSkillVariantId(plan, assignment.memberId, definition.id));
-  return assignment.timing ? { ...skill, castTimeMs: assignment.timing.castTimeMs, durationMs: assignment.timing.durationMs } : skill;
-}
-
-export function skillAvailableToMember(skill: PlayerSkillDefinitionSnapshot, member: Pick<RosterSlot, "classSlug" | "specSlug">) {
+export function skillAvailableToMember(skill: PlayerSkillDefinition, member: Pick<RosterSlot, "classSlug" | "specSlug">) {
   if (!member.classSlug || skill.classSlug !== member.classSlug) return false;
   if (!member.specSlug) return skill.specSlugs.length === 0;
   return skill.specSlugs.length === 0 || skill.specSlugs.includes(member.specSlug);
 }
 
-export function skillEffectStartMs(atMs: number, skill: Pick<PlayerSkillDefinitionSnapshot, "castType" | "castTimeMs">) {
-  return skill.castType === "cast" ? atMs + (skill.castTimeMs ?? 0) : atMs;
-}
-
-export function skillBusyEndMs(atMs: number, skill: Pick<PlayerSkillDefinitionSnapshot, "castType" | "castTimeMs">) {
-  return skill.castType === "cast" || skill.castType === "channel" ? atMs + (skill.castTimeMs ?? 0) : atMs;
+/** Total timeline span from cast start; it does not assert a healing/damage coverage window. */
+export function skillTimelineDurationMs(skill: PlayerSkillDefinition) {
+  const castMs = skill.castTimeMs ?? 0;
+  return Math.max(castMs, (skill.castType === "cast" ? castMs : 0) + (skill.durationMs ?? 0));
 }
 
 export function skillDataStatusLabel(status: SkillDataStatus) {
-  return ({
-    unconfigured: "数值待补",
-    "needs-live-check": "待正式服复核",
-    verified: "已核准",
-    custom: "计划自定义",
-  } as const)[status];
+  return ({ unconfigured: "数值待补", "needs-live-check": "待正式服复核", verified: "已核准", custom: "自定义" } as const)[status];
 }

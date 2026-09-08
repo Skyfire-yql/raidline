@@ -1,3 +1,6 @@
+import { readCurrentCatalog } from "./catalog-server";
+import { PLAYER_SKILLS } from "./player-skill-library";
+import type { PlayerSkillDefinition } from "./types";
 import { hasBlockingDiagnostics, parsePlanDocument, validatePlanSemantics } from "./core";
 import { hashPlanDocument } from "./hashing";
 import { objectStore, type ObjectStore } from "./object-store";
@@ -10,11 +13,11 @@ export function publicationKey(shareId: string) {
   return `shares/${shareId}.json`;
 }
 
-export async function buildPublication(shareId: string, editId: string, input: unknown): Promise<PublishedPlan> {
+export async function buildPublication(shareId: string, editId: string, input: unknown, library: readonly PlayerSkillDefinition[] = PLAYER_SKILLS): Promise<PublishedPlan> {
   assertShareId(shareId);
   assertEditId(editId);
   const document = parsePlanDocument(input);
-  const diagnostics = validatePlanSemantics(document);
+  const diagnostics = validatePlanSemantics(document, library);
   if (hasBlockingDiagnostics(diagnostics)) throw new Error(diagnostics.find((item) => item.severity === "error")?.message ?? "计划包含无法发布的错误");
   return {
     shareId,
@@ -31,14 +34,14 @@ export async function createPublication(input: unknown, store: ObjectStore = obj
     assertShareId(requested.shareId);
     assertEditId(requested.editId);
     if (await store.exists(publicationKey(requested.shareId))) throw new Error("分享 ID 已存在");
-    const publication = await buildPublication(requested.shareId, requested.editId, input);
+    const publication = await buildPublication(requested.shareId, requested.editId, input, (await readCurrentCatalog(store)).playerSkills);
     await store.putJson(publicationKey(requested.shareId), publication);
     return publication;
   }
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const shareId = randomBase62(16);
     if (await store.exists(publicationKey(shareId))) continue;
-    const publication = await buildPublication(shareId, randomBase62(4), input);
+    const publication = await buildPublication(shareId, randomBase62(4), input, (await readCurrentCatalog(store)).playerSkills);
     await store.putJson(publicationKey(shareId), publication);
     return publication;
   }
@@ -58,7 +61,7 @@ export async function replacePublication(shareId: string, editId: string, input:
   assertEditId(editId);
   const current = await readPublication(shareId, store);
   if (!current || current.editId !== editId) return null;
-  const publication = await buildPublication(shareId, editId, input);
+  const publication = await buildPublication(shareId, editId, input, (await readCurrentCatalog(store)).playerSkills);
   await store.putJson(publicationKey(shareId), publication);
   return publication;
 }

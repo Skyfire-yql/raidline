@@ -8,41 +8,13 @@
     "classSlug": "DeathKnight",
     "specSlugs": [],
     "scope": "team",
-    "cooldownMs": 240000,
+    "cooldownMs": 180000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 6000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 15,
-        "schools": [
-          "magic"
-        ]
-      }
-    ],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000010001",
-        "spellId": 51052,
-        "name": "冷却强化（天赋）",
-        "talentSpellId": 374383,
-        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
-        "overrides": {
-          "cooldownMs": 180000,
-          "durationMs": 8000
-        },
-        "limitations": [
-          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
-        ]
-      }
-    ],
     "limitations": [
-      "保留。团队魔法减伤；区域内多个盟友光环合并为一次领域，不能把它写成全伤害减免。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。团队魔法减伤；区域内多个盟友光环合并为一次领域，不能把它写成全伤害减免。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -58,7 +30,8 @@
     "category": "团队减伤",
     "color": "#c41e3a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000002",
@@ -69,42 +42,13 @@
     "classSlug": "DeathKnight",
     "specSlugs": [],
     "scope": "personal",
-    "cooldownMs": 60000,
+    "cooldownMs": 40000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 5000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "absorb",
-        "amount": null,
-        "allocation": "perTarget",
-        "schools": [
-          "magic"
-        ]
-      }
-    ],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000010002",
-        "spellId": 48707,
-        "name": "冷却强化（天赋）",
-        "talentSpellId": 205727,
-        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
-        "overrides": {
-          "cooldownMs": 40000,
-          "durationMs": 7000
-        },
-        "limitations": [
-          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
-        ]
-      }
-    ],
     "limitations": [
-      "保留短冷却例外。是明确的前置魔法防护；有护罩应用即可证明生效，不要求随后一定受到伤害。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留短冷却例外。是明确的前置魔法防护；有护罩应用即可证明生效，不要求随后一定受到伤害。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -120,7 +64,8 @@
     "category": "个人减伤",
     "color": "#c41e3a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000003",
@@ -135,23 +80,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 30,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。基础全减伤 30%；血腥之韧 434136 的额外减伤取决于已损失生命，不能默认人人获得满额。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。基础全减伤 30%；血腥之韧 434136 的额外减伤取决于已损失生命，不能默认人人获得满额。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -167,7 +98,8 @@
     "category": "个人减伤",
     "color": "#c41e3a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000006",
@@ -184,19 +116,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "maxHealth",
-        "percent": 30
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。动态减冷却可能使实际间隔低于一分钟，不能用 90 秒机械否定真实施放。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。动态减冷却可能使实际间隔低于一分钟，不能用 90 秒机械否定真实施放。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -212,7 +134,8 @@
     "category": "个人减伤",
     "color": "#c41e3a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000008",
@@ -223,18 +146,13 @@
     "classSlug": "DeathKnight",
     "specSlugs": [],
     "scope": "personal",
-    "cooldownMs": 120000,
+    "cooldownMs": 90000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 0,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。属于长冷却大额应急自疗，不当作前置减伤。修正原稿只列鲜血的限制；生命恢复与后续治疗吸收必须同时说明。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。属于长冷却大额应急自疗，不当作前置减伤。修正原稿只列鲜血的限制；生命恢复与后续治疗吸收必须同时说明。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -250,7 +168,8 @@
     "category": "治疗",
     "color": "#c41e3a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000010",
@@ -263,18 +182,13 @@
       "blood"
     ],
     "scope": "personal",
-    "cooldownMs": 120000,
+    "cooldownMs": 90000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。12.1 官方说明明确将招架提高到 30%，不要倒用 12.0 的 20%。镜像攻击及额外符文武器不生成第二次安排。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。12.1 官方说明明确将招架提高到 30%，不要倒用 12.0 的 20%。镜像攻击及额外符文武器不生成第二次安排。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -290,7 +204,8 @@
     "category": "个人减伤",
     "color": "#c41e3a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000012",
@@ -301,18 +216,13 @@
     "classSlug": "DemonHunter",
     "specSlugs": [],
     "scope": "team",
-    "cooldownMs": 300000,
+    "cooldownMs": 180000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。团队环境基础为 15% 概率避开伤害，不是固定 15% 减伤；非团队加成不用于史诗团本。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。团队环境基础为 15% 概率避开伤害，不是固定 15% 减伤；非团队加成不用于史诗团本。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -328,7 +238,8 @@
     "category": "团队减伤",
     "color": "#a330c9",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000013",
@@ -346,28 +257,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
-    "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000010013",
-        "spellId": 198589,
-        "name": "双充能（天赋）",
-        "talentSpellId": 1266307,
-        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
-        "overrides": {
-          "maxCharges": 2
-        },
-        "limitations": [
-          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
-        ]
-      }
-    ],
+    "maxCharges": 2,
     "limitations": [
-      "保留。按专精区分同 ID 效果；不能把 PvP 调整套用到团本。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。按专精区分同 ID 效果；不能把 PvP 调整套用到团本。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -383,7 +275,8 @@
     "category": "个人减伤",
     "color": "#a330c9",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000016",
@@ -396,41 +289,13 @@
       "vengeance"
     ],
     "scope": "personal",
-    "cooldownMs": 60000,
+    "cooldownMs": 48000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 12000,
-    "triggersGcd": null,
-    "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 40,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000010016",
-        "spellId": 204021,
-        "name": "双充能（天赋）",
-        "talentSpellId": 389732,
-        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
-        "overrides": {
-          "maxCharges": 2
-        },
-        "limitations": [
-          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
-        ]
-      }
-    ],
+    "maxCharges": 2,
     "limitations": [
-      "保留短冷却例外。重要纠正：现在是自身通用防御窗口，不能再写成仅被标记敌人对自己的伤害降低。以自身防御生效核验；敌方伤害不入轴。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留短冷却例外。重要纠正：现在是自身通用防御窗口，不能再写成仅被标记敌人对自己的伤害降低。以自身防御生效核验；敌方伤害不入轴。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -446,7 +311,8 @@
     "category": "个人减伤",
     "color": "#a330c9",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000017",
@@ -463,19 +329,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 15000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "maxHealth",
-        "percent": 40
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留复仇手动施放。被动变身、最后一搏及其他技能附带短变身不能伪装成一次手动大变身；免费主动施放则不能被固定 CD 误删。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留复仇手动施放。被动变身、最后一搏及其他技能附带短变身不能伪装成一次手动大变身；免费主动施放则不能被固定 CD 误删。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -491,7 +347,8 @@
     "category": "个人减伤",
     "color": "#a330c9",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000020",
@@ -502,27 +359,13 @@
     "classSlug": "Druid",
     "specSlugs": [],
     "scope": "personal",
-    "cooldownMs": 60000,
+    "cooldownMs": 45600,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 20,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留短冷却例外。是通用前置防护；同名的守护天赋“优胜劣汰”不是猎人技能 264735。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留短冷却例外。是通用前置防护；同名的守护天赋“优胜劣汰”不是猎人技能 264735。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -538,7 +381,8 @@
     "category": "个人减伤",
     "color": "#ff7c0a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000021",
@@ -556,23 +400,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 6000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 50,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。不能沿用旧版本默认双充能，也不能把其他专精自动标为可用。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。不能沿用旧版本默认双充能，也不能把其他专精自动标为可用。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -588,7 +418,8 @@
     "category": "个人减伤",
     "color": "#ff7c0a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000024",
@@ -605,14 +436,9 @@
     "castType": "channel",
     "castTimeMs": 6000,
     "durationMs": 6000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。记录实际开始生效和引导结束，不要求完整引导才承认已发生；繁盛和树妖复制的小宁静不另建主动宁静。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。记录实际开始生效和引导结束，不要求完整引导才承认已发生；繁盛和树妖复制的小宁静不另建主动宁静。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -628,7 +454,8 @@
     "category": "治疗",
     "color": "#ff7c0a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000025",
@@ -645,14 +472,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 30000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。施加治疗强化形态即可核验，不要求后续治疗量达到人为阈值。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。施加治疗强化形态即可核验，不要求后续治疗量达到人为阈值。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -668,7 +490,8 @@
     "category": "治疗",
     "color": "#ff7c0a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000026",
@@ -681,18 +504,13 @@
       "restoration"
     ],
     "scope": "team",
-    "cooldownMs": 120000,
+    "cooldownMs": 60000,
     "castType": "channel",
     "castTimeMs": 4000,
     "durationMs": 4000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留治疗用途。一个万灵窗口只建一次安排，随机产生的多个法术是子效果；不能拿两次施放差直接定义固定冷却。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留治疗用途。一个万灵窗口只建一次安排，随机产生的多个法术是子效果；不能拿两次施放差直接定义固定冷却。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -708,7 +526,8 @@
     "category": "治疗",
     "color": "#ff7c0a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000028",
@@ -725,19 +544,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 30000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "maxHealth",
-        "percent": 30
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。只建乌索克化身的防御窗口；不要同时建立狂暴与化身两次安排。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。只建乌索克化身的防御窗口；不要同时建立狂暴与化身两次安排。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -753,7 +562,8 @@
     "category": "个人减伤",
     "color": "#ff7c0a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000030",
@@ -764,18 +574,13 @@
     "classSlug": "Druid",
     "specSlugs": [],
     "scope": "team",
-    "cooldownMs": 120000,
+    "cooldownMs": 60000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。属于能安排整团转场的团队增益，区别于单人位移。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。属于能安排整团转场的团队增益，区别于单人位移。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -791,7 +596,8 @@
     "category": "位移",
     "color": "#ff7c0a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000031",
@@ -806,14 +612,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。当前效果是恢复目标最大法力值的 20%，不能沿用旧版免法力消耗说明。 本轮排除的是非自身单体减伤／生命治疗；激活仍按已批准的回蓝支援保留，不据此开放其他单体治疗。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。当前效果是恢复目标最大法力值的 20%，不能沿用旧版免法力消耗说明。 本轮排除的是非自身单体减伤／生命治疗；激活仍按已批准的回蓝支援保留，不据此开放其他单体治疗。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -829,7 +630,8 @@
     "category": "自定义",
     "color": "#ff7c0a",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000035",
@@ -844,23 +646,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 5,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 20,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。最多自己加 4 名附近盟友；仅范围伤害降低 20%，不能写成全团、全伤害减免。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。最多自己加 4 名附近盟友；仅范围伤害降低 20%，不能写成全团、全伤害减免。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -876,7 +664,8 @@
     "category": "团队减伤",
     "color": "#33937f",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000036",
@@ -891,37 +680,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 12000,
-    "triggersGcd": null,
-    "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 30,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000010036",
-        "spellId": 363916,
-        "name": "双充能（天赋）",
-        "talentSpellId": 375406,
-        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
-        "overrides": {
-          "maxCharges": 2
-        },
-        "limitations": [
-          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
-        ]
-      }
-    ],
+    "maxCharges": 2,
     "limitations": [
-      "保留。新生光焰是其被动附加治疗，不是另一个主动技能；本轮不单独排该附加项。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。新生光焰是其被动附加治疗，不是另一个主动技能；本轮不单独排该附加项。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -937,7 +698,8 @@
     "category": "个人减伤",
     "color": "#33937f",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000038",
@@ -950,18 +712,13 @@
       "preservation"
     ],
     "scope": "team",
-    "cooldownMs": 240000,
+    "cooldownMs": 180000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 0,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。治疗事件须归入同一次回溯，不按每位受治疗者建立技能安排。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。治疗事件须归入同一次回溯，不按每位受治疗者建立技能安排。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -977,7 +734,8 @@
     "category": "治疗",
     "color": "#33937f",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000039",
@@ -994,14 +752,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 15000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。飞行、首次治疗和后续持续治疗是不同时间段；无日志证据不得猜路径上全部成员。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。飞行、首次治疗和后续持续治疗是不同时间段；无日志证据不得猜路径上全部成员。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1017,7 +770,8 @@
     "category": "治疗",
     "color": "#33937f",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000041",
@@ -1033,14 +787,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 0,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "按用户原批注保留“只写释放，不写储存”。必须区分手动释放、自动到期处理及未释放；未证实释放时不自动入轴。 按最新范围，仅保留群体治疗组合的释放；只重放非自身单体治疗／保护的组合不纳入。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "按用户原批注保留“只写释放，不写储存”。必须区分手动释放、自动到期处理及未释放；未证实释放时不自动入轴。 按最新范围，仅保留群体治疗组合的释放；只重放非自身单体治疗／保护的组合不纳入。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1056,7 +805,8 @@
     "category": "治疗",
     "color": "#33937f",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000043",
@@ -1071,14 +821,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。属于团队转场资源；增益生效即可，不能要求全团都使用移动技能。后续位移不另建本技能安排。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。属于团队转场资源；增益生效即可，不能要求全团都使用移动技能。后续位移不另建本技能安排。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1094,7 +839,8 @@
     "category": "位移",
     "color": "#33937f",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000044",
@@ -1109,14 +855,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。修正原稿仅恩护／增辉；此处扩大的是同一个治疗支援技能的正确可用专精，不是增加湮灭爆发技能。 归类为施法／移动支援，不是单体生命治疗或护盾。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。修正原稿仅恩护／增辉；此处扩大的是同一个治疗支援技能的正确可用专精，不是增加湮灭爆发技能。 归类为施法／移动支援，不是单体生命治疗或护盾。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1132,7 +873,8 @@
     "category": "自定义",
     "color": "#33937f",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000047",
@@ -1145,18 +887,13 @@
       "preservation"
     ],
     "scope": "team",
-    "cooldownMs": 120000,
+    "cooldownMs": 90000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 0,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "按用户原批注保留。以梦境吐息实际释放／治疗时点建一项，准备动作与治疗效果归入同一证据组。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "按用户原批注保留。以梦境吐息实际释放／治疗时点建一项，准备动作与治疗效果归入同一证据组。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1172,7 +909,8 @@
     "category": "治疗",
     "color": "#33937f",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000049",
@@ -1187,23 +925,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 30,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。偏转与 30% 减伤不等于对所有 Boss 机制都绝对免疫；实际机制兼容性独立核准。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。偏转与 30% 减伤不等于对所有 Boss 机制都绝对免疫；实际机制兼容性独立核准。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1219,7 +943,8 @@
     "category": "免疫",
     "color": "#aad372",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000050",
@@ -1230,18 +955,13 @@
     "classSlug": "Hunter",
     "specSlugs": [],
     "scope": "personal",
-    "cooldownMs": 120000,
+    "cooldownMs": 60000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 0,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留已批准的个人应急自疗，优先级低于团队大招。它不提供前置减伤，宠物回满也不是第二条玩家安排；60 秒不属于严格“小于一分钟”。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留已批准的个人应急自疗，优先级低于团队大招。它不提供前置减伤，宠物回满也不是第二条玩家安排；60 秒不属于严格“小于一分钟”。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1257,7 +977,8 @@
     "category": "治疗",
     "color": "#aad372",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000051",
@@ -1272,37 +993,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 6000,
-    "triggersGcd": null,
-    "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 30,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000010051",
-        "spellId": 264735,
-        "name": "双充能（天赋）",
-        "talentSpellId": 459450,
-        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
-        "overrides": {
-          "maxCharges": 2
-        },
-        "limitations": [
-          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
-        ]
-      }
-    ],
+    "maxCharges": 2,
     "limitations": [
-      "保留。修正只写一充能而漏掉当前双充能天赋的情况；同次影响主人与宠物只建一次。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。修正只写一充能而漏掉当前双充能天赋的情况；同次影响主人与宠物只建一次。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1318,7 +1011,8 @@
     "category": "个人减伤",
     "color": "#aad372",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000058",
@@ -1333,48 +1027,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "immunity",
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000000059",
-        "spellId": 414658,
-        "name": "深寒凝冰",
-        "description": "所受伤害降低 70%，产生低温\n基础 240 秒；持续 6 秒；低温限制 30 秒；相关寒冰屏障减 CD／重置关系需按变体确认。",
-        "overrides": {
-          "cooldownMs": 240000,
-          "castTimeMs": 0,
-          "durationMs": 6000,
-          "effects": [
-            {
-              "type": "damageReduction",
-              "percent": 70,
-              "schools": [
-                "physical",
-                "magic"
-              ]
-            }
-          ]
-        },
-        "limitations": [
-          "保留。70% 减伤而非免疫；不能用天赋 ID 414659 直接匹配施放日志。",
-          "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
-        ]
-      }
-    ],
     "limitations": [
-      "保留。与深寒凝冰是替换关系；必须区分低温目标限制和自己的充能恢复，不能把两者当独立可连用大招。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。与深寒凝冰是替换关系；必须区分低温目标限制和自己的充能恢复，不能把两者当独立可连用大招。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1390,7 +1045,14 @@
     "category": "免疫",
     "color": "#3fc7eb",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": [
+      {
+        "spellId": 414658,
+        "castTimeMs": 0,
+        "durationMs": 6000
+      }
+    ]
   },
   {
     "id": "60000000-0000-4000-8000-000000000060",
@@ -1401,18 +1063,13 @@
     "classSlug": "Mage",
     "specSlugs": [],
     "scope": "personal",
-    "cooldownMs": 60000,
+    "cooldownMs": 40000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留短冷却例外。主动记录起始快照与返回属于一个安排；仅时光重组 1244090 自动救命不能伪装为主动操控时间。死亡或距离失效要说明。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留短冷却例外。主动记录起始快照与返回属于一个安排；仅时光重组 1244090 自动救命不能伪装为主动操控时间。死亡或距离失效要说明。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1428,7 +1085,8 @@
     "category": "治疗",
     "color": "#3fc7eb",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000069",
@@ -1439,31 +1097,13 @@
     "classSlug": "Monk",
     "specSlugs": [],
     "scope": "personal",
-    "cooldownMs": 360000,
+    "cooldownMs": 330000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 15000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 20,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      },
-      {
-        "type": "maxHealth",
-        "percent": 20
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留核心长冷却防御。主动页与天赋页分拆展示效果，不能因为主动页缺少百分比便当成无减伤；专精实际 CD 未核前只能提示，不能硬判冲突。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留核心长冷却防御。主动页与天赋页分拆展示效果，不能因为主动页缺少百分比便当成无减伤；专精实际 CD 未核前只能提示，不能硬判冲突。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1479,7 +1119,8 @@
     "category": "个人减伤",
     "color": "#00ff98",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000072",
@@ -1496,24 +1137,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "absorb",
-        "amount": null,
-        "allocation": "perTarget",
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。自身吸收上限为最大生命值 50%；不把转移给敌人的持续伤害写进防御持续时间。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。自身吸收上限为最大生命值 50%；不把转移给敌人的持续伤害写进防御持续时间。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1529,7 +1155,8 @@
     "category": "个人减伤",
     "color": "#00ff98",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000074",
@@ -1542,29 +1169,13 @@
       "mistweaver"
     ],
     "scope": "team",
-    "cooldownMs": 180000,
+    "cooldownMs": 150000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 0,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000007401",
-        "spellId": 388615,
-        "name": "还阳术",
-        "description": "互斥替代还魂术。治疗，不驱散魔法效果。",
-        "overrides": {},
-        "limitations": [
-          "不作为另一个独立冷却计数。"
-        ]
-      }
-    ],
     "limitations": [
-      "保留为同一家族的互斥变体；修正“移除所有魔法”的旧笼统描述。一次群体治疗只建一项。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留为同一家族的互斥变体；修正“移除所有魔法”的旧笼统描述。一次群体治疗只建一项。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1580,7 +1191,12 @@
     "category": "治疗",
     "color": "#00ff98",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": [
+      {
+        "spellId": 388615
+      }
+    ]
   },
   {
     "id": "60000000-0000-4000-8000-000000000075",
@@ -1593,35 +1209,13 @@
       "mistweaver"
     ],
     "scope": "team",
-    "cooldownMs": 120000,
+    "cooldownMs": 60000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 25000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000000076",
-        "spellId": 325197,
-        "name": "朱鹤下凡",
-        "description": "近战技能触发多目标治疗并强化氤氲之雾\n基础 120 秒；召唤 25 秒。天神之赐 388212：60 秒、12 秒。",
-        "overrides": {
-          "cooldownMs": 120000,
-          "castTimeMs": 0,
-          "durationMs": 25000,
-          "effects": []
-        },
-        "limitations": [
-          "保留。与青龙配置互斥；普通近战引发的多段治疗归入同次召唤，不逐次排轴。",
-          "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
-        ]
-      }
-    ],
     "limitations": [
-      "保留。与朱鹤为同一家族互斥配置；英雄天赋短暂召来的玉珑不是这次手动青龙下凡。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。与朱鹤为同一家族互斥配置；英雄天赋短暂召来的玉珑不是这次手动青龙下凡。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1637,7 +1231,14 @@
     "category": "治疗",
     "color": "#00ff98",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": [
+      {
+        "spellId": 325197,
+        "castTimeMs": 0,
+        "durationMs": 25000
+      }
+    ]
   },
   {
     "id": "60000000-0000-4000-8000-000000000077",
@@ -1654,14 +1255,9 @@
     "castType": "channel",
     "castTimeMs": 4000,
     "durationMs": 4000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。踏风存在不同取得方式，不能照搬织雾主动规则。青玉庇护等附加防御写为同次技能说明。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。踏风存在不同取得方式，不能照搬织雾主动规则。青玉庇护等附加防御写为同次技能说明。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1677,7 +1273,8 @@
     "category": "治疗",
     "color": "#00ff98",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000078",
@@ -1690,55 +1287,13 @@
       "brewmaster"
     ],
     "scope": "personal",
-    "cooldownMs": 90000,
+    "cooldownMs": 72000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
-    "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "absorb",
-        "amount": null,
-        "allocation": "perTarget",
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000000079",
-        "spellId": 1241059,
-        "name": "天神灌注",
-        "description": "吸收每次所受伤害的一部分，当前说明为 30%，并受总吸收上限约束。\n基础充能 90 秒；同酒仙轻酿和豪饮千杯修正，另有酒类动态缩冷却。",
-        "overrides": {
-          "cooldownMs": 90000,
-          "castTimeMs": 0,
-          "durationMs": 8000,
-          "effects": [
-            {
-              "type": "absorb",
-              "amount": null,
-              "allocation": "perTarget",
-              "schools": [
-                "physical",
-                "magic"
-              ]
-            }
-          ]
-        },
-        "limitations": [
-          "保留为天神酒替换变体。不是无限期 30% 全减伤；上限和持续时间未证实时保留未知，不填 0 或猜 8 秒。",
-          "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
-        ]
-      }
-    ],
+    "maxCharges": 2,
     "limitations": [
-      "保留。天神酒与天神灌注互斥，按实际盾应用和结束表达；绝不把占位 0 写成有效护盾数值。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。天神酒与天神灌注互斥，按实际盾应用和结束表达；绝不把占位 0 写成有效护盾数值。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1754,7 +1309,14 @@
     "category": "个人减伤",
     "color": "#00ff98",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": [
+      {
+        "spellId": 1241059,
+        "castTimeMs": 0,
+        "durationMs": 8000
+      }
+    ]
   },
   {
     "id": "60000000-0000-4000-8000-000000000081",
@@ -1767,18 +1329,13 @@
       "brewmaster"
     ],
     "scope": "personal",
-    "cooldownMs": 120000,
+    "cooldownMs": 95000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 25000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留防御用途。召唤物必须归属原武僧；不能把“40% 醉拳份额”误写为全伤害减免 40%。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留防御用途。召唤物必须归属原武僧；不能把“40% 醉拳份额”误写为全伤害减免 40%。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1794,7 +1351,8 @@
     "category": "个人减伤",
     "color": "#00ff98",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000084",
@@ -1807,18 +1365,13 @@
       "holy"
     ],
     "scope": "team",
-    "cooldownMs": 180000,
+    "cooldownMs": 150000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。12% 是强化后总量，不是额外再加 12%；不知道光环种类时只记录掌握，不能默认减伤。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。12% 是强化后总量，不是额外再加 12%；不知道光环种类时只记录掌握，不能默认减伤。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1834,7 +1387,8 @@
     "category": "团队减伤",
     "color": "#f48cba",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000085",
@@ -1847,35 +1401,13 @@
       "holy"
     ],
     "scope": "team",
-    "cooldownMs": 120000,
+    "cooldownMs": 60000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 20000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000000086",
-        "spellId": 216331,
-        "name": "复仇十字军",
-        "description": "由攻击技能转化为附近最多 5 人治疗\n基础 60 秒、15 秒；正义召唤 1241511 可改为 52.5／45 秒，并缩短持续时间；圣洁怒火可延长。",
-        "overrides": {
-          "cooldownMs": 60000,
-          "castTimeMs": 0,
-          "durationMs": 15000,
-          "effects": []
-        },
-        "limitations": [
-          "保留短冷却例外。属于明确群体治疗转化窗口；与复仇之怒互斥，必须区别“开十字军”和窗口内普通攻击。",
-          "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
-        ]
-      }
-    ],
     "limitations": [
-      "保留治疗强化窗口。提尔的拯救等父技能附带效果不另排；不能扩展成三个专精的输出翅膀。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留治疗强化窗口。提尔的拯救等父技能附带效果不另排；不能扩展成三个专精的输出翅膀。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1891,7 +1423,14 @@
     "category": "治疗",
     "color": "#f48cba",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": [
+      {
+        "spellId": 216331,
+        "castTimeMs": 0,
+        "durationMs": 15000
+      }
+    ]
   },
   {
     "id": "60000000-0000-4000-8000-000000000087",
@@ -1904,18 +1443,13 @@
       "holy"
     ],
     "scope": "team",
-    "cooldownMs": 60000,
+    "cooldownMs": 45000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 0,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留短冷却例外。当前职业树确实也有防护／惩戒版本，但这不等于本轮批准进攻鸣钟。只确认神圣震击治疗结果，五个目标不能生成五次安排。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留短冷却例外。当前职业树确实也有防护／惩戒版本，但这不等于本轮批准进攻鸣钟。只确认神圣震击治疗结果，五个目标不能生成五次安排。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1931,7 +1465,8 @@
     "category": "治疗",
     "color": "#f48cba",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000093",
@@ -1945,27 +1480,13 @@
       "retribution"
     ],
     "scope": "personal",
-    "cooldownMs": 60000,
+    "cooldownMs": 42000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 20,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留短冷却例外。纠正“全专精”；惩戒复仇之盾是其天赋附效，不能再单独排一次。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留短冷却例外。纠正“全专精”；惩戒复仇之盾是其天赋附效，不能再单独排一次。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -1981,7 +1502,8 @@
     "category": "个人减伤",
     "color": "#f48cba",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000094",
@@ -1996,22 +1518,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "immunity",
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。特定天赋可改变自律使用限制，未知时不得推定有特例；不默认能规避所有 Boss 强制效果。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。特定天赋可改变自律使用限制，未知时不得推定有特例；不默认能规避所有 Boss 强制效果。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2027,7 +1536,8 @@
     "category": "免疫",
     "color": "#f48cba",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000096",
@@ -2040,27 +1550,13 @@
       "protection"
     ],
     "scope": "personal",
-    "cooldownMs": 90000,
+    "cooldownMs": 63000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 12000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 30,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。基础全减伤 30%及一次防致死；12.1 强化天赋不再在致死保护后必然取消剩余持续时间，结束以实际证据为准。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。基础全减伤 30%及一次防致死；12.1 强化天赋不再在致死保护后必然取消剩余持续时间，结束以实际证据为准。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2076,7 +1572,8 @@
     "category": "个人减伤",
     "color": "#f48cba",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000097",
@@ -2093,37 +1590,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
-    "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 50,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000010097",
-        "spellId": 86659,
-        "name": "双充能（天赋）",
-        "talentSpellId": 1246481,
-        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
-        "overrides": {
-          "maxCharges": 2
-        },
-        "limitations": [
-          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
-        ]
-      }
-    ],
+    "maxCharges": 2,
     "limitations": [
-      "保留主动大守卫。被动 4 秒守卫不另算手动施放；12.1 的初始冷却说明不能读成总冷却只有 8 秒。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留主动大守卫。被动 4 秒守卫不另算手动施放；12.1 的初始冷却说明不能读成总冷却只有 8 秒。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2139,7 +1608,8 @@
     "category": "个人减伤",
     "color": "#f48cba",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000099",
@@ -2152,18 +1622,13 @@
       "protection"
     ],
     "scope": "personal",
-    "cooldownMs": 120000,
+    "cooldownMs": 60000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 20000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。不能把最高 30% 减伤画满整个 20 秒；不同时再建一次防护复仇之怒。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。不能把最高 30% 减伤画满整个 20 秒；不同时再建一次防护复仇之怒。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2179,7 +1644,8 @@
     "category": "个人减伤",
     "color": "#f48cba",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "00000000-0000-4000-8000-000000000501",
@@ -2196,23 +1662,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 20,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。基础全减伤 20%；区域内多目标光环合并。现有牧师目录仍是 needs-live-check，不因本稿直接标为日志验证通过。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。基础全减伤 20%；区域内多目标光环合并。现有牧师目录仍是 needs-live-check，不因本稿直接标为日志验证通过。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2228,7 +1680,8 @@
     "category": "团队减伤",
     "color": "#ffffff",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000104",
@@ -2245,14 +1698,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 0,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。当前 ID 472433；不要套旧版福音延长救赎的语义，也不把附带耀当成额外三次大招。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。当前 ID 472433；不要套旧版福音延长救赎的语义，也不把附带耀当成额外三次大招。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2268,7 +1716,8 @@
     "category": "治疗",
     "color": "#ffffff",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000105",
@@ -2285,14 +1734,9 @@
     "castType": "channel",
     "castTimeMs": 8000,
     "durationMs": 6000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留戒律治疗用途。不要把前置读条与引导合成一段同质 7.5 秒；伤害型苦修通过救赎生效也需对应治疗证据，不扩大为输出爆发技能。 本轮只纳入群体治疗／救赎用途；仅有非自身单体直疗、不能证实群体治疗语义时不作为已核准团疗候选。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留戒律治疗用途。安排区间从施法开始，不表示全程治疗覆盖；伤害型苦修通过救赎生效也需对应治疗证据，不扩大为输出爆发技能。 本轮只纳入群体治疗／救赎用途；仅有非自身单体直疗、不能证实群体治疗语义时不作为已核准团疗候选。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2308,7 +1752,8 @@
     "category": "治疗",
     "color": "#ffffff",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "00000000-0000-4000-8000-000000000502",
@@ -2321,30 +1766,13 @@
       "holy"
     ],
     "scope": "team",
-    "cooldownMs": 180000,
+    "cooldownMs": 120000,
     "castType": "channel",
     "castTimeMs": 5000,
     "durationMs": 5000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [
-      {
-        "id": "00000000-0000-4000-8000-000000000601",
-        "name": "120 秒冷却（天赋）",
-        "description": "仅在明确选中相应减冷却天赋时采用。",
-        "overrides": {
-          "cooldownMs": 120000
-        },
-        "limitations": [
-          "不由日志中的短间隔自动选择。"
-        ]
-      }
-    ],
     "limitations": [
-      "保留。引导、治疗及受到治疗加成区间不同；自带守护之魂不重复建 108。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。引导、治疗及受到治疗加成区间不同；自带守护之魂不重复建 108。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2360,7 +1788,8 @@
     "category": "治疗",
     "color": "#ffffff",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000111",
@@ -2377,14 +1806,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 20000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。属于治疗强化与圣言资源窗口；光晕等联动效果归入各自主动作，不靠光晕被动脉冲重复生成化身。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。属于治疗强化与圣言资源窗口；光晕等联动效果归入各自主动作，不靠光晕被动脉冲重复生成化身。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2400,7 +1824,8 @@
     "category": "治疗",
     "color": "#ffffff",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000113",
@@ -2417,14 +1842,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 12000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留团队辅助治疗用途，当前仅暗影专精；非暗影牧师不能因为旧职业树曾拥有它而被判可用。 此处是自身开启的治疗转化窗口，期间可治疗不同盟友，不是指定一名盟友施放的单体外部治疗。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留团队辅助治疗用途，当前仅暗影专精；非暗影牧师不能因为旧职业树曾拥有它而被判可用。 此处是自身开启的治疗转化窗口，期间可治疗不同盟友，不是指定一名盟友施放的单体外部治疗。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2440,7 +1860,8 @@
     "category": "治疗",
     "color": "#ffffff",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "00000000-0000-4000-8000-000000000504",
@@ -2451,23 +1872,13 @@
     "classSlug": "Priest",
     "specSlugs": [],
     "scope": "personal",
-    "cooldownMs": 90000,
+    "cooldownMs": 70000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "maxHealth",
-        "percent": 25
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。是最大生命值增加兼即时自疗，不等于固定减伤；圣光鼓舞改变基础百分比时必须有天赋证据。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。是最大生命值增加兼即时自疗，不等于固定减伤；圣光鼓舞改变基础百分比时必须有天赋证据。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2483,7 +1894,8 @@
     "category": "治疗",
     "color": "#ffffff",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "00000000-0000-4000-8000-000000000505",
@@ -2496,27 +1908,13 @@
       "shadow"
     ],
     "scope": "personal",
-    "cooldownMs": 120000,
+    "cooldownMs": 90000,
     "castType": "channel",
     "castTimeMs": 6000,
     "durationMs": 6000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 75,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。基础 75% 减伤并带自疗；可提前取消，不能把名义完整时长冒充实测效果区间。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。基础 75% 减伤并带自疗；可提前取消，不能把名义完整时长冒充实测效果区间。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2532,7 +1930,8 @@
     "category": "个人减伤",
     "color": "#ffffff",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000118",
@@ -2547,14 +1946,9 @@
     "castType": "cast",
     "castTimeMs": 1500,
     "durationMs": 0,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留长冷却团队特殊技能。仅空放成功、没有任何可证实驱散结果时不自动入轴；不把普通驱散一起纳入。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留长冷却团队特殊技能。仅空放成功、没有任何可证实驱散结果时不自动入轴；不把普通驱散一起纳入。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2570,7 +1964,8 @@
     "category": "自定义",
     "color": "#ffffff",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000122",
@@ -2585,21 +1980,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 5000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "immunity",
-        "schools": [
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。魔法保护与清除有害效果，不是物理免疫，也不保证对所有特殊 Boss 效果有效。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。魔法保护与清除有害效果，不是物理免疫，也不保证对所有特殊 Boss 效果有效。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2615,7 +1998,8 @@
     "category": "免疫",
     "color": "#fff468",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000123",
@@ -2630,14 +2014,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。基础是躲闪 100%，不是全减伤 100%；只有飘忽不定 79008 才有额外 20% 全减伤。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。基础是躲闪 100%，不是全减伤 100%；只有飘忽不定 79008 才有额外 20% 全减伤。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2653,7 +2032,8 @@
     "category": "个人减伤",
     "color": "#fff468",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000129",
@@ -2664,27 +2044,13 @@
     "classSlug": "Shaman",
     "specSlugs": [],
     "scope": "personal",
-    "cooldownMs": 120000,
+    "cooldownMs": 90000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 12000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 40,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。基础全减伤 40%；其他天赋修正必须作为已选择变体，不根据日志伤害反推。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。基础全减伤 40%；不根据日志伤害反推天赋或实际减伤。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2700,7 +2066,8 @@
     "category": "个人减伤",
     "color": "#0070dd",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000131",
@@ -2717,23 +2084,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 6000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 10,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。减伤和生命重分配是不同效果；图腾、多目标变化与附带治疗链只归为一次链接。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。减伤和生命重分配是不同效果；图腾、多目标变化与附带治疗链只归为一次链接。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2749,7 +2102,8 @@
     "category": "团队减伤",
     "color": "#0070dd",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000133",
@@ -2762,18 +2116,13 @@
       "restoration"
     ],
     "scope": "team",
-    "cooldownMs": 180000,
+    "cooldownMs": 120000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留。治疗之潮仍存在；不能因为旧法力之潮图腾被删除而混为一谈，也不附上已移除的回蓝天赋。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。治疗之潮仍存在；不能因为旧法力之潮图腾被删除而混为一谈，也不附上已移除的回蓝天赋。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2789,7 +2138,8 @@
     "category": "治疗",
     "color": "#0070dd",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000134",
@@ -2802,18 +2152,13 @@
       "restoration"
     ],
     "scope": "team",
-    "cooldownMs": 180000,
+    "cooldownMs": 120000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 15000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留主动恢复升腾。根深蒂固的元素 378270 自动触发短升腾时不单独建主动安排；元素和增强输出升腾不收录。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留主动恢复升腾。根深蒂固的元素 378270 自动触发短升腾时不单独建主动安排；元素和增强输出升腾不收录。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2829,7 +2174,8 @@
     "category": "治疗",
     "color": "#0070dd",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000137",
@@ -2840,18 +2186,13 @@
     "classSlug": "Shaman",
     "specSlugs": [],
     "scope": "team",
-    "cooldownMs": 120000,
+    "cooldownMs": 90000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 15000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留团队转场增益。图腾寿命、经过范围和每个目标的增益尾段不能混用一个时长。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留团队转场增益。图腾寿命、经过范围和每个目标的增益尾段不能混用一个时长。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2867,7 +2208,8 @@
     "category": "位移",
     "color": "#0070dd",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000138",
@@ -2882,14 +2224,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 6000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留长冷却团队特殊驱散。需要实际驱散结果，不把空图腾默认当作成功清毒。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留长冷却团队特殊驱散。需要实际驱散结果，不把空图腾默认当作成功清毒。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2905,7 +2242,8 @@
     "category": "自定义",
     "color": "#0070dd",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000139",
@@ -2920,14 +2258,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "保留团队控制解除，55 秒为条件短 CD 例外。提前放置可以是计划用途；WCL 自动导入仍要有可验证生效，不能把空放当已处理控制。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留团队控制解除，55 秒为条件短 CD 例外。提前放置可以是计划用途；WCL 自动导入仍要有可验证生效，不能把空放当已处理控制。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2943,7 +2276,8 @@
     "category": "自定义",
     "color": "#0070dd",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000146",
@@ -2954,28 +2288,13 @@
     "classSlug": "Warlock",
     "specSlugs": [],
     "scope": "personal",
-    "cooldownMs": 60000,
+    "cooldownMs": 45000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 20000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "absorb",
-        "amount": null,
-        "allocation": "perTarget",
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留短冷却例外。可前置的个人大盾，不猜固定生命百分比护盾；不要求一定消耗完盾。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留短冷却例外。可前置的个人大盾，不猜固定生命百分比护盾；不要求一定消耗完盾。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -2991,7 +2310,8 @@
     "category": "个人减伤",
     "color": "#8788ee",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000147",
@@ -3002,27 +2322,13 @@
     "classSlug": "Warlock",
     "specSlugs": [],
     "scope": "personal",
-    "cooldownMs": 180000,
+    "cooldownMs": 135000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 25,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。当前基础全减伤 25%，并抗打断／沉默／施法推迟；不沿用旧百分比。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。当前基础全减伤 25%，并抗打断／沉默／施法推迟；不沿用旧百分比。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -3038,7 +2344,8 @@
     "category": "个人减伤",
     "color": "#8788ee",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000148",
@@ -3053,36 +2360,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 0,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000000149",
-        "spellId": 452930,
-        "name": "灵魂燃烧",
-        "description": "强化治疗石，并在使用后暂时提高最大生命值 20%、持续 12 秒。\n灵魂燃烧准备动作 6 秒 CD；实际安排与治疗石共用 60 秒 CD，不能视作每 6 秒一次自疗。",
-        "overrides": {
-          "cooldownMs": 60000,
-          "castTimeMs": 0,
-          "durationMs": 12000,
-          "effects": [
-            {
-              "type": "maxHealth",
-              "percent": 20
-            }
-          ]
-        },
-        "limitations": [
-          "保留为 148 的单次施放变体。只开灵魂燃烧不建轴；用于传送门、吸取生命等用途不纳入。一个治疗石只能产生普通或强化其中一种安排。",
-          "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
-        ]
-      }
-    ],
     "limitations": [
-      "保留原先批准的应急自疗。旧页面嵌入“再持续治疗 30%”与当前天赋／官方 12.0 说明冲突，本稿不采信该旧附效。无对应天赋不假定持有恶魔治疗石。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留原先批准的应急自疗。旧页面嵌入“再持续治疗 30%”与当前天赋／官方 12.0 说明冲突，本稿不采信该旧附效。无对应天赋不假定持有恶魔治疗石。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -3098,7 +2378,14 @@
     "category": "治疗",
     "color": "#8788ee",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": [
+      {
+        "spellId": 452930,
+        "castTimeMs": 0,
+        "durationMs": 12000
+      }
+    ]
   },
   {
     "id": "60000000-0000-4000-8000-000000000156",
@@ -3113,19 +2400,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [
-      {
-        "type": "maxHealth",
-        "percent": 10
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留团队生命上限增益。团本基础 10%；不把非团队额外增益或施法者自己的天赋数值套到全团。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留团队生命上限增益。团本基础 10%；不把非团队额外增益或施法者自己的天赋数值套到全团。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -3141,7 +2418,8 @@
     "category": "团队减伤",
     "color": "#c69b6d",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000158",
@@ -3154,27 +2432,13 @@
       "arms"
     ],
     "scope": "personal",
-    "cooldownMs": 120000,
+    "cooldownMs": 108000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 30,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。100% 招架与 30% 全减伤分别表示；不能写成全伤害免疫。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。100% 招架与 30% 全减伤分别表示；不能写成全伤害免疫。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -3190,7 +2454,8 @@
     "category": "个人减伤",
     "color": "#c69b6d",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000159",
@@ -3207,23 +2472,9 @@
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 30,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [],
     "limitations": [
-      "保留。30% 减伤与嗜血自疗强化属于同次防御窗口，不把嗜血每次命中拆成安排。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。30% 减伤与嗜血自疗强化属于同次防御窗口，不把嗜血每次命中拆成安排。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -3239,7 +2490,8 @@
     "category": "个人减伤",
     "color": "#c69b6d",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000162",
@@ -3252,42 +2504,13 @@
       "protection"
     ],
     "scope": "personal",
-    "cooldownMs": 180000,
+    "cooldownMs": 120000,
     "castType": "instant",
     "castTimeMs": 0,
     "durationMs": 8000,
-    "triggersGcd": null,
-    "maxCharges": 1,
-    "maxTargets": 1,
-    "effects": [
-      {
-        "type": "damageReduction",
-        "percent": 40,
-        "schools": [
-          "physical",
-          "magic"
-        ]
-      }
-    ],
-    "variants": [
-      {
-        "id": "70000000-0000-4000-8000-000000010162",
-        "spellId": 871,
-        "name": "双充能（天赋）",
-        "talentSpellId": 397103,
-        "description": "仅在已确认该天赋时选择；实际日志间隔不能作为拥有天赋的证明。",
-        "overrides": {
-          "maxCharges": 2,
-          "cooldownMs": 120000
-        },
-        "limitations": [
-          "多个天赋同时生效时需要明确组合配置，不自动叠加或猜测。"
-        ]
-      }
-    ],
+    "maxCharges": 2,
     "limitations": [
-      "保留。破釜沉舟当前只是盾墙天赋附效，不单列；同一防战可能连续使用双充能，不能被去重或固定 CD 吞掉。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "保留。破釜沉舟当前只是盾墙天赋附效，不单列；同一防战可能连续使用双充能，不能被去重或固定 CD 吞掉。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -3303,7 +2526,8 @@
     "category": "个人减伤",
     "color": "#c69b6d",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   },
   {
     "id": "60000000-0000-4000-8000-000000000173",
@@ -3320,14 +2544,9 @@
     "castType": "cast",
     "castTimeMs": 1500,
     "durationMs": 10000,
-    "triggersGcd": null,
     "maxCharges": 1,
-    "maxTargets": null,
-    "effects": [],
-    "variants": [],
     "limitations": [
-      "本轮补漏并纳入。是可预定的一分钟群体治疗窗口，不是普通单体治疗；一次主动施放及全部自动后续波只生成一项安排。",
-      "冷却、充能与持续时间是基础值；未经天赋证据确认，不从两次施放间隔倒推变体。"
+      "本轮补漏并纳入。是可预定的一分钟群体治疗窗口，不是普通单体治疗；一次主动施放及全部自动后续波只生成一项安排。"
     ],
     "verification": {
       "gameVersion": "retail-12.1",
@@ -3343,6 +2562,7 @@
     "category": "治疗",
     "color": "#ffffff",
     "dataStatus": "needs-live-check",
-    "enabled": true
+    "enabled": true,
+    "observedSpells": []
   }
 ]

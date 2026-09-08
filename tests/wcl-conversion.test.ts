@@ -34,9 +34,6 @@ function mechanic(id: string, name: string, abilityGameIds: number[], castTimeMs
       : castTimeMs > 0
         ? [{ kind: "interval", from: "cast-start", to: "impact", tone: "warning", text: name }, { kind: "marker", at: "impact", tone: "judgment", text: `${name} 判定` }]
         : [{ kind: "marker", at: "cast-start", tone: "judgment", text: name }] },
-    damage: { school: "magic", directAmount: null, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false },
-    defaultTargets: { kind: "all" },
-    severity: "warning",
     color: "#cf3e3e",
     dataStatus: "verified",
     limitations: [],

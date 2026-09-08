@@ -275,7 +275,7 @@ export function timelineContentEnd(value: RaidPlanDocument | TimelineScene) {
     ...resolved.phases.map((item) => item.atMs),
     ...resolved.directives.map((item) => item.atMs + item.durationMs),
     ...resolved.mechanics.map((item) => item.endMs),
-    ...resolved.assignments.map((item) => Math.max(item.atMs + item.castTimeMs, item.effectStartMs + item.durationMs)),
+    ...resolved.assignments.map((item) => item.atMs + item.durationMs),
   ];
   return Math.min(MAX_TIMELINE_MS, Math.max(0, ...ends));
 }

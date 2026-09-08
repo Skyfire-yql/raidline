@@ -5,11 +5,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { applyCatalogPreset, catalogDifference, ensureCatalogSkillSnapshot, SEED_CATALOG, upgradeCatalogSkillSnapshots, validateCatalogRelease } from "../lib/catalog.ts";
+import { applyCatalogPreset, SEED_CATALOG, validateCatalogRelease } from "../lib/catalog.ts";
 import {
   buildTimelineScene,
   createBlankPlan,
   detectConflicts,
+  deleteRosterMember,
   exportPlan,
   moveAnchorTo,
   parsePlanDocument,
@@ -24,15 +25,15 @@ import { MechanicTimelinePresentationSchema, parseCombatLogSnapshot, parseCompar
 import { isExpectedRevision, snapshotIdsToDelete } from "../lib/local-policy.ts";
 import { createFileObjectStore } from "../lib/object-store.ts";
 import { assertEditId, assertShareId, randomBase62 } from "../lib/publication-ids.ts";
-import { memberSkillVariantId, resolveSkillForMember, setMemberSkillVariant, skillBusyEndMs, skillEffectStartMs } from "../lib/skills.ts";
-import type { CombatLogSnapshot, EncounterConversionProfile, MechanicDefinitionSnapshot, PlayerSkillDefinitionSnapshot, RaidPlanDocument } from "../lib/types.ts";
+import { resolveSkillForAssignment, skillTimelineDurationMs } from "../lib/skills.ts";
+import type { CombatLogSnapshot, EncounterConversionProfile, MechanicDefinitionSnapshot, PlayerSkillDefinition, RaidPlanDocument } from "../lib/types.ts";
 import { acceptNormalizedWclSnapshot, UnsupportedDifficultyError } from "../lib/wcl-contract.ts";
 import { adaptiveTickMs, anchoredScroll, clampZoom, defaultOrientation, layoutMechanicLanes, mechanicPresentationPartKey, timelineContentEnd, timelineRangeMs, timelineTimeFromDrag, zoomFromWheel } from "../lib/view.ts";
 import type { TimelineSceneMechanic } from "../lib/domain/view-model.ts";
 
 const uuid = () => crypto.randomUUID();
 
-function skillSnapshot(id = uuid()): PlayerSkillDefinitionSnapshot {
+function skillSnapshot(id = uuid()): PlayerSkillDefinition {
   return {
     id,
     spellId: 1001,
@@ -46,11 +47,8 @@ function skillSnapshot(id = uuid()): PlayerSkillDefinitionSnapshot {
     castType: "cast",
     castTimeMs: 2000,
     durationMs: 10_000,
-    triggersGcd: true,
     maxCharges: 1,
-    maxTargets: null,
-    effects: [{ type: "damageReduction", percent: 20, schools: ["physical", "magic"] }],
-    variants: [{ id: uuid(), name: "双充能", description: "测试变体", overrides: { maxCharges: 2, cooldownMs: 90_000 }, limitations: ["动态减冷却未计算"] }],
+    observedSpells: [],
     limitations: [],
     category: "团队减伤",
     color: "#e7e7e7",
@@ -72,9 +70,6 @@ function mechanicSnapshot(id = uuid()): MechanicDefinitionSnapshot {
       { kind: "marker", at: "impact", tone: "judgment", text: "伤害判定" },
       { kind: "interval", from: "impact", to: "end", tone: "active", text: "余波" },
     ] },
-    damage: { school: "magic", directAmount: 100, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false },
-    defaultTargets: { kind: "all" },
-    severity: "danger",
     color: "#cf3e3e",
     dataStatus: "needs-live-check",
     limitations: [],
@@ -85,30 +80,26 @@ function populatedPlan(): RaidPlanDocument {
   const plan = createBlankPlan("vNext 样板");
   plan.encounter.name = "测试首领";
   plan.encounter.gameVersion = "retail-12.1";
-  const group = { id: uuid(), name: "减伤组", color: "#85601c" };
-  const priest = { id: uuid(), name: "白牧", classSlug: "Priest", specSlug: "discipline", role: "healer" as const, color: "#e7e7e7", groupIds: [group.id], subgroup: 2 };
-  const warrior = { id: uuid(), name: "战士", classSlug: "Warrior", specSlug: "protection", role: "tank" as const, color: "#c69b6d", groupIds: [], subgroup: 1 };
-  const skill = skillSnapshot();
+  const priest = { id: uuid(), name: "白牧", classSlug: "Priest", specSlug: "discipline", role: "healer" as const, color: "#e7e7e7" };
+  const warrior = { id: uuid(), name: "战士", classSlug: "Warrior", specSlug: "protection", role: "tank" as const, color: "#c69b6d" };
+  const skill = SEED_CATALOG.playerSkills.find(item => item.spellId === 62618)!;
   const mechanic = mechanicSnapshot();
   const occurrenceId = uuid();
   const p2 = { id: uuid(), name: "P2", ordinal: 2, estimatedStartMs: 60_000 };
-  plan.roster.groups.push(group);
   plan.roster.members.push(priest, warrior);
-  plan.definitions.skills.push(skill);
   plan.definitions.mechanics.push(mechanic);
   plan.timeline.phases.push(p2);
   plan.timeline.mechanics.push({ id: occurrenceId, definitionId: mechanic.id, anchor: { kind: "phase", phaseId: p2.id, offsetMs: 10_000 } });
   plan.timeline.directives.push(
-    { id: uuid(), kind: "task", text: "集合减伤", scope: { kind: "phase", phaseId: p2.id }, assignees: { kind: "groups", groupIds: [group.id] }, durationMs: null, reminder: { leadMs: 5000 } },
+    { id: uuid(), kind: "task", text: "集合减伤", scope: { kind: "phase", phaseId: p2.id }, assignees: { kind: "members", memberIds: [priest.id] }, durationMs: null },
     { id: uuid(), kind: "note", text: "全局说明", scope: { kind: "plan" }, durationMs: null },
-    { id: uuid(), kind: "note", text: "冲击前散开", scope: { kind: "timed", anchor: { kind: "mechanic", mechanicOccurrenceId: occurrenceId, point: "impact", offsetMs: -2000 } }, durationMs: null },
+    { id: uuid(), kind: "note", text: "冲击前散开", scope: { kind: "timed", anchor: { kind: "phase", phaseId: p2.id, offsetMs: 11000 } }, durationMs: null },
   );
-  setMemberSkillVariant(plan, priest.id, skill.id, skill.variants[0].id);
-  plan.timeline.skillAssignments.push({ id: uuid(), memberId: priest.id, skillDefinitionId: skill.id, anchor: { kind: "mechanic", mechanicOccurrenceId: occurrenceId, point: "impact", offsetMs: -5000 }, targets: { kind: "mechanic-targets" }, note: "覆盖冲击" });
+  plan.timeline.skillAssignments.push({ id: uuid(), memberId: priest.id, skillDefinitionId: skill.id, anchor: { kind: "pull", offsetMs: 68000 }, targets: { kind: "all" }, note: "覆盖冲击" });
   return parsePlanDocument(plan);
 }
 
-test("v1 plan is strict, round-trips, and rejects legacy or unknown structure", () => {
+test("v1 plan is strict, round-trips, and rejects removed or unknown structure", () => {
   const plan = populatedPlan();
   assert.deepEqual(parsePlanDocument(JSON.parse(JSON.stringify(plan))), plan);
   assert.throws(() => parsePlanDocument({ ...plan, schemaVersion: 5 }), /不支持的计划版本/);
@@ -136,6 +127,116 @@ test("semantic validation rejects duplicate IDs while preserving non-blocking mi
   assert.ok(validatePlanSemantics(plan).some((item) => item.code === "SKILL_MEMBER_MISMATCH" && item.severity === "warning"));
 });
 
+test("removed features cannot re-enter persisted plans", () => {
+  const plan = populatedPlan();
+  const change = (fn: (value: Record<string, unknown>) => void) => {
+    const value = structuredClone(plan) as unknown as Record<string, unknown>;
+    fn(value);
+    assert.throws(() => parsePlanDocument(value));
+  };
+  change(value => { (value.definitions as Record<string, unknown>).skills = []; });
+  change(value => { (value.roster as Record<string, unknown>).groups = []; });
+  change(value => { (value.roster as Record<string, unknown>).memberSkills = []; });
+  const task = { ...plan.timeline.directives[0], reminder: { leadMs: 5000 } };
+  assert.throws(() => parsePlanDocument({ ...plan, timeline: { ...plan.timeline, directives: [task] } }));
+  const assignment = { ...plan.timeline.skillAssignments[0], variantId: uuid() };
+  assert.throws(() => parsePlanDocument({ ...plan, timeline: { ...plan.timeline, skillAssignments: [assignment] } }));
+  const bound = { ...plan.timeline.skillAssignments[0], anchor: { kind: "mechanic", mechanicOccurrenceId: plan.timeline.mechanics[0].id, point: "impact", offsetMs: 0 } };
+  assert.throws(() => parsePlanDocument({ ...plan, timeline: { ...plan.timeline, skillAssignments: [bound] } }));
+});
+
+test("phase-relative assignments float with the phase and are independent of mechanics", () => {
+  const plan = populatedPlan();
+  const assignment = plan.timeline.skillAssignments[0];
+  assignment.anchor = { kind: "phase", phaseId: plan.timeline.phases[1].id, offsetMs: 8000 };
+  plan.timeline.mechanics = [];
+  assert.deepEqual(resolveTimelineAnchor(plan, assignment.anchor), { ok: true, atMs: 68000 });
+  plan.timeline.phases[1].estimatedStartMs = 90000;
+  assert.deepEqual(resolveTimelineAnchor(plan, assignment.anchor), { ok: true, atMs: 98000 });
+  assert.equal(buildTimelineScene(plan).assignments[0].atMs, 98000);
+});
+
+test("deleting a member removes owned casts and references without deleting tasks or other members", () => {
+  const plan = populatedPlan();
+  const [priest, warrior] = plan.roster.members;
+  const other = { ...plan.timeline.skillAssignments[0], id: uuid(), memberId: warrior.id, targets: { kind: "members" as const, memberIds: [priest.id, warrior.id] } };
+  plan.timeline.skillAssignments.push(other);
+  deleteRosterMember(plan, priest.id);
+  assert.deepEqual(plan.roster.members.map(item => item.id), [warrior.id]);
+  assert.deepEqual(plan.timeline.skillAssignments.map(item => item.id), [other.id]);
+  assert.deepEqual(resolveSkillTargets(plan, other), [warrior.id]);
+  assert.deepEqual(resolveMemberIds(plan, { kind: "all" }), [warrior.id]);
+  const task = plan.timeline.directives[0];
+  const diagnostic = validatePlanSemantics(plan).find(item => item.code === "EMPTY_ASSIGNEES")!;
+  assert.equal(diagnostic.objectId, task.id);
+  assert.equal(diagnostic.objectType, "directive");
+  assert.equal(validatePlanSemantics(plan).some(item => item.code === "MISSING_MEMBER"), false);
+  assert.deepEqual(parsePlanDocument(JSON.parse(JSON.stringify(plan))), plan);
+});
+
+test("missing member, skill and phase diagnostics point to the assignment that can be repaired", () => {
+  const plan = populatedPlan();
+  const item = plan.timeline.skillAssignments[0];
+  item.memberId = uuid(); item.skillDefinitionId = uuid(); item.anchor = { kind: "phase", phaseId: uuid(), offsetMs: 0 };
+  const diagnostics = validatePlanSemantics(plan).filter(diagnostic => diagnostic.objectId === item.id);
+  assert.deepEqual(diagnostics.map(diagnostic => diagnostic.code).sort(), ["MISSING_MEMBER", "MISSING_PHASE", "MISSING_SKILL_DEFINITION"]);
+  assert.ok(diagnostics.every(diagnostic => diagnostic.objectType === "assignment"));
+  item.memberId = plan.roster.members[0].id;
+  item.skillDefinitionId = SEED_CATALOG.playerSkills.find(skill => skill.spellId === 62618)!.id;
+  item.anchor = { kind: "pull", offsetMs: 68000 };
+  assert.equal(validatePlanSemantics(plan).some(diagnostic => diagnostic.objectId === item.id), false);
+});
+
+test("global library updates reach existing plans, scenes and export without modifying plan bytes", () => {
+  const plan = populatedPlan();
+  const copy = parsePlanDocument(JSON.parse(JSON.stringify(plan)));
+  const before = JSON.stringify(plan);
+  const assignment = plan.timeline.skillAssignments[0];
+  const library = structuredClone(SEED_CATALOG.playerSkills);
+  const updated = library.find(item => item.id === assignment.skillDefinitionId)!;
+  updated.name = "全局技能名称"; updated.cooldownMs = 60000;
+  assert.equal(resolveSkillForAssignment(assignment, library)?.cooldownMs, 60000);
+  assert.equal(buildTimelineScene(copy, library).assignments[0].name, "全局技能名称");
+  assert.match(exportPlan({ target: "mrt-reading", document: copy, skillLibrary: library }).text, /白牧 — 全局技能名称/);
+  assert.equal(JSON.stringify(plan), before);
+  assert.deepEqual(copy, plan);
+  assert.equal(plan.sources.length, 0);
+});
+
+test("cooldown checks use the global minimum and ignore overlapping unrelated casts", () => {
+  const plan = populatedPlan();
+  const base = plan.timeline.skillAssignments[0];
+  const spell = SEED_CATALOG.playerSkills.find(item => item.spellId === 64843)!;
+  assert.equal(spell.cooldownMs, 120000);
+  plan.timeline.skillAssignments = [0, 120000, 239000].map(offsetMs => ({ ...base, id: uuid(), skillDefinitionId: spell.id, anchor: { kind: "pull", offsetMs } }));
+  const warnings = detectConflicts(plan);
+  assert.deepEqual(warnings.map(item => item.assignmentId), [plan.timeline.skillAssignments[2].id]);
+  plan.timeline.skillAssignments = [base, { ...base, id: uuid(), skillDefinitionId: spell.id }];
+  assert.deepEqual(detectConflicts(plan), []);
+  const ultimate = SEED_CATALOG.playerSkills.find(item => item.spellId === 421453)!;
+  plan.timeline.skillAssignments = [{ ...base, skillDefinitionId: ultimate.id, anchor: { kind: "pull", offsetMs: 10000 } }];
+  const scene = buildTimelineScene(plan).assignments[0];
+  assert.equal(scene.atMs, 10000);
+  assert.equal(scene.durationMs, 8000);
+  assert.equal("effectStartMs" in scene, false);
+  assert.equal("castTimeMs" in scene, false);
+});
+
+test("documented cooldown reductions without former variants allow casts at the minimum", () => {
+  const plan = populatedPlan();
+  const base = plan.timeline.skillAssignments[0];
+  for (const [spellId, cooldownMs] of [[48743, 90000], [31821, 150000], [22812, 45600]]) {
+    const skill = SEED_CATALOG.playerSkills.find(item => item.spellId === spellId)!;
+    assert.equal(skill.cooldownMs, cooldownMs);
+    const allowedAt = Math.ceil(cooldownMs / 1000) * 1000;
+    plan.timeline.skillAssignments = [0, allowedAt - 1000, allowedAt].map(offsetMs => ({ ...base, id: uuid(), skillDefinitionId: skill.id, anchor: { kind: "pull", offsetMs } }));
+    assert.deepEqual(detectConflicts(plan).map(item => item.assignmentId), [plan.timeline.skillAssignments[1].id]);
+  }
+  const brew = SEED_CATALOG.playerSkills.find(item => item.spellId === 322507)!;
+  plan.timeline.skillAssignments = [0, 0, 0, 72000].map(offsetMs => ({ ...base, id: uuid(), skillDefinitionId: brew.id, anchor: { kind: "pull", offsetMs } }));
+  assert.deepEqual(detectConflicts(plan).map(item => item.assignmentId), [plan.timeline.skillAssignments[2].id]);
+});
+
 test("timeline anchors resolve pull, phase and all mechanic points", () => {
   const plan = populatedPlan();
   const occurrence = plan.timeline.mechanics[0];
@@ -154,20 +255,8 @@ test("dragging changes only the current anchor offset", () => {
   assert.equal(movedPhase.kind === "phase" ? movedPhase.offsetMs : 0, 20_000);
   const mechanicAnchor = plan.timeline.skillAssignments[0].anchor;
   const movedMechanic = moveAnchorTo(plan, mechanicAnchor, 70_000);
-  assert.equal(movedMechanic.kind, "mechanic");
-  assert.equal(movedMechanic.kind === "mechanic" ? movedMechanic.offsetMs : 0, -3000);
-});
-
-test("cycles and dangling anchor references are reported", () => {
-  const plan = populatedPlan();
-  const first = plan.timeline.mechanics[0];
-  const secondId = uuid();
-  plan.timeline.mechanics.push({ id: secondId, definitionId: first.definitionId, anchor: { kind: "mechanic", mechanicOccurrenceId: first.id, point: "end", offsetMs: 1000 } });
-  first.anchor = { kind: "mechanic", mechanicOccurrenceId: secondId, point: "cast-start", offsetMs: 0 };
-  assert.equal(resolveTimelineAnchor(plan, first.anchor).ok, false);
-  assert.ok(validatePlanSemantics(plan).some((item) => item.code === "ANCHOR_CYCLE"));
-  first.anchor = { kind: "phase", phaseId: uuid(), offsetMs: 0 };
-  assert.ok(validatePlanSemantics(plan).some((item) => item.code === "MISSING_PHASE"));
+  assert.equal(movedMechanic.kind, "pull");
+  assert.equal(movedMechanic.offsetMs, 70000);
 });
 
 test("timeline scene derives range with 30 second tail, 2 minute floor and 120 minute cap", () => {
@@ -180,18 +269,6 @@ test("timeline scene derives range with 30 second tail, 2 minute floor and 120 m
   assert.equal(buildTimelineScene(plan).durationMs, 7_200_000);
   plan.timeline.directives.pop();
   assert.ok(buildTimelineScene(plan).durationMs < 180_000);
-});
-
-test("multi-group, role, subgroup and member selectors resolve stable roster slots", () => {
-  const plan = populatedPlan();
-  assert.deepEqual(resolveMemberIds(plan, { kind: "groups", groupIds: [plan.roster.groups[0].id] }), [plan.roster.members[0].id]);
-  assert.deepEqual(resolveMemberIds(plan, { kind: "roles", roles: ["tank"] }), [plan.roster.members[1].id]);
-  assert.deepEqual(resolveMemberIds(plan, { kind: "subgroups", subgroups: [2] }), [plan.roster.members[0].id]);
-  assert.deepEqual(resolveMemberIds(plan, { kind: "members", memberIds: [plan.roster.members[1].id] }), [plan.roster.members[1].id]);
-  assert.deepEqual(resolveSkillTargets(plan, plan.timeline.skillAssignments[0]), plan.roster.members.map((item) => item.id));
-  const stableId = plan.roster.members[0].id;
-  plan.roster.members[0].name = "替换角色";
-  assert.equal(plan.timeline.skillAssignments[0].memberId, stableId);
 });
 
 test("tasks and notes preserve distinct scopes and export unsupported phase triggers visibly", () => {
@@ -214,58 +291,32 @@ test("empty task assignees block export but source loss only warns", () => {
   const blocked = exportPlan({ target: "mrt-reading", document: plan });
   assert.ok(blocked.diagnostics.some((item) => item.code === "EMPTY_ASSIGNEES" && item.severity === "error"));
   const sourceId = uuid();
-  plan.definitions.skills[0].origin = { sourceId };
+  plan.timeline.skillAssignments[0].origin = { sourceId };
   assert.ok(validatePlanSemantics(plan).some((item) => item.code === "MISSING_SOURCE" && item.severity === "warning"));
 });
 
-test("member skill variants are unique selections and resolve timing overrides", () => {
-  const plan = populatedPlan();
-  const member = plan.roster.members[0];
-  const skill = plan.definitions.skills[0];
-  assert.equal(memberSkillVariantId(plan, member.id, skill.id), skill.variants[0].id);
-  const resolved = resolveSkillForMember(plan, member.id, skill.id)!;
-  assert.equal(resolved.maxCharges, 2);
-  assert.equal(resolved.cooldownMs, 90_000);
-  assert.equal(resolved.limitations.includes("动态减冷却未计算"), true);
-  setMemberSkillVariant(plan, member.id, skill.id);
-  assert.equal(plan.roster.memberSkills.filter((item) => item.memberId === member.id && item.skillDefinitionId === skill.id).length, 1);
-  assert.equal(memberSkillVariantId(plan, member.id, skill.id), undefined);
-});
-
-test("cast effects start after casting while channel effects start immediately and remain busy", () => {
+test("skill spans start at the cast anchor without asserting effect or busy windows", () => {
   const cast = skillSnapshot();
-  assert.equal(skillEffectStartMs(10_000, cast), 12_000);
-  assert.equal(skillBusyEndMs(10_000, cast), 12_000);
+  assert.equal(skillTimelineDurationMs(cast), 12_000);
   cast.castType = "channel"; cast.castTimeMs = 5000;
-  assert.equal(skillEffectStartMs(10_000, cast), 10_000);
-  assert.equal(skillBusyEndMs(10_000, cast), 15_000);
+  assert.equal(skillTimelineDurationMs(cast), 10_000);
 });
 
 test("serial charge recovery allows two immediate uses and warns on the third", () => {
   const plan = populatedPlan();
   const base = plan.timeline.skillAssignments[0];
   plan.timeline.skillAssignments = [0, 1000, 2000].map((offset) => ({ ...structuredClone(base), id: uuid(), anchor: { kind: "pull" as const, offsetMs: 20_000 + offset } }));
-  const cooldownWarnings = detectConflicts(plan).filter((item) => item.type === "cooldown");
+  const library = [{ ...skillSnapshot(base.skillDefinitionId), maxCharges: 2, cooldownMs: 90000 }];
+  const cooldownWarnings = detectConflicts(plan, library).filter((item) => item.type === "cooldown");
   assert.equal(cooldownWarnings.length, 1);
   assert.equal(cooldownWarnings[0].assignmentId, plan.timeline.skillAssignments[2].id);
-});
-
-test("cast overlap and GCD conflicts are reported independently", () => {
-  const plan = populatedPlan();
-  setMemberSkillVariant(plan, plan.roster.members[0].id, plan.definitions.skills[0].id);
-  const first = plan.timeline.skillAssignments[0];
-  first.anchor = { kind: "pull", offsetMs: 20_000 };
-  plan.timeline.skillAssignments.push({ ...structuredClone(first), id: uuid(), anchor: { kind: "pull", offsetMs: 21_000 } });
-  const warnings = detectConflicts(plan);
-  assert.ok(warnings.some((item) => item.type === "cast"));
-  assert.ok(warnings.some((item) => item.type === "gcd"));
 });
 
 test("catalog v1 seed is strict and presets copy snapshot definitions into an isolated plan", () => {
   const release = validateCatalogRelease(SEED_CATALOG);
   assert.equal(release.manifest.schemaVersion, 1);
-  assert.equal(release.manifest.version, "builtin-seed-v6");
-  assert.equal(release.playerSkills.length, 73);
+  assert.equal(release.manifest.version, "builtin-seed-v7");
+  assert.equal(release.playerSkills.length, 72);
   assert.equal(release.playerSkills.filter(skill => skill.enabled).length, 72);
   assert.equal(release.bossMechanics.length, 13);
   assert.equal(release.timelinePresets.length, 2);
@@ -277,7 +328,7 @@ test("catalog v1 seed is strict and presets copy snapshot definitions into an is
   assert.deepEqual(plan.roster.members, []);
   assert.deepEqual(plan.timeline.skillAssignments, []);
   assert.ok(plan.definitions.mechanics.length > 0);
-  assert.ok(plan.definitions.skills.length > 0);
+  assert.equal("skills" in plan.definitions, false);
   const originalName = release.bossMechanics.find((item) => item.id === plan.definitions.mechanics[0].id)!.name;
   plan.definitions.mechanics[0].name = "计划内修改";
   assert.equal(release.bossMechanics.find((item) => item.id === plan.definitions.mechanics[0].id)!.name, originalName);
@@ -399,35 +450,6 @@ test("mechanic lanes support minimal collision stacking and stable definition tr
   assert.equal(vertical.lanes[0].crossSizePx, 244, "vertical compact tracks reserve the full bubble width with tighter padding");
 });
 
-test("blank plans copy a catalog skill snapshot only when the player first selects it", () => {
-  const plan = createBlankPlan();
-  const skill = SEED_CATALOG.playerSkills.find((item) => item.enabled)!;
-  assert.equal(plan.definitions.skills.length, 0);
-  const copied = ensureCatalogSkillSnapshot(plan, SEED_CATALOG, skill.id);
-  assert.equal(plan.definitions.skills.length, 1);
-  assert.equal(copied.id, skill.id);
-  assert.equal(copied.variants.length, skill.variants.length);
-  assert.equal("enabled" in copied, false);
-  assert.equal(plan.sources.length, 1);
-  assert.equal(copied.origin?.sourceId, plan.sources[0].id);
-  assert.equal(ensureCatalogSkillSnapshot(plan, SEED_CATALOG, skill.id), copied);
-  assert.equal(plan.definitions.skills.length, 1);
-  assert.equal(catalogDifference(plan, SEED_CATALOG).versionChanged, false);
-
-  const nextRelease = structuredClone(SEED_CATALOG);
-  nextRelease.manifest.version = "test-next-catalog";
-  nextRelease.playerSkills.find((item) => item.id === skill.id)!.cooldownMs = 150_000;
-  const difference = catalogDifference(plan, nextRelease);
-  assert.equal(difference.versionChanged, true);
-  assert.equal(difference.changedSkills, 1);
-  const upgraded = upgradeCatalogSkillSnapshots(plan, nextRelease);
-  assert.equal(upgraded.definitions.skills.length, 1);
-  assert.equal(upgraded.definitions.skills[0].cooldownMs, 150_000);
-  const latestSource = upgraded.sources.at(-1);
-  assert.equal(latestSource?.kind, "catalog");
-  assert.equal(latestSource?.kind === "catalog" ? latestSource.catalogVersion : undefined, "test-next-catalog");
-});
-
 function combatLogFixture(): CombatLogSnapshot {
   return {
     schemaVersion: 1,
@@ -537,5 +559,5 @@ test("view helpers keep fit zoom, responsive orientation and one-second drag ali
   assert.ok(adaptiveTickMs(2) >= 30_000);
   const plan = populatedPlan();
   assert.equal(timelineRangeMs(plan), buildTimelineScene(plan).durationMs);
-  assert.equal(timelineContentEnd(plan), 80_000);
+  assert.equal(timelineContentEnd(plan), 78000);
 });

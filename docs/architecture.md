@@ -14,10 +14,11 @@
           ▼
 应用规则层
   lib/core.ts       冲突、技能执行区间、撤销相关业务、MRT 阅读版
-  lib/catalog.ts    目录 release、预设复制、计划快照和升级差异
+  lib/catalog.ts    目录 release、预设和机制快照复制
+  lib/player-skill-library.ts 全局内置技能库入口
   lib/publications.ts 发布/覆盖/删除及内容哈希
   lib/player-skill-extraction.ts 匿名成员、技能与团队增益的纯转换
-  lib/plan-presentation.ts 非破坏性文案与效果显示
+  lib/plan-presentation.ts 技能效果说明
           │
           ▼
 领域层
@@ -38,10 +39,10 @@
 ### 新建和编辑
 
 1. 首页从空白计划或 catalog preset 创建 `RaidPlanDocument`。
-2. 编辑器修改计划内定义、roster 和 timeline；技能/机制首次使用时复制完整定义快照。
+2. 编辑器修改计划内机制快照、roster 和 timeline；玩家技能只引用全局库 ID，不保存定义、天赋或变体。
 3. 300ms 防抖写入 IndexedDB 工作副本；定时和破坏性操作前写入 checkpoint。
 4. `buildTimelineScene` 解析 anchor、计算范围和轨道，页面不直接解释完整计划。
-5. `validatePlanSemantics` 把循环、悬空引用和职业不匹配分成阻断错误或可保留警告。
+5. `validatePlanSemantics` 把悬空引用和职业不匹配分成阻断错误或可保留警告，并提供所属对象类型以打开对应编辑器。
 
 ### 发布和分享
 
@@ -52,6 +53,8 @@
 ```
 
 发布对象只保存 v1 计划快照、`shareId`、`editId`、版本、时间和哈希。只读 `/s/{shareId}` 不提供编辑动作；编辑链接把服务器版本复制到浏览器后继续本地编辑。覆盖和删除均需显式调用 API。
+
+编辑器、分享页、WCL 预览和发布校验在应用边界读取当前目录，并把全局技能库传给纯业务函数。离线使用已缓存目录，无缓存时回退到 `PLAYER_SKILLS`。技能库不进入计划哈希；目录更新会改变既有计划和分享的技能显示、默认时长及冷却判断。机制快照和 WCL 单次观测时长保持计划事实。当前 IndexedDB 为新的 `raidline` 命名空间，不接入旧测试数据库。
 
 ### WCL 边界（当前阶段）
 
@@ -105,7 +108,7 @@
 
 没有精确 profile 时返回“尚未配置该遭遇”，不得回退为按技能名、法术 ID 或其他 Boss profile 猜测转换。Boss 机制、阶段信号、敌方事件选择、事件关联与去重只属于 encounter profile。
 
-个人减伤、治疗等玩家技能采用另一条全局规则链：独立、版本化的 `PlayerSkillExtractionProfile` 引用全局玩家技能定义，在 fight 元数据与难度校验后统一应用。当前使用全局 v2 修订，保留 v1 原文；反魔法领域使用用户确认的成功施法例外，其余规则仍需生效佐证。玩家规则不复制到每个 encounter，也不能反向推断 Boss 机制。研究阶段的 Markdown、下载缓存和决定 JSON 只是制作材料；只有人工核准并纳入已发布 profile 的启用规则参与自动转换。
+个人减伤、治疗等玩家技能采用另一条全局规则链：独立、版本化的 `PlayerSkillExtractionProfile` 引用全局玩家技能定义，在 fight 元数据与难度校验后统一应用。当前仅保留全局 v2 修订；反魔法领域使用用户确认的成功施法例外，其余规则仍需生效佐证。读条技能还必须找到成功施法对应的开始记录。玩家规则不复制到每个 encounter，也不能反向推断 Boss 机制。研究阶段的 Markdown、下载缓存和决定 JSON 只是制作材料；只有人工核准并纳入已发布 profile 的启用规则参与自动转换。
 
 事件收录时必须把“是否生成时间轴对象”和“是否具有未来复盘价值”作为两个独立维度。当前优先完成 WCL 战斗记录到机制时间轴的转换；用于事件配对、标签、结果校验或未来复盘的事件可以保留标记，但不得因此自动生成时间轴对象。只有跨样本时间稳定、机制语义明确且有玩家处理价值的事件才进入时间轴；其余事件继续待审，不得猜测为 Boss 机制。
 
@@ -115,10 +118,10 @@
 
 - `RaidPlanDocument.schemaVersion === 1`；未知字段、旧版本、重复 ID、非整秒计划时间和超过 1 MB 的计划拒绝保存或发布。
 - `CatalogRelease.schemaVersion === 1`；预设不包含成员、策略组、执行者或技能安排。
-- 计划全局时间只持久化 `pull`、`phase` 和 `mechanic` 三类 `TimelineAnchor`。机制的 impact/end 默认从定义的施法与持续时间派生；WCL 导入实例可以保存整秒 `timing` 覆盖，以表达该轮实际判定和结束点。
+- 计划全局时间只持久化 `pull`、`phase` 两类 `TimelineAnchor`。机制的 impact/end 默认从定义的施法与持续时间派生；WCL 导入机制可以保存整秒 `timing` 覆盖。玩家安排只显示成功施法起点开始的单一区间，可保留 `observedDurationMs`，不推算 GCD 或覆盖。
 - 显示范围是所有可解析结束点加 30 秒后向上取整，限制在 2–120 分钟。
-- 计划中的技能/机制定义是快照；目录和来源删除不能破坏已存在计划。
-- 领域层保留全团、策略组、职责、小队、成员和继承机制目标的解析；当前技能界面仅允许全团／自己，成员分组与小队入口关闭。既有目标与分组原样保留，只有用户显式选择才覆盖，不做隐式迁移。
+- 计划中的机制定义是快照；玩家技能属于全局库。删除全局技能可能产生可修复的缺失技能诊断，不自动替换或删除安排。
+- 目标选择器只保留全团与指定成员。技能界面仅允许全团／自己；分组、天赋、机制绑定和提前提醒字段均被严格拒绝。删除成员级联删除其技能安排，保留并诊断执行者变空的任务。
 - 语义警告可以随本地工作副本保存；阻断错误阻止发布和导出。
 - 分享 ID 使用 16 位、编辑 ID 使用 4 位 `[0-9A-Za-z]`。
 
@@ -129,7 +132,7 @@
 | `.raidline-data/` 文件 `ObjectStore` 适配器 | 中国大陆 Linux 服务器的 SQLite + 内容寻址持久目录 | `ObjectStore`、发布哈希和 API 结果 |
 | 同步只读 WCL 探针、过滤分页与匿名导入 + 本地研究工具 | 异步任务 + 不可变快照库 + 对比计算 | `CombatLogSnapshot`、`PlanImportDraft`、`ComparisonRun` |
 | MRT 阅读版 | MRT/Kaze、NSRT、STT 导出器 | `ExportRequest → ExportResult` |
-| 内置 `data/catalog-seed.json` | 管理员发布 catalog release | `CatalogRelease`、计划内快照 |
+| 内置组合目录 | 管理员发布 catalog release | `CatalogRelease`、全局技能 ID、计划内机制快照 |
 | IndexedDB | 浏览器本地优先 + 服务器显式发布 | 工作副本/发布语义 |
 
 任何替换都应先添加契约测试，再实现适配器；不要让替换平台的类型渗入领域层。

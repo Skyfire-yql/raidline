@@ -36,8 +36,8 @@ function plan(title = "集成测试排轴") {
     metadata: { title },
     encounter: { id: randomUUID(), name: "集成测试首领", gameVersion: "retail-12.1" },
     sources: [],
-    definitions: { mechanics: [], skills: [] },
-    roster: { groups: [], members: [], memberSkills: [] },
+    definitions: { mechanics: [] },
+    roster: { members: [] },
     timeline: { phases: [{ id: randomUUID(), name: "P1", ordinal: 1, estimatedStartMs: 0 }], mechanics: [], directives: [], skillAssignments: [] },
   };
 }
@@ -88,7 +88,7 @@ test("Raidline renders and exposes strict v1 publication/catalog APIs", async ()
     assert.equal(created.response.status, 201);
     assert.match(created.payload.data.shareId, /^[0-9A-Za-z]{16}$/); assert.match(created.payload.data.editId, /^[0-9A-Za-z]{4}$/);
     assert.equal(created.payload.data.document.schemaVersion, 1); assert.equal(created.payload.data.document.metadata.title, "集成测试排轴");
-    assert.deepEqual(created.payload.data.document.timeline.directives, []); assert.deepEqual(created.payload.data.document.roster.memberSkills, []);
+    assert.deepEqual(created.payload.data.document.timeline.directives, []); assert.equal("memberSkills" in created.payload.data.document.roster, false);
     assert.equal("difficulty" in created.payload.data.document.encounter, false); assert.equal("durationMs" in created.payload.data.document.encounter, false);
 
     const read = await json(await fetch(`${base}/api/publications/${shareId}`));
@@ -112,8 +112,8 @@ test("Raidline renders and exposes strict v1 publication/catalog APIs", async ()
     assert.equal((await fetch(`${base}/api/publications`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ document: unknown }) })).status, 422);
 
     const catalog = await json(await fetch(`${base}/api/catalog/current`));
-    assert.equal(catalog.response.status, 200); assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v6"); assert.equal(catalog.payload.data.manifest.schemaVersion, 1);
-    assert.equal(catalog.payload.data.playerSkills.length, 73); assert.equal(catalog.payload.data.playerSkills.filter(skill => skill.enabled).length, 72); assert.equal(catalog.payload.data.bossMechanics.length, 13); assert.equal(catalog.payload.data.timelinePresets.length, 2);
+    assert.equal(catalog.response.status, 200); assert.equal(catalog.payload.data.manifest.version, "builtin-seed-v7"); assert.equal(catalog.payload.data.manifest.schemaVersion, 1);
+    assert.equal(catalog.payload.data.playerSkills.length, 72); assert.equal(catalog.payload.data.playerSkills.filter(skill => skill.enabled).length, 72); assert.equal(catalog.payload.data.bossMechanics.length, 13); assert.equal(catalog.payload.data.timelinePresets.length, 2);
     assert.equal(catalog.payload.data.timelinePresets[0].phases[0].ordinal, 1); assert.deepEqual(catalog.payload.data.timelinePresets[0].notes, []);
     const vashnikPreset = catalog.payload.data.timelinePresets.find((preset) => preset.encounter.externalIds?.wclEncounterId === 3455);
     assert.equal(vashnikPreset.enabled, true); assert.equal(vashnikPreset.mechanics.length, 76); assert.equal(vashnikPreset.notes.length, 1);

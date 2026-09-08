@@ -1,8 +1,8 @@
-import { parsePlanDocument, type MemberSelector, type MechanicDefinitionSnapshot, type MechanicOccurrence, type PlayerSkillDefinitionSnapshot, type RaidPlanDocument, type SkillTargetSelector } from "./types";
+import { PLAYER_SKILLS } from "./player-skill-library";
+import { parsePlanDocument, type MemberSelector, type PlayerSkillDefinition, type RaidPlanDocument } from "./types";
 import type { ExportDiagnostic, ExportRequest, ExportResult } from "./types";
-import { hasBlockingDiagnostics, resolveDirectiveTime, resolveMemberIds, resolveMechanicPoint, resolveSkillTargets, resolveTimelineAnchor, snapTimelineTime, validatePlanSemantics } from "./domain/timeline";
-import { resolveSkillForAssignment, skillBusyEndMs, skillEffectStartMs } from "./skills";
-import { skillAssignmentNoteText, tacticalDirectiveText } from "./plan-presentation";
+import { hasBlockingDiagnostics, resolveDirectiveTime, resolveMemberIds, resolveTimelineAnchor, snapTimelineTime, validatePlanSemantics } from "./domain/timeline";
+import { resolveSkillForAssignment } from "./skills";
 
 export { MAX_TIMELINE_MS, TIMELINE_SNAP_MS, assertPlanDocument, parsePlanDocument } from "./domain/schema";
 export { buildTimelineScene } from "./domain/view-model";
@@ -10,7 +10,6 @@ export { hasBlockingDiagnostics, moveAnchorTo, resolveDirectiveTime, resolveMemb
 export type { PlanDiagnostic } from "./domain/timeline";
 
 export const ALL_TARGETS: MemberSelector = { kind: "all" };
-export const INHERIT_TARGETS: SkillTargetSelector = { kind: "mechanic-targets" };
 
 export function makeId() {
   return crypto.randomUUID();
@@ -22,8 +21,8 @@ export function createBlankPlan(title = "新建团本排轴", initialPhaseId = m
     metadata: { title },
     encounter: { id: makeId(), name: "未指定首领", gameVersion: "retail" },
     sources: [],
-    definitions: { mechanics: [], skills: [] },
-    roster: { groups: [], members: [], memberSkills: [] },
+    definitions: { mechanics: [] },
+    roster: { members: [] },
     timeline: {
       phases: [{ id: initialPhaseId, name: "P1", ordinal: 1, estimatedStartMs: 0 }],
       mechanics: [],
@@ -50,72 +49,31 @@ export function snapTime(ms: number) {
   return snapTimelineTime(ms);
 }
 
-function mechanicDefinition(plan: RaidPlanDocument, occurrenceOrId: MechanicOccurrence | string) {
-  const occurrence = typeof occurrenceOrId === "string" ? plan.timeline.mechanics.find((item) => item.id === occurrenceOrId) : occurrenceOrId;
-  return occurrence ? plan.definitions.mechanics.find((item) => item.id === occurrence.definitionId) : undefined;
-}
-
-function isDefensiveCooldown(skill: PlayerSkillDefinitionSnapshot) {
-  return skill.effects.some((effect) => effect.type === "damageReduction" || effect.type === "absorb" || effect.type === "immunity" || effect.type === "maxHealth");
-}
-
-export function defaultAssignmentAnchor(plan: RaidPlanDocument, skill: PlayerSkillDefinitionSnapshot, mechanic: MechanicOccurrence) {
-  const impact = resolveMechanicPoint(plan, mechanic.id, "impact");
-  const definition = mechanicDefinition(plan, mechanic);
-  const periodic = definition?.damage.periodicAmount != null;
-  const lead = isDefensiveCooldown(skill) && !periodic ? 3000 : 0;
-  const desired = Math.max(0, (impact.ok ? impact.atMs : 0) - lead - (skill.castType === "cast" ? skill.castTimeMs ?? 0 : 0));
-  const base = resolveMechanicPoint(plan, mechanic.id, "impact");
-  return base.ok
-    ? { kind: "mechanic" as const, mechanicOccurrenceId: mechanic.id, point: "impact" as const, offsetMs: Math.round((desired - base.atMs) / 1000) * 1000 }
-    : { kind: "pull" as const, offsetMs: snapTime(desired) };
-}
-
 export interface ConflictWarning {
   assignmentId: string;
-  type: "ownership" | "target" | "coverage" | "cooldown" | "cast" | "gcd" | "anchor";
+  type: "cooldown";
   message: string;
 }
 
-export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
+export function detectConflicts(plan: RaidPlanDocument, library: readonly PlayerSkillDefinition[] = PLAYER_SKILLS): ConflictWarning[] {
   const warnings: ConflictWarning[] = [];
   const timed = plan.timeline.skillAssignments.flatMap((assignment) => {
     const resolved = resolveTimelineAnchor(plan, assignment.anchor);
     if (!resolved.ok) {
-      warnings.push({ assignmentId: assignment.id, type: "anchor", message: resolved.error.message });
       return [];
     }
     return [{ assignment, atMs: resolved.atMs }];
   }).sort((left, right) => left.atMs - right.atMs);
 
-  for (const { assignment, atMs } of timed) {
-    const member = plan.roster.members.find((item) => item.id === assignment.memberId);
-    const skill = resolveSkillForAssignment(plan, assignment);
-    if (!member || !skill) continue;
-    if (member.classSlug !== skill.classSlug || member.specSlug && skill.specSlugs.length > 0 && !skill.specSlugs.includes(member.specSlug)) warnings.push({ assignmentId: assignment.id, type: "ownership", message: `${member.name} 的职业或专精无法使用 ${skill.name}` });
-    const targetIds = skill.scope === "personal" ? [member.id] : resolveSkillTargets(plan, assignment);
-    if (skill.maxTargets != null && targetIds.length > skill.maxTargets) warnings.push({ assignmentId: assignment.id, type: "target", message: `${skill.name} 目标数 ${targetIds.length} 超过上限 ${skill.maxTargets}` });
-    if (assignment.anchor.kind === "mechanic" && isDefensiveCooldown(skill)) {
-      const impact = resolveMechanicPoint(plan, assignment.anchor.mechanicOccurrenceId, "impact");
-      const end = resolveMechanicPoint(plan, assignment.anchor.mechanicOccurrenceId, "end");
-      if (impact.ok && end.ok && skill.durationMs != null) {
-        const effectStart = skillEffectStartMs(atMs, skill);
-        if (effectStart > impact.atMs || effectStart + skill.durationMs < end.atMs) warnings.push({ assignmentId: assignment.id, type: "coverage", message: `${skill.name} 未完整覆盖关联机制` });
-      }
-    }
-  }
-
   const byMemberAndSkill = new Map<string, typeof timed>();
-  const byMember = new Map<string, typeof timed>();
   for (const item of timed) {
     const assignment = item.assignment;
     const key = `${assignment.memberId}:${assignment.skillDefinitionId}`;
     byMemberAndSkill.set(key, [...(byMemberAndSkill.get(key) ?? []), item]);
-    byMember.set(assignment.memberId, [...(byMember.get(assignment.memberId) ?? []), item]);
   }
   for (const assignments of byMemberAndSkill.values()) {
     const first = assignments[0];
-    const skill = first && resolveSkillForAssignment(plan, first.assignment);
+    const skill = first && resolveSkillForAssignment(first.assignment, library);
     if (!skill?.cooldownMs || skill.cooldownMs <= 0) continue;
     let charges = skill.maxCharges;
     const rechargeAt: number[] = [];
@@ -124,23 +82,12 @@ export function detectConflicts(plan: RaidPlanDocument): ConflictWarning[] {
         rechargeAt.shift();
         charges = Math.min(skill.maxCharges, charges + 1);
       }
-      if (charges <= 0) warnings.push({ assignmentId: item.assignment.id, type: "cooldown", message: `${skill.name} 按当前基础值计算充能尚未恢复；天赋、动态减冷却或重置未经确认时，仅作提示` });
+      if (charges <= 0) warnings.push({ assignmentId: item.assignment.id, type: "cooldown", message: `${skill.name} 冷却未恢复（按最短 ${skill.cooldownMs / 1000} 秒、${skill.maxCharges} 层充能计算）` });
       else {
         charges -= 1;
         const start = rechargeAt.at(-1) ?? item.atMs;
         rechargeAt.push(start + skill.cooldownMs);
       }
-    }
-  }
-  for (const assignments of byMember.values()) {
-    for (let index = 1; index < assignments.length; index += 1) {
-      const previous = assignments[index - 1];
-      const current = assignments[index];
-      const previousSkill = resolveSkillForAssignment(plan, previous.assignment);
-      const currentSkill = resolveSkillForAssignment(plan, current.assignment);
-      if (!previousSkill || !currentSkill) continue;
-      if (current.atMs < skillBusyEndMs(previous.atMs, previousSkill)) warnings.push({ assignmentId: current.assignment.id, type: "cast", message: "同一成员的施法或引导区间重叠" });
-      if (previousSkill.triggersGcd && currentSkill.triggersGcd && current.atMs - previous.atMs < 1500) warnings.push({ assignmentId: current.assignment.id, type: "gcd", message: "两项占用 GCD 的技能相隔不足 1.5 秒" });
     }
   }
   return warnings;
@@ -153,7 +100,7 @@ function selectorLabel(plan: RaidPlanDocument, selector: MemberSelector) {
 
 export function exportPlan(request: ExportRequest): ExportResult {
   const plan = parsePlanDocument(request.document);
-  const semantic = validatePlanSemantics(plan);
+  const semantic = validatePlanSemantics(plan, request.skillLibrary);
   const diagnostics: ExportDiagnostic[] = semantic.map((item) => ({ code: item.code, severity: item.severity, message: item.message, ...(item.objectId ? { objectId: item.objectId } : {}) }));
   const omittedObjectIds: string[] = [];
   if (hasBlockingDiagnostics(semantic)) return { target: request.target, text: "", diagnostics, omittedObjectIds: semantic.filter((item) => item.severity === "error" && item.objectId).map((item) => item.objectId!) };
@@ -180,39 +127,31 @@ export function exportPlan(request: ExportRequest): ExportResult {
       omittedObjectIds.push(directive.id);
       continue;
     }
-    timedRows.push({ atMs: resolved.atMs, id: directive.id, text: directive.kind === "task" ? `${selectorLabel(plan, directive.assignees)} — ${tacticalDirectiveText(directive)}` : tacticalDirectiveText(directive) });
+    timedRows.push({ atMs: resolved.atMs, id: directive.id, text: directive.kind === "task" ? `${selectorLabel(plan, directive.assignees)} — ${directive.text}` : directive.text });
   }
   for (const assignment of plan.timeline.skillAssignments) {
     const resolved = resolveTimelineAnchor(plan, assignment.anchor);
     const member = plan.roster.members.find((item) => item.id === assignment.memberId);
-    const skill = resolveSkillForAssignment(plan, assignment);
+    const skill = resolveSkillForAssignment(assignment, request.skillLibrary);
     if (!resolved.ok || !member || !skill) {
       omittedObjectIds.push(assignment.id);
       continue;
     }
-    const note = skillAssignmentNoteText(assignment).trim();
+    const note = assignment.note.trim();
     const suffix = note ? `  # ${note}` : "";
-    timedRows.push({ atMs: resolved.atMs, id: assignment.id, text: `${member.name} — ${skill.selectedVariant?.name ?? skill.name}${suffix}` });
+    timedRows.push({ atMs: resolved.atMs, id: assignment.id, text: `${member.name} — ${skill.name}${suffix}` });
   }
   for (const row of timedRows.sort((a, b) => a.atMs - b.atMs || a.id.localeCompare(b.id))) lines.push(`{time:${formatTime(row.atMs)}} ${row.text}`);
   return { target: request.target, text: lines.join("\n"), diagnostics, omittedObjectIds };
 }
 
-export function createMechanicDefinition(name = "新机制"): MechanicDefinitionSnapshot {
-  return {
-    id: makeId(),
-    name,
-    description: "",
-    gameVersion: "retail",
-    abilityGameIds: [],
-    castTimeMs: 0,
-    durationMs: 0,
-    timelinePresentation: { parts: [{ kind: "marker", at: "cast-start", tone: "judgment", text: name }] },
-    damage: { school: "magic", directAmount: null, periodicAmount: null, periodicIntervalMs: null, tickOnStart: false },
-    defaultTargets: { kind: "all" },
-    severity: "warning",
-    color: "#cf3e3e",
-    dataStatus: "custom",
-    limitations: [],
+
+export function deleteRosterMember(plan: RaidPlanDocument, memberId: string) {
+  plan.roster.members = plan.roster.members.filter(item => item.id !== memberId);
+  plan.timeline.skillAssignments = plan.timeline.skillAssignments.filter(item => item.memberId !== memberId);
+  const removeTarget = (selector: MemberSelector) => {
+    if (selector.kind === "members") selector.memberIds = selector.memberIds.filter(id => id !== memberId);
   };
+  for (const item of plan.timeline.skillAssignments) removeTarget(item.targets);
+  for (const item of plan.timeline.directives) if (item.kind === "task") removeTarget(item.assignees);
 }

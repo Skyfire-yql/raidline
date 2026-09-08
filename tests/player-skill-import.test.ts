@@ -8,8 +8,8 @@ import { extractPlayerSkillCandidates } from "../lib/player-skill-extraction.ts"
 import { playerSkillDefinitions, playerSkillExtractionProfiles } from "../lib/wcl-profile-registry.ts";
 import { selectWclImportContent } from "../lib/wcl-import.ts";
 import { buildTimelineScene } from "../lib/domain/view-model.ts";
-import { defaultSkillTargets, resolveSkillForAssignment, resolveSkillVariant, skillTargetMode, skillTargetsForMode } from "../lib/skills.ts";
-import { skillAssignmentNoteText, skillEffectText, tacticalDirectiveText } from "../lib/plan-presentation.ts";
+import { defaultSkillTargets, resolveSkillForAssignment, skillTargetMode, skillTargetsForMode } from "../lib/skills.ts";
+import { skillEffectText } from "../lib/plan-presentation.ts";
 import { WOW_CLASS_SPECS } from "../lib/cooldowns.ts";
 import { parsePlanDocument } from "../lib/types.ts";
 import { createPlanFromImportDraft } from "../lib/wcl-conversion.ts";
@@ -36,8 +36,7 @@ test("skill targets offer only all or self without rewriting existing selectors"
   const targets: SkillTargetSelector[] = [
     { kind: "all" }, { kind: "members", memberIds: [memberId] },
     { kind: "members", memberIds: [anotherMemberId] }, { kind: "members", memberIds: [memberId, anotherMemberId] },
-    { kind: "members", memberIds: [] }, { kind: "groups", groupIds: [crypto.randomUUID()] },
-    { kind: "roles", roles: ["healer"] }, { kind: "subgroups", subgroups: [1] }, { kind: "mechanic-targets" },
+    { kind: "members", memberIds: [] },
   ];
   for (const target of targets) {
     const before = JSON.stringify(target);
@@ -62,8 +61,8 @@ test("new WCL plans use all or self, independent of observed recipients, without
   const before = JSON.stringify(draft);
   const plan = createPlanFromImportDraft(source, draft);
   assert.equal(plan.timeline.skillAssignments.length, 2);
-  const personal = plan.timeline.skillAssignments.find(item => plan.definitions.skills.find(skill => skill.id === item.skillDefinitionId)?.scope === "personal")!;
-  const team = plan.timeline.skillAssignments.find(item => plan.definitions.skills.find(skill => skill.id === item.skillDefinitionId)?.scope === "team")!;
+  const personal = plan.timeline.skillAssignments.find(item => playerSkillDefinitions.find(skill => skill.id === item.skillDefinitionId)?.scope === "personal")!;
+  const team = plan.timeline.skillAssignments.find(item => playerSkillDefinitions.find(skill => skill.id === item.skillDefinitionId)?.scope === "team")!;
   assert.deepEqual(personal.targets, { kind: "members", memberIds: [personal.memberId] });
   assert.deepEqual(team.targets, { kind: "all" });
   assert.equal(JSON.stringify(draft), before);
@@ -85,7 +84,7 @@ test("Anti-Magic Zone imports successful casts without aura attribution and stil
   const result = extractPlayerSkillCandidates(input, playerSkillExtractionProfiles[0], playerSkillDefinitions);
   assert.equal(result.skillAssignmentCandidates.length, 2);
   assert.deepEqual(result.skillAssignmentCandidates.map(candidate => candidate.assignment.anchor.offsetMs), [10000, 10000]);
-  assert.ok(result.skillAssignmentCandidates.every(candidate => candidate.assignment.targets.kind === "all" && candidate.assignment.timing?.durationMs === 6000 && candidate.assignment.note === ""));
+  assert.ok(result.skillAssignmentCandidates.every(candidate => candidate.assignment.targets.kind === "all" && candidate.assignment.observedDurationMs === 6000 && candidate.assignment.note === ""));
   assert.ok(result.warnings.some(warning => warning.code === "PLAYER_SKILL_AFTER_DEATH"));
   assert.ok(!result.warnings.some(warning => warning.code === "PLAYER_SKILL_EFFECT_UNCONFIRMED"));
 });
@@ -100,43 +99,7 @@ test("the cast-only exception is versioned and limited to Anti-Magic Zone", () =
   const latest = playerSkillExtractionProfiles[0];
   assert.equal(latest.profileVersion, 2);
   assert.deepEqual(latest.extractionRules.filter(rule => "kind" in rule.confirmation).flatMap(rule => rule.match.abilityGameIds), [51052]);
-  const previous = playerSkillExtractionProfiles.find(profile => profile.profileVersion === 1)!;
-  const input = snapshot([event(10000, "cast-success", 51052)]);
-  input.actors[0] = actor(1, "DeathKnight", "blood");
-  assert.equal(extractPlayerSkillCandidates(input, previous, playerSkillDefinitions).skillAssignmentCandidates.length, 0);
-});
-
-test("presentation removes only generated text, preserves manual notes and never mutates a saved plan", () => {
-  const plan = createBlankPlan();
-  const result = extract([event(10000, "cast-success", 871), event(10001, "aura-applied", 871)]);
-  const assignment = result.skillAssignmentCandidates[0].assignment;
-  assignment.origin = { sourceId: crypto.randomUUID(), conversionRuleIds: [crypto.randomUUID()] };
-  assignment.note = "来源为 WCL 中已施放且找到生效证据的记录；建轴后的调整不再代表原始日志。结束时间采用基础持续时长，并非完整实测覆盖。不代表原团队的完整战术计划或所有受益目标。";
-  const note = { id: crypto.randomUUID(), kind: "note" as const, text: "嗜血类增益（至少 2 人同时生效的实测区间，不代表全员覆盖）", scope: { kind: "timed" as const, anchor: { kind: "pull" as const, offsetMs: 0 } }, durationMs: 40000, timelinePresentation: "team-buff-window" as const };
-  plan.roster.members = result.rosterCandidates.map(candidate => candidate.slot);
-  plan.definitions.skills = result.skillAssignmentCandidates.map(candidate => candidate.definition);
-  plan.timeline.skillAssignments = [assignment];
-  plan.timeline.directives = [note];
-  const before = JSON.stringify(plan);
-  assert.equal(skillAssignmentNoteText(assignment), "");
-  assert.equal(tacticalDirectiveText(note), "嗜血");
-  assert.equal(buildTimelineScene(plan).directives[0].text, "嗜血");
-  const exported = exportPlan({ target: "mrt-reading", document: plan });
-  assert.match(exported.text, /嗜血/);
-  assert.doesNotMatch(exported.text, /来源为 WCL|至少 2 人|实测区间/);
-  assert.equal(JSON.stringify(plan), before);
-  const manual = { ...assignment, note: "第一轮站门口" };
-  assert.equal(skillAssignmentNoteText(manual), manual.note);
-  assert.equal(skillAssignmentNoteText({ ...assignment, note: assignment.note + "我补充的安排" }), assignment.note + "我补充的安排");
-  assert.equal(skillAssignmentNoteText({ ...assignment, origin: undefined }), assignment.note);
-  assert.equal(tacticalDirectiveText({ ...note, text: "嗜血留到 P2" }), "嗜血留到 P2");
-});
-
-test("skill details show effect text instead of review limitations and respect effect-changing variants", () => {
-  const wings = playerSkillDefinitions.find(skill => skill.name === "复仇之怒")!;
-  assert.equal(skillEffectText(resolveSkillVariant(wings)), "神圣专精下强化治疗、伤害和爆击");
-  const crusader = wings.variants.find(variant => variant.name === "复仇十字军")!;
-  assert.equal(skillEffectText(resolveSkillVariant(wings, crusader.id)), "由攻击技能转化为附近最多 5 人治疗");
+  assert.equal(playerSkillExtractionProfiles.length, 1);
 });
 
 test("only active cast plus effect creates a skill candidate; repeats and passive auras do not", () => {
@@ -149,7 +112,7 @@ test("only active cast plus effect creates a skill candidate; repeats and passiv
   ]);
   assert.equal(result.skillAssignmentCandidates.length, 1);
   assert.equal(result.skillAssignmentCandidates[0].assignment.anchor.offsetMs, 10000);
-  assert.equal(result.skillAssignmentCandidates[0].assignment.timing?.durationMs, 8000);
+  assert.equal(result.skillAssignmentCandidates[0].assignment.observedDurationMs, 8000);
   assert.ok(result.warnings.some(w => w.code === "PLAYER_SKILL_EFFECT_UNCONFIRMED"));
 });
 
@@ -168,7 +131,46 @@ test("group healing folds ticks and accepts overheal as evidence", () => {
     event(22000, "healing", 64844, "player:2", "player:1"),
   ]);
   assert.equal(result.skillAssignmentCandidates.length, 1);
-  assert.equal(result.skillAssignmentCandidates[0].definition.spellId, 64843);
+  assert.equal(playerSkillDefinitions.find(skill => skill.id === result.skillAssignmentCandidates[0].assignment.skillDefinitionId)!.spellId, 64843);
+});
+
+test("a confirmed successful cast uses its own latest start and exports only the skill name", () => {
+  const source = snapshot([
+    event(1000, "cast-start", 32375, "player:2"), // cancelled, never succeeded
+    event(10000, "cast-start", 32375, "player:2"),
+    event(11000, "cast-success", 32375, "player:2"),
+    event(11001, "dispel", 32375, "player:2", "player:1"),
+    event(20000, "cast-start", 32375, "player:2"), // failed, no success
+    event(30000, "cast-success", 32375, "player:2"), // no start evidence; never use completion as cast start
+    event(30001, "dispel", 32375, "player:2", "player:1"),
+  ]);
+  const result = extractPlayerSkillCandidates(source, playerSkillExtractionProfiles[0], playerSkillDefinitions);
+  assert.deepEqual(result.skillAssignmentCandidates.map(item => item.assignment.anchor.offsetMs), [10000]);
+  assert.ok(result.warnings.some(item => item.code === "PLAYER_SKILL_START_UNCONFIRMED"));
+  assert.ok(!result.skillAssignmentCandidates[0].sourceEventKeys.includes(source.events[0].eventKey));
+  const plan = createBlankPlan();
+  plan.roster.members = result.rosterCandidates.map(item => item.slot);
+  plan.timeline.skillAssignments = result.skillAssignmentCandidates.map(item => item.assignment);
+  assert.equal(buildTimelineScene(plan).assignments[0].atMs, 10000);
+  assert.equal(resolveSkillForAssignment(plan.timeline.skillAssignments[0])?.name, "群体驱散");
+  const exported = exportPlan({ target: "mrt-reading", document: plan });
+  assert.match(exported.text, /\{time:00:10\} 牧师A — 群体驱散/);
+  assert.doesNotMatch(exported.text, /变体|天赋|基础版本/);
+});
+
+test("alternate observed spell timings use the shared definition without per-plan variants", () => {
+  const skill = playerSkillDefinitions.find(item => item.spellId === 31884)!;
+  assert.equal(skill.cooldownMs, 60000);
+  assert.equal(skillEffectText(skill), "神圣专精下强化治疗、伤害和爆击");
+  const source = snapshot([event(10000, "cast-success", 216331), event(10001, "aura-applied", 216331)]);
+  source.actors[0] = actor(1, "Paladin", "holy");
+  const result = extractPlayerSkillCandidates(source, playerSkillExtractionProfiles[0], playerSkillDefinitions);
+  assert.equal(result.skillAssignmentCandidates.length, 1);
+  const candidate = result.skillAssignmentCandidates[0];
+  assert.equal(candidate.assignment.skillDefinitionId, skill.id);
+  assert.equal(candidate.assignment.observedDurationMs, 15000);
+  assert.equal("variantId" in candidate.assignment, false);
+  assert.equal("definition" in candidate, false);
 });
 
 test("observed short cooldowns remain candidates without inventing talents or charges", () => {
@@ -177,7 +179,7 @@ test("observed short cooldowns remain candidates without inventing talents or ch
     event(40000, "cast-success", 871), event(40001, "aura-applied", 871),
   ]);
   assert.equal(result.skillAssignmentCandidates.length, 2);
-  assert.ok(result.warnings.some(w => w.code === "PLAYER_SKILL_COOLDOWN_UNCERTAIN"));
+  assert.equal(result.warnings.some(w => w.code === "PLAYER_SKILL_COOLDOWN_UNCERTAIN"), false);
 });
 
 test("casts after death require resurrection evidence and cannot fabricate extra cooldowns", () => {
@@ -198,14 +200,12 @@ test("explicit import selection prunes only deselected candidates and their unus
   const input = createBlankPlan();
   const result = extract([event(10000, "cast-success", 871), event(10001, "aura-applied", 871)]);
   input.roster.members = result.rosterCandidates.map(c => c.slot);
-  input.definitions.skills = [result.skillAssignmentCandidates[0].definition];
   input.timeline.skillAssignments = result.skillAssignmentCandidates.map(c => c.assignment);
-  input.roster.memberSkills = [{ memberId: input.roster.members[0].id, skillDefinitionId: input.definitions.skills[0].id, variantId: null }];
   const selected = selectWclImportContent(input, { mechanicIds: [], memberIds: [input.roster.members[1].id], assignmentIds: [] });
   assert.equal(selected.roster.members.length, 1);
   assert.equal(selected.timeline.skillAssignments.length, 0);
-  assert.equal(selected.definitions.skills.length, 0);
-  assert.equal(selected.roster.memberSkills.length, 0);
+  assert.equal("skills" in selected.definitions, false);
+
   assert.equal(input.timeline.skillAssignments.length, 1);
 });
 
@@ -237,9 +237,10 @@ test("every enabled rule enforces its explicit confirmation policy", () => {
     const confirmation = "kind" in rule.confirmation ? undefined : rule.confirmation;
     assert.equal(extractPlayerSkillCandidates(source, profile, playerSkillDefinitions).skillAssignmentCandidates.length, confirmation ? 0 : 1, `${rule.id}: cast only`);
     if (confirmation) source.events.push(event(10001, confirmation.eventTypes[0], confirmation.abilityGameIds[0]));
+    if (definition.castType === "cast") source.events.push(event(9000, "cast-start", rule.match.abilityGameIds[0]));
     const result = extractPlayerSkillCandidates(source, profile, playerSkillDefinitions);
     assert.equal(result.skillAssignmentCandidates.length, 1, rule.id);
-    assert.equal(result.skillAssignmentCandidates[0].assignment.variantId, rule.variantId);
+    assert.equal(result.skillAssignmentCandidates[0].assignment.skillDefinitionId, rule.definitionId);
     assert.equal(result.skillAssignmentCandidates[0].assignment.note, "");
   }
 });
@@ -257,21 +258,7 @@ test("resurrection reopens active casts and short fights clip imported effects",
   source.encounter.durationMs = 6000; source.source.fightEndReportMs = 6000;
   const result = extractPlayerSkillCandidates(source, playerSkillExtractionProfiles[0], playerSkillDefinitions);
   assert.equal(result.skillAssignmentCandidates.length, 1);
-  assert.equal(result.skillAssignmentCandidates[0].assignment.timing?.durationMs, 3000);
-});
-
-test("per-use variants resolve from the snapshot, not a second layer over the member variant", () => {
-  const plan = createBlankPlan();
-  const skill = structuredClone(playerSkillDefinitions.find(skill => skill.spellId === 871)!);
-  const base = { ...skill, enabled: undefined }; delete base.enabled;
-  const first = crypto.randomUUID(), second = crypto.randomUUID();
-  base.variants = [{ id: first, name: "双充能", description: "test", limitations: [], overrides: { maxCharges: 2 } }, { id: second, name: "持续变化", description: "test", limitations: [], overrides: { durationMs: 10000 } }];
-  plan.definitions.skills = [base]; plan.roster.members = extract([]).rosterCandidates.map(c => c.slot);
-  const memberId = plan.roster.members[0].id;
-  plan.roster.memberSkills = [{ memberId, skillDefinitionId: base.id, variantId: first }];
-  const assignment = { id: crypto.randomUUID(), memberId, skillDefinitionId: base.id, variantId: second, anchor: { kind: "pull" as const, offsetMs: 0 }, targets: { kind: "all" as const }, note: "", timing: { castTimeMs: 0, durationMs: 3000 } };
-  assert.equal(resolveSkillForAssignment(plan, assignment)?.maxCharges, 1);
-  assert.equal(resolveSkillForAssignment(plan, assignment)?.durationMs, 3000);
+  assert.equal(result.skillAssignmentCandidates[0].assignment.observedDurationMs, 3000);
 });
 
 test("stale selections and missing recipient dependencies fail explicitly", () => {
@@ -279,7 +266,6 @@ test("stale selections and missing recipient dependencies fail explicitly", () =
   assert.throws(() => selectWclImportContent(plan, { mechanicIds: [crypto.randomUUID()], memberIds: [], assignmentIds: [] }), /失效/);
   const result = extract([event(10000, "cast-success", 64843, "player:2"), event(10001, "healing", 64844, "player:2", "player:1")]);
   plan.roster.members = result.rosterCandidates.map(c => c.slot);
-  plan.definitions.skills = result.skillAssignmentCandidates.map(c => c.definition);
   plan.timeline.skillAssignments = result.skillAssignmentCandidates.map(c => c.assignment);
   assert.throws(() => selectWclImportContent(plan, { mechanicIds: [], memberIds: [plan.timeline.skillAssignments[0].memberId], assignmentIds: [plan.timeline.skillAssignments[0].id] }), /依赖/);
 });
